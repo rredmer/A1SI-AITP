@@ -4,13 +4,29 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_session
+from app.config import settings
+from app.database import async_session, get_session
 from app.services.exchange import ExchangeService
+from app.services.job import JobService
+from app.services.job_runner import JobRunner
 from app.services.market import MarketService
 from app.services.portfolio import PortfolioService
 from app.services.trading import TradingService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
+
+# Singleton job runner (shared across requests)
+_job_runner: JobRunner | None = None
+
+
+def get_job_runner() -> JobRunner:
+    global _job_runner
+    if _job_runner is None:
+        _job_runner = JobRunner(async_session, max_workers=settings.max_job_workers)
+    return _job_runner
+
+
+JobRunnerDep = Annotated[JobRunner, Depends(get_job_runner)]
 
 
 async def get_exchange_service() -> AsyncGenerator[ExchangeService, None]:
@@ -40,6 +56,11 @@ def get_trading_service(
     return TradingService(session, exchange)
 
 
+def get_job_service(session: SessionDep, runner: JobRunnerDep) -> JobService:
+    return JobService(session, runner)
+
+
 PortfolioServiceDep = Annotated[PortfolioService, Depends(get_portfolio_service)]
 MarketServiceDep = Annotated[MarketService, Depends(get_market_service)]
 TradingServiceDep = Annotated[TradingService, Depends(get_trading_service)]
+JobServiceDep = Annotated[JobService, Depends(get_job_service)]

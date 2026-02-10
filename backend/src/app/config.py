@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     exchange_api_key: str = ""
     exchange_api_secret: str = ""
 
+    max_job_workers: int = 2
+
+    @property
+    def platform_root(self) -> Path:
+        """Project root (parent of backend/)."""
+        return Path(__file__).resolve().parent.parent.parent.parent
+
     @property
     def is_dev(self) -> bool:
         return self.app_env == "development"

@@ -9,7 +9,19 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import engine
 from app.models import Base
-from app.routers import exchanges, market, portfolio, trading
+from app.routers import (
+    backtest,
+    data_pipeline,
+    exchanges,
+    indicators,
+    jobs,
+    market,
+    platform,
+    portfolio,
+    risk,
+    screening,
+    trading,
+)
 
 
 @asynccontextmanager
@@ -53,6 +65,13 @@ app.include_router(exchanges.router, prefix="/api")
 app.include_router(portfolio.router, prefix="/api")
 app.include_router(market.router, prefix="/api")
 app.include_router(trading.router, prefix="/api")
+app.include_router(jobs.router, prefix="/api")
+app.include_router(data_pipeline.router, prefix="/api")
+app.include_router(screening.router, prefix="/api")
+app.include_router(risk.router, prefix="/api")
+app.include_router(backtest.router, prefix="/api")
+app.include_router(indicators.router, prefix="/api")
+app.include_router(platform.router, prefix="/api")
 
 
 @app.get("/api/health")

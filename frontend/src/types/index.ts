@@ -60,3 +60,99 @@ export interface Order {
   created_at: string;
   updated_at: string;
 }
+
+// Background Job types
+export interface BackgroundJob {
+  id: string;
+  job_type: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  progress: number;
+  progress_message: string;
+  params: Record<string, unknown> | null;
+  result: Record<string, unknown> | null;
+  error: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+// Data Pipeline types
+export interface DataFileInfo {
+  exchange: string;
+  symbol: string;
+  timeframe: string;
+  rows: number;
+  start: string | null;
+  end: string | null;
+  file: string;
+}
+
+// Screening types
+export interface ScreenResult {
+  id: number;
+  job_id: string;
+  symbol: string;
+  timeframe: string;
+  strategy_name: string;
+  top_results: Record<string, unknown>[];
+  summary: Record<string, unknown>;
+  total_combinations: number;
+  created_at: string;
+}
+
+// Risk types
+export interface RiskStatus {
+  equity: number;
+  peak_equity: number;
+  drawdown: number;
+  daily_pnl: number;
+  total_pnl: number;
+  open_positions: number;
+  is_halted: boolean;
+  halt_reason: string;
+}
+
+export interface RiskLimits {
+  max_portfolio_drawdown: number;
+  max_single_trade_risk: number;
+  max_daily_loss: number;
+  max_open_positions: number;
+  max_position_size_pct: number;
+  max_correlation: number;
+  min_risk_reward: number;
+  max_leverage: number;
+}
+
+// Backtest types
+export interface BacktestResult {
+  id: number;
+  job_id: string;
+  framework: string;
+  strategy_name: string;
+  symbol: string;
+  timeframe: string;
+  timerange: string;
+  metrics: Record<string, unknown>;
+  trades: Record<string, unknown>[];
+  config: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface StrategyInfo {
+  name: string;
+  framework: string;
+  file_path: string;
+}
+
+// Platform types
+export interface FrameworkStatus {
+  name: string;
+  installed: boolean;
+  version: string | null;
+}
+
+export interface PlatformStatus {
+  frameworks: FrameworkStatus[];
+  data_files: number;
+  active_jobs: number;
+}

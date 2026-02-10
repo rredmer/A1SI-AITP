@@ -4,6 +4,10 @@ import {
   Wallet,
   BarChart3,
   ArrowLeftRight,
+  Database,
+  Search,
+  Shield,
+  Play,
   Settings,
 } from "lucide-react";
 
@@ -12,6 +16,10 @@ const navItems = [
   { to: "/portfolio", icon: Wallet, label: "Portfolio" },
   { to: "/market", icon: BarChart3, label: "Market" },
   { to: "/trading", icon: ArrowLeftRight, label: "Trading" },
+  { to: "/data", icon: Database, label: "Data" },
+  { to: "/screening", icon: Search, label: "Screening" },
+  { to: "/risk", icon: Shield, label: "Risk" },
+  { to: "/backtest", icon: Play, label: "Backtest" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
