@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip3:*)",
+      "Bash(node --version:*)",
+      "Bash(npm:*)",
+      "Bash(python3 -m pip:*)",
+      "Bash(python3:*)",
+      "Bash(dpkg:*)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node:*)",
+      "Bash(node --input-type=module -e:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx eslint:*)",
+      "Bash(chmod:*)",
+      "Bash(make lint:*)",
+      "Bash(make test:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(make build:*)",
+      "Bash(make:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(curl:*)",
+      "Bash(gh auth:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(gh repo create:*)"
+    ]
+  }
+}

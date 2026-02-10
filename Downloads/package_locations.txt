@@ -1,0 +1,8 @@
+Package Install Locations:
+======================================================================
+  freqtrade                 v2026.1            7.4 MB  /usr/local/lib/python3.12/dist-packages/freqtrade
+  nautilus_trader           v1.222.0         319.7 MB  /usr/local/lib/python3.12/dist-packages/nautilus_trader
+  vectorbt                  v0.28.4            8.6 MB  /usr/local/lib/python3.12/dist-packages/vectorbt
+  hftbacktest               v2.4.4            15.5 MB  /usr/local/lib/python3.12/dist-packages/hftbacktest
+  ccxt                      v4.5.37           60.9 MB  /usr/local/lib/python3.12/dist-packages/ccxt
+  talib                     v0.6.8            19.0 MB  /usr/local/lib/python3.12/dist-packages/talib
