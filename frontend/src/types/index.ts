@@ -200,6 +200,64 @@ export interface RegimePositionSize {
   primary_strategy: string;
 }
 
+// Paper Trading types
+export interface PaperTradingStatus {
+  running: boolean;
+  strategy: string | null;
+  pid: number | null;
+  started_at: string | null;
+  uptime_seconds: number;
+  exit_code: number | null;
+}
+
+export interface PaperTradingAction {
+  status: string;
+  strategy: string | null;
+  pid: number | null;
+  started_at: string | null;
+  error: string | null;
+}
+
+export interface PaperTrade {
+  trade_id?: number;
+  pair?: string;
+  stake_amount?: number;
+  amount?: number;
+  open_date?: string;
+  close_date?: string;
+  open_rate?: number;
+  close_rate?: number;
+  profit_ratio?: number;
+  profit_abs?: number;
+  is_open?: boolean;
+  [key: string]: unknown;
+}
+
+export interface PaperTradingProfit {
+  profit_all_coin?: number;
+  profit_all_percent?: number;
+  profit_closed_coin?: number;
+  profit_closed_percent?: number;
+  trade_count?: number;
+  closed_trade_count?: number;
+  winning_trades?: number;
+  losing_trades?: number;
+  [key: string]: unknown;
+}
+
+export interface PaperTradingPerformance {
+  pair: string;
+  profit: number;
+  count: number;
+  [key: string]: unknown;
+}
+
+export interface PaperTradingLogEntry {
+  timestamp: string;
+  event: string;
+  [key: string]: unknown;
+}
+
 // Platform types
 export interface FrameworkStatus {
   name: string;

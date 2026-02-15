@@ -3,7 +3,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { screeningApi } from "../api/screening";
 import { useJobPolling } from "../hooks/useJobPolling";
 import { ProgressBar } from "../components/ProgressBar";
-import type { BackgroundJob } from "../types";
 
 export function Screening() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);

@@ -9,6 +9,7 @@ import {
   Shield,
   Activity,
   Play,
+  PlayCircle,
   Settings,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ const navItems = [
   { to: "/risk", icon: Shield, label: "Risk" },
   { to: "/regime", icon: Activity, label: "Regime" },
   { to: "/backtest", icon: Play, label: "Backtest" },
+  { to: "/paper-trading", icon: PlayCircle, label: "Paper Trade" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

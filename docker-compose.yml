@@ -6,17 +6,26 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/data:/app/data
+      - ./backend/data:/app/backend/data
+      - ./data:/app/data
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   frontend:
     build:
       context: ./frontend
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
       - VITE_API_BASE_URL=http://backend:8000
