@@ -67,6 +67,11 @@ For development tasks, coordinate with the dev agency team:
 - **Marcus** (`/python-expert`) — FastAPI backend, database, exchange service, Python services
 - **Lena** (`/frontend-dev`) — React dashboard, charts, data visualization, TanStack Query
 - **Elena** (`/cloud-architect`) — Docker, Jetson deployment, infrastructure, security
+- **Nikolai** (`/security-engineer`) — Application security, API key management, exchange security, threat modeling
+- **Dara** (`/data-engineer`) — Data pipeline operations, ETL, data quality, Parquet optimization, feature store
+- **Jordan** (`/devops-engineer`) — CI/CD pipelines, monitoring, alerting, deployment automation, SRE
+- **Priya** (`/ml-engineer`) — FreqAI integration, ML model training, feature engineering, MLOps
+- **Riku** (`/code-reviewer`) — Code quality, pattern enforcement, technical debt, architectural consistency
 - **Sam** (`/docs-expert`) — Documentation, API specs, architecture docs, runbooks
 - **Taylor** (`/test-lead`) — Testing strategy, pytest + vitest, QA, performance testing
 

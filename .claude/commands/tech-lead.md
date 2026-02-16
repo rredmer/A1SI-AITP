@@ -59,6 +59,11 @@ When coordinating with the dev agency team, reference agents by name:
 - **Marcus** (`/python-expert`) — Python, FastAPI, REST APIs, database design, backend services
 - **Lena** (`/frontend-dev`) — React 19, TypeScript, Vite, TanStack Query, Tailwind, lightweight-charts, data visualization
 - **Elena** (`/cloud-architect`) — Docker, infrastructure, DevOps, security, Jetson deployment
+- **Nikolai** (`/security-engineer`) — Application security, API key management, exchange security, threat modeling
+- **Dara** (`/data-engineer`) — Data pipeline operations, ETL, data quality, Parquet optimization, feature store
+- **Jordan** (`/devops-engineer`) — CI/CD pipelines, monitoring, alerting, deployment automation, SRE
+- **Priya** (`/ml-engineer`) — FreqAI integration, ML model training, feature engineering, MLOps
+- **Riku** (`/code-reviewer`) — Code quality, pattern enforcement, technical debt, architectural consistency
 - **Sam** (`/docs-expert`) — Documentation, API specs, architecture docs, runbooks
 - **Taylor** (`/test-lead`) — Testing strategy, test automation, QA, performance testing
 
@@ -71,5 +76,6 @@ When coordinating with the financial analyst team, reference analysts by name:
 - **Quentin** (`/quant-dev`) — Algorithm development, signal research, backtesting, statistical modeling
 - **Mira** (`/strategy-engineer`) — Strategy automation, live trading systems, execution, monitoring
 - **Osman** (`/oss-architect`) — Open source trading framework analysis, integration, extension
+- **Priya** (`/ml-engineer`) — FreqAI integration, ML model training, feature engineering, MLOps
 
 $ARGUMENTS
