@@ -30,7 +30,7 @@ class RiskLimitsConfig(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     portfolio_id: Mapped[int] = mapped_column(index=True, unique=True)
     max_portfolio_drawdown: Mapped[float] = mapped_column(default=0.15)
-    max_single_trade_risk: Mapped[float] = mapped_column(default=0.02)
+    max_single_trade_risk: Mapped[float] = mapped_column(default=0.03)
     max_daily_loss: Mapped[float] = mapped_column(default=0.05)
     max_open_positions: Mapped[int] = mapped_column(default=10)
     max_position_size_pct: Mapped[float] = mapped_column(default=0.20)

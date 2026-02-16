@@ -23,7 +23,7 @@ logger = logging.getLogger("risk_manager")
 class RiskLimits:
     """Global risk parameters."""
     max_portfolio_drawdown: float = 0.15      # 15% max drawdown -> halt
-    max_single_trade_risk: float = 0.02       # 2% portfolio risk per trade
+    max_single_trade_risk: float = 0.03       # 3% portfolio risk per trade
     max_daily_loss: float = 0.05              # 5% max daily loss
     max_open_positions: int = 10
     max_position_size_pct: float = 0.20       # 20% max in single position
