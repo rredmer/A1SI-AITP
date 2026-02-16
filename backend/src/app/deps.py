@@ -10,8 +10,8 @@ from app.services.exchange import ExchangeService
 from app.services.job import JobService
 from app.services.job_runner import JobRunner
 from app.services.market import MarketService
-from app.services.portfolio import PortfolioService
 from app.services.paper_trading import PaperTradingService
+from app.services.portfolio import PortfolioService
 from app.services.regime import RegimeService
 from app.services.trading import TradingService
 

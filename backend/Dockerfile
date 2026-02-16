@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy backend package and install
 COPY backend/pyproject.toml backend/
 COPY backend/src/ backend/src/
-RUN pip install --no-cache-dir ./backend
+RUN pip install --no-cache-dir "./backend[analysis]" scipy
 
 # Copy platform modules (common.*, research.*, etc.)
 COPY common/ common/

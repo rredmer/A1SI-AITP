@@ -6,12 +6,9 @@ event logging, idempotent operations, error handling.
 """
 
 import asyncio
-import json
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock, patch
-
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # Ensure project root and backend/src on sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -23,7 +20,6 @@ if str(BACKEND_SRC) not in sys.path:
     sys.path.insert(0, str(BACKEND_SRC))
 
 from app.services.paper_trading import PaperTradingService
-
 
 # ── Helpers ───────────────────────────────────────────────────
 

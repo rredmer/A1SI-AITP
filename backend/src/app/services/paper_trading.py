@@ -9,6 +9,7 @@ Responsibilities:
     - Graceful shutdown on backend exit
 """
 
+import contextlib
 import json
 import logging
 import subprocess
@@ -19,7 +20,7 @@ from typing import Any
 
 import httpx
 
-from app.services.platform_bridge import get_freqtrade_dir, PROJECT_ROOT
+from app.services.platform_bridge import PROJECT_ROOT, get_freqtrade_dir
 
 logger = logging.getLogger("paper_trading")
 
@@ -277,10 +278,8 @@ class PaperTradingService:
                 for line in f:
                     line = line.strip()
                     if line:
-                        try:
+                        with contextlib.suppress(json.JSONDecodeError):
                             entries.append(json.loads(line))
-                        except json.JSONDecodeError:
-                            pass
         except OSError:
             return []
         return entries[-limit:]

@@ -6,9 +6,8 @@ current regime, history, recommendations, and error handling.
 """
 
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
@@ -22,10 +21,7 @@ BACKEND_SRC = Path(__file__).resolve().parent.parent / "src"
 if str(BACKEND_SRC) not in sys.path:
     sys.path.insert(0, str(BACKEND_SRC))
 
-from common.regime.regime_detector import Regime, RegimeDetector, RegimeState
-from common.regime.strategy_router import StrategyRouter
 from app.services.regime import RegimeService
-
 
 # ── Helpers ──────────────────────────────────────────────────
 
@@ -173,7 +169,6 @@ def mock_regime_service():
 async def regime_client(client, mock_regime_service):
     """Test client with mocked RegimeService."""
     from app.deps import get_regime_service
-
     from app.main import app
 
     app.dependency_overrides[get_regime_service] = lambda: mock_regime_service

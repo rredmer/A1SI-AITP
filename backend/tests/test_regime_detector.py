@@ -11,7 +11,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -23,7 +22,6 @@ from common.regime.regime_detector import (
     RegimeDetector,
     RegimeState,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────
 
@@ -387,7 +385,10 @@ class TestCompositeScoring:
         # After sustained downtrend, should eventually switch away from uptrend
         late_regimes = result["regime"].iloc[-50:].tolist()
         # Should have at least some non-uptrend regime
-        non_up = [r for r in late_regimes if r not in (Regime.STRONG_TREND_UP, Regime.WEAK_TREND_UP, Regime.UNKNOWN)]
+        non_up = [
+            r for r in late_regimes
+            if r not in (Regime.STRONG_TREND_UP, Regime.WEAK_TREND_UP, Regime.UNKNOWN)
+        ]
         assert len(non_up) > 0
 
     def test_hysteresis_configurable(self):

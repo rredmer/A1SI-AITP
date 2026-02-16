@@ -9,22 +9,19 @@ routing table, and custom routing config.
 import sys
 from pathlib import Path
 
-import pytest
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from common.regime.regime_detector import Regime, RegimeState
 from common.regime.strategy_router import (
-    CIV1,
     BMR,
+    CIV1,
     VB,
     RoutingDecision,
     StrategyRouter,
     StrategyWeight,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────
 
@@ -216,7 +213,7 @@ class TestRouterUtilities:
         router = StrategyRouter()
         table = router.get_routing_table()
         assert len(table) == 7  # One entry per regime (including UNKNOWN)
-        for regime_val, entry in table.items():
+        for _regime_val, entry in table.items():
             assert "primary" in entry
             assert "weights" in entry
             assert "position_modifier" in entry

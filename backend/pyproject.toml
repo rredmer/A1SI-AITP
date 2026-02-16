@@ -24,6 +24,7 @@ dependencies = [
 analysis = [
     "pandas>=2,<3",
     "numpy>=1.26,<2",
+    "scipy>=1.11,<2",
 ]
 dev = [
     "pytest>=8,<9",
@@ -42,6 +43,16 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "A", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/app/services/regime.py" = ["E402"]
+"tests/test_data_quality.py" = ["E402"]
+"tests/test_paper_trading.py" = ["E402"]
+"tests/test_regime_api.py" = ["E402"]
+"tests/test_regime_detector.py" = ["E402"]
+"tests/test_risk_manager.py" = ["E402"]
+"tests/test_strategy_router.py" = ["E402"]
+"tests/test_validation.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.10"

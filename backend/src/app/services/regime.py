@@ -17,8 +17,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from common.regime.regime_detector import RegimeDetector, RegimeConfig, RegimeState
-from common.regime.strategy_router import StrategyRouter, RoutingDecision
+from common.regime.regime_detector import RegimeDetector, RegimeState
+from common.regime.strategy_router import RoutingDecision, StrategyRouter
 from common.risk.risk_manager import RiskManager
 
 logger = logging.getLogger("regime_service")

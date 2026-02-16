@@ -210,7 +210,9 @@ class RiskManagementService:
         rm = self._build_risk_manager(limits_config, state)
         return rm.portfolio_heat_check()
 
-    async def record_metrics(self, portfolio_id: int, method: str = "parametric") -> RiskMetricHistory:
+    async def record_metrics(
+        self, portfolio_id: int, method: str = "parametric"
+    ) -> RiskMetricHistory:
         """Snapshot current VaR metrics into the history table."""
         state = await self._get_or_create_state(portfolio_id)
         limits_config = await self._get_or_create_limits(portfolio_id)
@@ -234,7 +236,9 @@ class RiskManagementService:
         await self._session.flush()
         return entry
 
-    async def get_metric_history(self, portfolio_id: int, hours: int = 168) -> list[RiskMetricHistory]:
+    async def get_metric_history(
+        self, portfolio_id: int, hours: int = 168
+    ) -> list[RiskMetricHistory]:
         """Return metric history snapshots for the last N hours."""
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         result = await self._session.execute(

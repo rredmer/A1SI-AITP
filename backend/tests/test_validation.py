@@ -22,18 +22,17 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from common.indicators.technical import adx
+from validate_bollinger_mean_reversion import bollinger_mr_signals
+from validate_crypto_investor_v1 import crypto_investor_v1_signals
+from validate_volatility_breakout import volatility_breakout_signals
 from validation_engine import (
-    check_gate2,
-    generate_synthetic_ohlcv,
-    GATE2_MIN_SHARPE,
     GATE2_MAX_DRAWDOWN,
+    GATE2_MIN_SHARPE,
     GATE2_MIN_TRADES_PER_YEAR,
     GATE2_PVALUE,
+    check_gate2,
+    generate_synthetic_ohlcv,
 )
-from validate_crypto_investor_v1 import crypto_investor_v1_signals
-from validate_bollinger_mean_reversion import bollinger_mr_signals
-from validate_volatility_breakout import volatility_breakout_signals
-
 
 # ── ADX Indicator Tests ───────────────────────────────────────
 
@@ -378,6 +377,7 @@ class TestIntegrationWithVBT:
 
     def test_save_and_load_report(self, tmp_path):
         import json
+
         from validation_engine import run_validation, save_report
 
         df = generate_synthetic_ohlcv(n=2000)

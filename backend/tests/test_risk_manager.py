@@ -17,13 +17,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from common.risk.risk_manager import (
-    PortfolioState,
     ReturnTracker,
     RiskLimits,
     RiskManager,
     VaRResult,
 )
-
 
 # ── ReturnTracker Tests ──────────────────────────────────────────
 
@@ -60,7 +58,7 @@ class TestReturnTracker:
         noise = np.random.randn(30) * 0.5
         correlated = base + noise
 
-        for b, c in zip(base, correlated):
+        for b, c in zip(base, correlated, strict=True):
             tracker.record_price("BTC/USDT", float(b))
             tracker.record_price("ETH/USDT", float(c))
 
@@ -96,7 +94,7 @@ class TestVaR:
         btc_prices = np.cumsum(np.random.randn(n) * 0.01) + 50000
         eth_prices = np.cumsum(np.random.randn(n) * 0.015) + 3000
 
-        for b, e in zip(btc_prices, eth_prices):
+        for b, e in zip(btc_prices, eth_prices, strict=True):
             tracker.record_price("BTC/USDT", float(b))
             tracker.record_price("ETH/USDT", float(e))
         return tracker
@@ -305,7 +303,7 @@ class TestCorrelationCheck:
         # SOL is fully independent
         sol_prices = 100 + np.cumsum(np.random.randn(50) * 2)
 
-        for b, e, s in zip(btc_prices, eth_prices, sol_prices):
+        for b, e, s in zip(btc_prices, eth_prices, sol_prices, strict=True):
             rm.return_tracker.record_price("BTC/USDT", float(b))
             rm.return_tracker.record_price("ETH/USDT", float(e))
             rm.return_tracker.record_price("SOL/USDT", float(s))
@@ -394,7 +392,7 @@ class TestVaREndpointSchemas:
         np.random.seed(42)
         btc_prices = np.cumsum(np.random.randn(100) * 500) + 50000
         eth_prices = np.cumsum(np.random.randn(100) * 30) + 3000
-        for b, e in zip(btc_prices, eth_prices):
+        for b, e in zip(btc_prices, eth_prices, strict=True):
             rm.return_tracker.record_price("BTC/USDT", float(b))
             rm.return_tracker.record_price("ETH/USDT", float(e))
         rm.register_trade("BTC/USDT", "buy", 0.1, 50000)
