@@ -8,7 +8,9 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.alert import AlertLog
 from app.models.risk import RiskLimitsConfig, RiskMetricHistory, RiskState, TradeCheckLog
+from app.services.notification import NotificationService
 from app.services.platform_bridge import ensure_platform_imports
 
 logger = logging.getLogger("risk_service")
@@ -147,6 +149,13 @@ class RiskManagementService:
         self._session.add(log_entry)
         await self._session.flush()
 
+        # Notify on rejection
+        if not approved:
+            await self.send_notification(
+                portfolio_id, "trade_rejected", "warning",
+                f"Trade REJECTED: {symbol} {side} x{size} @ {entry_price} — {reason}",
+            )
+
         return approved, reason
 
     async def calculate_position_size(
@@ -175,6 +184,10 @@ class RiskManagementService:
         rm.reset_daily()
         self._persist_state(rm, state)
         await self._session.commit()
+        await self.send_notification(
+            portfolio_id, "daily_reset", "info",
+            "Daily risk counters reset",
+        )
         return await self.get_status(portfolio_id)
 
     async def get_var(self, portfolio_id: int, method: str = "parametric") -> dict:
@@ -231,6 +244,90 @@ class RiskManagementService:
                 RiskMetricHistory.recorded_at >= cutoff,
             )
             .order_by(RiskMetricHistory.recorded_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def halt_trading(self, portfolio_id: int, reason: str) -> dict:
+        """Manually halt all trading for a portfolio."""
+        state = await self._get_or_create_state(portfolio_id)
+        state.is_halted = True
+        state.halt_reason = reason
+        await self._session.commit()
+        return {
+            "is_halted": True,
+            "halt_reason": reason,
+            "message": f"Trading halted: {reason}",
+        }
+
+    async def resume_trading(self, portfolio_id: int) -> dict:
+        """Resume trading for a portfolio (clear halt)."""
+        state = await self._get_or_create_state(portfolio_id)
+        state.is_halted = False
+        state.halt_reason = ""
+        await self._session.commit()
+        return {
+            "is_halted": False,
+            "halt_reason": "",
+            "message": "Trading resumed",
+        }
+
+    async def send_notification(
+        self,
+        portfolio_id: int,
+        event_type: str,
+        severity: str,
+        message: str,
+    ) -> None:
+        """Log an alert and attempt delivery via Telegram + webhook."""
+        # Always log locally
+        log_entry = AlertLog(
+            portfolio_id=portfolio_id,
+            event_type=event_type,
+            severity=severity,
+            message=message,
+            channel="log",
+            delivered=True,
+            error="",
+        )
+        self._session.add(log_entry)
+
+        # Try Telegram
+        delivered, error = await NotificationService.send_telegram(
+            f"[{severity.upper()}] {message}"
+        )
+        tg_log = AlertLog(
+            portfolio_id=portfolio_id,
+            event_type=event_type,
+            severity=severity,
+            message=message,
+            channel="telegram",
+            delivered=delivered,
+            error=error,
+        )
+        self._session.add(tg_log)
+
+        # Try webhook
+        delivered, error = await NotificationService.send_webhook(message, event_type)
+        wh_log = AlertLog(
+            portfolio_id=portfolio_id,
+            event_type=event_type,
+            severity=severity,
+            message=message,
+            channel="webhook",
+            delivered=delivered,
+            error=error,
+        )
+        self._session.add(wh_log)
+
+        await self._session.flush()
+
+    async def get_alerts(self, portfolio_id: int, limit: int = 50) -> list[AlertLog]:
+        """Return recent alert log entries."""
+        result = await self._session.execute(
+            select(AlertLog)
+            .where(AlertLog.portfolio_id == portfolio_id)
+            .order_by(AlertLog.created_at.desc())
+            .limit(limit)
         )
         return list(result.scalars().all())
 

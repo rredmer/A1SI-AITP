@@ -521,6 +521,39 @@ class TestTradeCheckLogSchemas:
         assert data.approved is True
         assert data.symbol == "BTC/USDT"
 
+    def test_civ1_stoploss_passes_threshold(self):
+        """CIV1 stoploss=-0.05 → 5% < max_single_trade_risk(0.03)*2=6% → passes."""
+        rm = RiskManager(RiskLimits(max_single_trade_risk=0.03))
+        stoploss = -0.05
+        entry = 50000
+        stop = entry * (1 + stoploss)  # 47500
+        approved, reason = rm.check_new_trade(
+            "BTC/USDT", "buy", 0.01, entry, stop_loss_price=stop
+        )
+        assert approved is True
+
+    def test_bmr_stoploss_passes_threshold(self):
+        """BMR stoploss=-0.04 → 4% < 6% → passes."""
+        rm = RiskManager(RiskLimits(max_single_trade_risk=0.03))
+        stoploss = -0.04
+        entry = 50000
+        stop = entry * (1 + stoploss)  # 48000
+        approved, reason = rm.check_new_trade(
+            "BTC/USDT", "buy", 0.01, entry, stop_loss_price=stop
+        )
+        assert approved is True
+
+    def test_vb_stoploss_passes_threshold(self):
+        """VB stoploss=-0.03 → 3% < 6% → passes."""
+        rm = RiskManager(RiskLimits(max_single_trade_risk=0.03))
+        stoploss = -0.03
+        entry = 50000
+        stop = entry * (1 + stoploss)  # 48500
+        approved, reason = rm.check_new_trade(
+            "BTC/USDT", "buy", 0.01, entry, stop_loss_price=stop
+        )
+        assert approved is True
+
     def test_trade_check_log_schema_nullable_stop_loss(self):
         """Verify stop_loss_price can be None."""
         from app.schemas.risk import TradeCheckLogRead

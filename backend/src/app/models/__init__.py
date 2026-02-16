@@ -1,3 +1,4 @@
+from app.models.alert import AlertLog
 from app.models.backtest import BacktestResult
 from app.models.base import Base
 from app.models.job import BackgroundJob
@@ -9,6 +10,7 @@ from app.models.strategy import Strategy
 from app.models.trading import Order
 
 __all__ = [
+    "AlertLog",
     "Base",
     "BackgroundJob",
     "BacktestResult",

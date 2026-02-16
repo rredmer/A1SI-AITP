@@ -2,7 +2,10 @@ from fastapi import APIRouter
 
 from app.deps import SessionDep
 from app.schemas.risk import (
+    AlertLogRead,
     EquityUpdateRequest,
+    HaltRequest,
+    HaltResponse,
     HeatCheckResponse,
     PositionSizeRequest,
     PositionSizeResponse,
@@ -98,6 +101,37 @@ async def record_metrics(
     portfolio_id: int, session: SessionDep, method: str = "parametric"
 ) -> object:
     return await _get_service(session).record_metrics(portfolio_id, method)
+
+
+@router.post("/{portfolio_id}/halt", response_model=HaltResponse)
+async def halt_trading(
+    portfolio_id: int, data: HaltRequest, session: SessionDep
+) -> dict:
+    svc = _get_service(session)
+    result = await svc.halt_trading(portfolio_id, data.reason)
+    await svc.send_notification(
+        portfolio_id, "halt", "critical",
+        f"Trading HALTED: {data.reason}",
+    )
+    return result
+
+
+@router.post("/{portfolio_id}/resume", response_model=HaltResponse)
+async def resume_trading(portfolio_id: int, session: SessionDep) -> dict:
+    svc = _get_service(session)
+    result = await svc.resume_trading(portfolio_id)
+    await svc.send_notification(
+        portfolio_id, "resume", "info",
+        "Trading RESUMED",
+    )
+    return result
+
+
+@router.get("/{portfolio_id}/alerts", response_model=list[AlertLogRead])
+async def get_alerts(
+    portfolio_id: int, session: SessionDep, limit: int = 50
+) -> list:
+    return await _get_service(session).get_alerts(portfolio_id, limit)
 
 
 @router.get("/{portfolio_id}/trade-log", response_model=list[TradeCheckLogRead])

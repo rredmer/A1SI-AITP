@@ -1,4 +1,6 @@
 
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -104,6 +106,30 @@ class RiskMetricHistoryRead(BaseModel):
     equity: float
     open_positions_count: int
     recorded_at: str
+
+    model_config = {"from_attributes": True}
+
+
+class HaltRequest(BaseModel):
+    reason: str
+
+
+class HaltResponse(BaseModel):
+    is_halted: bool
+    halt_reason: str
+    message: str
+
+
+class AlertLogRead(BaseModel):
+    id: int
+    portfolio_id: int
+    event_type: str
+    severity: str
+    message: str
+    channel: str
+    delivered: bool
+    error: str
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 

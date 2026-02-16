@@ -52,6 +52,10 @@ class VolatilityBreakout(IStrategy):
     timeframe = "1h"
     can_short = False
 
+    # ── Risk API integration ──
+    risk_api_url = "http://127.0.0.1:8000"
+    risk_portfolio_id = 1
+
     minimal_roi = {
         "0": 0.08,     # 8% ROI target
         "60": 0.05,    # 5% after 1 hour
@@ -159,6 +163,47 @@ class VolatilityBreakout(IStrategy):
 
         dataframe.loc[exit_rsi | exit_ema_cross, "exit_long"] = 1
         return dataframe
+
+    def confirm_trade_entry(
+        self,
+        pair: str,
+        order_type: str,
+        amount: float,
+        rate: float,
+        time_in_force: str,
+        current_time: datetime,
+        entry_tag: Optional[str],
+        side: str,
+        **kwargs,
+    ) -> bool:
+        """Gate trades through the backend risk API (fail-safe: reject)."""
+        try:
+            import requests
+
+            stop_loss_price = rate * (1 + self.stoploss)  # stoploss is negative
+            resp = requests.post(
+                f"{self.risk_api_url}/api/risk/{self.risk_portfolio_id}/check-trade",
+                json={
+                    "symbol": pair,
+                    "side": side,
+                    "size": amount,
+                    "entry_price": rate,
+                    "stop_loss_price": stop_loss_price,
+                },
+                timeout=5,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if not data.get("approved", False):
+                    logger.warning(f"Risk gate REJECTED {pair}: {data.get('reason')}")
+                    return False
+                logger.info(f"Risk gate approved {pair}")
+                return True
+            logger.warning(f"Risk API returned {resp.status_code}, rejecting trade")
+            return False
+        except Exception as e:
+            logger.error(f"Risk API unreachable ({e}), rejecting trade")
+            return False
 
     def custom_stoploss(
         self, pair, trade, current_time, current_rate, current_profit, after_fill, **kwargs

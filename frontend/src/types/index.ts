@@ -179,6 +179,24 @@ export interface TradeCheckLogEntry {
   checked_at: string;
 }
 
+export interface HaltResponse {
+  is_halted: boolean;
+  halt_reason: string;
+  message: string;
+}
+
+export interface AlertLogEntry {
+  id: number;
+  portfolio_id: number;
+  event_type: string;
+  severity: string;
+  message: string;
+  channel: string;
+  delivered: boolean;
+  error: string;
+  created_at: string;
+}
+
 // Backtest types
 export interface BacktestResult {
   id: number;

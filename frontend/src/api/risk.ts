@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { RiskStatus, RiskLimits, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry } from "../types";
+import type { RiskStatus, RiskLimits, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry, HaltResponse, AlertLogEntry } from "../types";
 
 export const riskApi = {
   getStatus: (portfolioId: number) =>
@@ -52,4 +52,13 @@ export const riskApi = {
 
   getTradeLog: (portfolioId: number, limit: number = 50) =>
     api.get<TradeCheckLogEntry[]>(`/risk/${portfolioId}/trade-log?limit=${limit}`),
+
+  haltTrading: (portfolioId: number, reason: string) =>
+    api.post<HaltResponse>(`/risk/${portfolioId}/halt`, { reason }),
+
+  resumeTrading: (portfolioId: number) =>
+    api.post<HaltResponse>(`/risk/${portfolioId}/resume`),
+
+  getAlerts: (portfolioId: number, limit: number = 50) =>
+    api.get<AlertLogEntry[]>(`/risk/${portfolioId}/alerts?limit=${limit}`),
 };

@@ -211,6 +211,59 @@ describe("RiskManagement - VaR History", () => {
   });
 });
 
+describe("RiskManagement - Kill Switch", () => {
+  it("shows Halt Trading button when not halted", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Halt Trading")).toBeInTheDocument();
+  });
+
+  it("shows confirmation input after clicking Halt Trading", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    const haltBtn = await screen.findByText("Halt Trading");
+    fireEvent.click(haltBtn);
+    expect(screen.getByPlaceholderText("Reason for halt...")).toBeInTheDocument();
+    expect(screen.getByText("Confirm Halt")).toBeInTheDocument();
+    expect(screen.getByText("Cancel")).toBeInTheDocument();
+  });
+
+  it("shows Resume Trading button when halted", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/risk/1/status": { ...mockStatus, is_halted: true, halt_reason: "emergency" },
+        "/api/risk/1/limits": mockLimits,
+        "/api/risk/1/var": mockVaR,
+        "/api/risk/1/heat-check": mockHeatCheckHealthy,
+        "/api/risk/1/metric-history": [],
+        "/api/risk/1/trade-log": [],
+        "/api/risk/1/alerts": [],
+      }),
+    );
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Resume Trading")).toBeInTheDocument();
+    expect(await screen.findByText(/TRADING HALTED/)).toBeInTheDocument();
+  });
+
+  it("shows halt reason in banner when halted", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/risk/1/status": { ...mockStatus, is_halted: true, halt_reason: "test reason" },
+        "/api/risk/1/limits": mockLimits,
+        "/api/risk/1/var": mockVaR,
+        "/api/risk/1/heat-check": mockHeatCheckHealthy,
+        "/api/risk/1/metric-history": [],
+        "/api/risk/1/trade-log": [],
+        "/api/risk/1/alerts": [],
+      }),
+    );
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText(/test reason/)).toBeInTheDocument();
+  });
+});
+
 describe("RiskManagement - Trade Audit Log", () => {
   beforeEach(() => {
     setupAllMocks();

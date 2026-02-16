@@ -23,6 +23,11 @@ class Settings(BaseSettings):
 
     max_job_workers: int = 2
 
+    # Notifications
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+    notification_webhook_url: str = ""
+
     @property
     def platform_root(self) -> Path:
         """Project root (parent of backend/)."""

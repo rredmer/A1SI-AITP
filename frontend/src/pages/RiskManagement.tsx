@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { riskApi } from "../api/risk";
-import type { RiskLimits, RiskStatus, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry } from "../types";
+import type { RiskLimits, RiskStatus, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry, AlertLogEntry } from "../types";
 
 export function RiskManagement() {
   const queryClient = useQueryClient();
@@ -42,6 +42,34 @@ export function RiskManagement() {
   const { data: tradeLog } = useQuery<TradeCheckLogEntry[]>({
     queryKey: ["risk-trade-log", portfolioId],
     queryFn: () => riskApi.getTradeLog(portfolioId, 50),
+  });
+
+  // Alert log query
+  const { data: alerts } = useQuery<AlertLogEntry[]>({
+    queryKey: ["risk-alerts", portfolioId],
+    queryFn: () => riskApi.getAlerts(portfolioId, 50),
+  });
+
+  // Halt/resume mutations
+  const [haltReason, setHaltReason] = useState("");
+  const [showHaltConfirm, setShowHaltConfirm] = useState(false);
+
+  const haltMutation = useMutation({
+    mutationFn: (reason: string) => riskApi.haltTrading(portfolioId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["risk-status", portfolioId] });
+      queryClient.invalidateQueries({ queryKey: ["risk-alerts", portfolioId] });
+      setShowHaltConfirm(false);
+      setHaltReason("");
+    },
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: () => riskApi.resumeTrading(portfolioId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["risk-status", portfolioId] });
+      queryClient.invalidateQueries({ queryKey: ["risk-alerts", portfolioId] });
+    },
   });
 
   // Limits editor state
@@ -182,15 +210,63 @@ export function RiskManagement() {
         />
       </div>
 
-      {status?.is_halted && (
-        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-          Trading halted: {status.halt_reason}
-          <button
-            onClick={() => resetMutation.mutate()}
-            className="ml-3 rounded bg-red-500/20 px-2 py-1 text-xs hover:bg-red-500/30"
-          >
-            Reset Daily
-          </button>
+      {/* Kill Switch Controls */}
+      {status?.is_halted ? (
+        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-red-400">
+              <span className="font-bold">TRADING HALTED:</span> {status.halt_reason}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => resumeMutation.mutate()}
+                disabled={resumeMutation.isPending}
+                className="rounded bg-green-500/20 px-3 py-1.5 text-sm font-medium text-green-400 hover:bg-green-500/30 disabled:opacity-50"
+              >
+                Resume Trading
+              </button>
+              <button
+                onClick={() => resetMutation.mutate()}
+                className="rounded bg-red-500/20 px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/30"
+              >
+                Reset Daily
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6">
+          {!showHaltConfirm ? (
+            <button
+              onClick={() => setShowHaltConfirm(true)}
+              className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/20"
+            >
+              Halt Trading
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+              <input
+                type="text"
+                placeholder="Reason for halt..."
+                value={haltReason}
+                onChange={(e) => setHaltReason(e.target.value)}
+                className="flex-1 rounded border border-red-500/30 bg-[var(--color-bg)] px-3 py-1.5 text-sm"
+              />
+              <button
+                onClick={() => haltReason && haltMutation.mutate(haltReason)}
+                disabled={!haltReason || haltMutation.isPending}
+                className="rounded bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+              >
+                Confirm Halt
+              </button>
+              <button
+                onClick={() => { setShowHaltConfirm(false); setHaltReason(""); }}
+                className="rounded bg-[var(--color-bg)] px-3 py-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -599,6 +675,62 @@ export function RiskManagement() {
         ) : (
           <p className="text-sm text-[var(--color-text-muted)]">
             No trade checks recorded yet. Use the Trade Checker above to validate trades.
+          </p>
+        )}
+      </div>
+      {/* Alert History */}
+      <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        <h3 className="mb-4 text-lg font-semibold">Alert History</h3>
+        {alerts && alerts.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
+                  <th className="pb-2 text-left">Time</th>
+                  <th className="pb-2 text-left">Event</th>
+                  <th className="pb-2 text-left">Severity</th>
+                  <th className="pb-2 text-left">Channel</th>
+                  <th className="pb-2 text-center">Delivered</th>
+                  <th className="pb-2 text-left">Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alerts.map((alert) => (
+                  <tr key={alert.id} className="border-b border-[var(--color-border)]/30">
+                    <td className="py-1.5 text-[var(--color-text-muted)]">
+                      {new Date(alert.created_at).toLocaleString()}
+                    </td>
+                    <td className="py-1.5 font-mono">{alert.event_type}</td>
+                    <td className="py-1.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          alert.severity === "critical"
+                            ? "bg-red-500/20 text-red-400"
+                            : alert.severity === "warning"
+                              ? "bg-yellow-500/20 text-yellow-400"
+                              : "bg-blue-500/20 text-blue-400"
+                        }`}
+                      >
+                        {alert.severity}
+                      </span>
+                    </td>
+                    <td className="py-1.5 font-mono">{alert.channel}</td>
+                    <td className="py-1.5 text-center">
+                      {alert.delivered ? (
+                        <span className="text-green-400">Yes</span>
+                      ) : (
+                        <span className="text-red-400" title={alert.error}>No</span>
+                      )}
+                    </td>
+                    <td className="py-1.5 max-w-xs truncate text-[var(--color-text-muted)]">{alert.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--color-text-muted)]">
+            No alerts recorded yet. Alerts are generated on trade rejections, halts, and daily resets.
           </p>
         )}
       </div>

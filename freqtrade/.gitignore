@@ -1,0 +1,2 @@
+# Live config contains real API keys — never commit
+config.live.json
