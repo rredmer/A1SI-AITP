@@ -10,16 +10,12 @@ import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Ensure project root and backend/src on sys.path
+# Ensure project root on sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-BACKEND_SRC = Path(__file__).resolve().parent.parent / "src"
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
-
-from app.services.paper_trading import PaperTradingService
+from trading.services.paper_trading import PaperTradingService
 
 # ── Helpers ───────────────────────────────────────────────────
 
@@ -62,7 +58,7 @@ class TestPaperTradingLifecycle:
         assert status["running"] is False
         assert status["uptime_seconds"] == 0
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_start_success(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -74,7 +70,7 @@ class TestPaperTradingLifecycle:
         assert "started_at" in result
         assert svc.is_running is True
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_start_already_running(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -84,7 +80,7 @@ class TestPaperTradingLifecycle:
         assert result["status"] == "already_running"
         assert result["strategy"] == "CryptoInvestorV1"
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_stop_running_process(self, mock_popen, tmp_path):
         proc = _mock_running_process()
         mock_popen.return_value = proc
@@ -103,7 +99,7 @@ class TestPaperTradingLifecycle:
         result = svc.stop()
         assert result["status"] == "not_running"
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_stop_force_kill_on_timeout(self, mock_popen, tmp_path):
         proc = _mock_running_process()
         proc.wait.side_effect = [subprocess.TimeoutExpired("cmd", 15), None]
@@ -117,7 +113,7 @@ class TestPaperTradingLifecycle:
         proc.terminate.assert_called_once()
         proc.kill.assert_called_once()
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_status_when_running(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -130,7 +126,7 @@ class TestPaperTradingLifecycle:
         assert status["uptime_seconds"] >= 0
         assert "started_at" in status
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_detects_process_exit(self, mock_popen, tmp_path):
         proc = _mock_running_process()
         mock_popen.return_value = proc
@@ -145,7 +141,7 @@ class TestPaperTradingLifecycle:
         assert status["running"] is False
         assert status["exit_code"] == 1
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_start_config_missing(self, mock_popen, tmp_path):
         svc = _make_service(tmp_path)
         with patch.object(Path, "exists", return_value=False):
@@ -153,7 +149,7 @@ class TestPaperTradingLifecycle:
         assert result["status"] == "error"
         assert "not found" in result["error"]
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_start_popen_fails(self, mock_popen, tmp_path):
         mock_popen.side_effect = FileNotFoundError("freqtrade not found")
         svc = _make_service(tmp_path)
@@ -193,7 +189,7 @@ class TestFreqtradeAPIProxy:
         result = asyncio.run(svc.get_balance())
         assert result == {}
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_open_trades_with_mock_api(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -212,7 +208,7 @@ class TestFreqtradeAPIProxy:
         assert len(result) == 2
         assert result[0]["pair"] == "BTC/USDT"
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_profit_with_mock_api(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -233,7 +229,7 @@ class TestFreqtradeAPIProxy:
         assert result["profit_all_fiat"] == 500.0
         assert result["trade_count"] == 15
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_performance_with_mock_api(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -251,7 +247,7 @@ class TestFreqtradeAPIProxy:
         result = asyncio.run(_test())
         assert len(result) == 2
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_api_returns_none_gracefully(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -274,7 +270,7 @@ class TestFreqtradeAPIProxy:
 
 
 class TestEventLog:
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_start_creates_log_entry(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -286,7 +282,7 @@ class TestEventLog:
         assert entries[0]["strategy"] == "CryptoInvestorV1"
         assert "timestamp" in entries[0]
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_stop_creates_log_entry(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -303,7 +299,7 @@ class TestEventLog:
         entries = svc.get_log_entries()
         assert entries == []
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_log_limit(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc = _make_service(tmp_path)
@@ -318,7 +314,7 @@ class TestEventLog:
         assert entries[0]["index"] == 7
         assert entries[2]["index"] == 9
 
-    @patch("app.services.paper_trading.subprocess.Popen")
+    @patch("trading.services.paper_trading.subprocess.Popen")
     def test_log_persists_across_instances(self, mock_popen, tmp_path):
         mock_popen.return_value = _mock_running_process()
         svc1 = _make_service(tmp_path)

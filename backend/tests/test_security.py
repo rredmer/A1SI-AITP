@@ -63,6 +63,9 @@ class TestSecurity:
             {"name": "Audit Test"},
             format="json",
         )
-        # Give background thread a moment
-        time.sleep(0.5)
+        # Give background thread time to flush (slower on ARM64)
+        for _ in range(10):
+            time.sleep(0.5)
+            if AuditLog.objects.filter(action__contains="POST").exists():
+                break
         assert AuditLog.objects.filter(action__contains="POST").exists()

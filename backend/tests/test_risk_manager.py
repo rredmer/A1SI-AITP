@@ -437,41 +437,42 @@ class TestVaREndpointSchemas:
 class TestRiskMetricHistorySchemas:
     def test_metric_history_model_fields(self):
         """Verify RiskMetricHistory model has all required columns."""
-        from app.models.risk import RiskMetricHistory
+        from risk.models import RiskMetricHistory
 
-        mapper = RiskMetricHistory.__mapper__
-        column_names = {c.key for c in mapper.column_attrs}
+        field_names = {f.name for f in RiskMetricHistory._meta.get_fields()}
         required = {
             "id", "portfolio_id", "var_95", "var_99", "cvar_95", "cvar_99",
             "method", "drawdown", "equity", "open_positions_count", "recorded_at",
         }
-        assert required.issubset(column_names)
+        assert required.issubset(field_names)
 
     def test_metric_history_table_name(self):
         """Verify the table name is correct."""
-        from app.models.risk import RiskMetricHistory
+        from risk.models import RiskMetricHistory
 
-        assert RiskMetricHistory.__tablename__ == "risk_metric_history"
+        assert RiskMetricHistory._meta.db_table == "risk_riskmetrichistory"
 
-    def test_metric_history_schema_serializes(self):
-        """Verify the Pydantic read schema accepts valid data."""
-        from app.schemas.risk import RiskMetricHistoryRead
+    def test_metric_history_serializer_validates(self):
+        """Verify the DRF serializer accepts valid data."""
+        from risk.serializers import RiskMetricHistorySerializer
 
-        data = RiskMetricHistoryRead(
-            id=1,
-            portfolio_id=1,
-            var_95=250.50,
-            var_99=420.75,
-            cvar_95=310.20,
-            cvar_99=530.40,
-            method="parametric",
-            drawdown=0.02,
-            equity=10000.0,
-            open_positions_count=2,
-            recorded_at="2026-02-15T12:00:00Z",
-        )
-        assert data.var_95 == 250.50
-        assert data.method == "parametric"
+        data = {
+            "id": 1,
+            "portfolio_id": 1,
+            "var_95": 250.50,
+            "var_99": 420.75,
+            "cvar_95": 310.20,
+            "cvar_99": 530.40,
+            "method": "parametric",
+            "drawdown": 0.02,
+            "equity": 10000.0,
+            "open_positions_count": 2,
+            "recorded_at": "2026-02-15T12:00:00Z",
+        }
+        serializer = RiskMetricHistorySerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["var_95"] == 250.50
+        assert serializer.validated_data["method"] == "parametric"
 
 
 # ── Trade Check Log Schema Tests ──────────────────────────────────
@@ -480,44 +481,45 @@ class TestRiskMetricHistorySchemas:
 class TestTradeCheckLogSchemas:
     def test_trade_check_log_model_fields(self):
         """Verify TradeCheckLog model has all required columns."""
-        from app.models.risk import TradeCheckLog
+        from risk.models import TradeCheckLog
 
-        mapper = TradeCheckLog.__mapper__
-        column_names = {c.key for c in mapper.column_attrs}
+        field_names = {f.name for f in TradeCheckLog._meta.get_fields()}
         required = {
             "id", "portfolio_id", "symbol", "side", "size", "entry_price",
             "stop_loss_price", "approved", "reason", "equity_at_check",
             "drawdown_at_check", "open_positions_at_check", "checked_at",
         }
-        assert required.issubset(column_names)
+        assert required.issubset(field_names)
 
     def test_trade_check_log_table_name(self):
         """Verify the table name is correct."""
-        from app.models.risk import TradeCheckLog
+        from risk.models import TradeCheckLog
 
-        assert TradeCheckLog.__tablename__ == "trade_check_log"
+        assert TradeCheckLog._meta.db_table == "risk_tradechecklog"
 
-    def test_trade_check_log_schema_serializes(self):
-        """Verify the Pydantic read schema accepts valid data."""
-        from app.schemas.risk import TradeCheckLogRead
+    def test_trade_check_log_serializer_validates(self):
+        """Verify the DRF serializer accepts valid data."""
+        from risk.serializers import TradeCheckLogSerializer
 
-        data = TradeCheckLogRead(
-            id=1,
-            portfolio_id=1,
-            symbol="BTC/USDT",
-            side="buy",
-            size=0.1,
-            entry_price=50000.0,
-            stop_loss_price=48000.0,
-            approved=True,
-            reason="approved",
-            equity_at_check=10000.0,
-            drawdown_at_check=0.02,
-            open_positions_at_check=0,
-            checked_at="2026-02-15T12:00:00Z",
-        )
-        assert data.approved is True
-        assert data.symbol == "BTC/USDT"
+        data = {
+            "id": 1,
+            "portfolio_id": 1,
+            "symbol": "BTC/USDT",
+            "side": "buy",
+            "size": 0.1,
+            "entry_price": 50000.0,
+            "stop_loss_price": 48000.0,
+            "approved": True,
+            "reason": "approved",
+            "equity_at_check": 10000.0,
+            "drawdown_at_check": 0.02,
+            "open_positions_at_check": 0,
+            "checked_at": "2026-02-15T12:00:00Z",
+        }
+        serializer = TradeCheckLogSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["approved"] is True
+        assert serializer.validated_data["symbol"] == "BTC/USDT"
 
     def test_civ1_stoploss_passes_threshold(self):
         """CIV1 stoploss=-0.05 → 5% < max_single_trade_risk(0.03)*2=6% → passes."""
@@ -552,24 +554,25 @@ class TestTradeCheckLogSchemas:
         )
         assert approved is True
 
-    def test_trade_check_log_schema_nullable_stop_loss(self):
+    def test_trade_check_log_serializer_nullable_stop_loss(self):
         """Verify stop_loss_price can be None."""
-        from app.schemas.risk import TradeCheckLogRead
+        from risk.serializers import TradeCheckLogSerializer
 
-        data = TradeCheckLogRead(
-            id=2,
-            portfolio_id=1,
-            symbol="ETH/USDT",
-            side="buy",
-            size=1.0,
-            entry_price=3000.0,
-            stop_loss_price=None,
-            approved=False,
-            reason="Max open positions reached (10)",
-            equity_at_check=10000.0,
-            drawdown_at_check=0.0,
-            open_positions_at_check=10,
-            checked_at="2026-02-15T12:00:00Z",
-        )
-        assert data.stop_loss_price is None
-        assert data.approved is False
+        data = {
+            "id": 2,
+            "portfolio_id": 1,
+            "symbol": "ETH/USDT",
+            "side": "buy",
+            "size": 1.0,
+            "entry_price": 3000.0,
+            "stop_loss_price": None,
+            "approved": False,
+            "reason": "Max open positions reached (10)",
+            "equity_at_check": 10000.0,
+            "drawdown_at_check": 0.0,
+            "open_positions_at_check": 10,
+            "checked_at": "2026-02-15T12:00:00Z",
+        }
+        serializer = TradeCheckLogSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["stop_loss_price"] is None
