@@ -43,7 +43,7 @@ def convert_ohlcv_to_hft_ticks(
 
     Returns path to saved .npy file.
     """
-    from common.data_pipeline.pipeline import load_ohlcv
+    from common.data_pipeline.pipeline import load_ohlcv, to_hftbacktest_ticks
 
     df = load_ohlcv(symbol, timeframe, exchange)
     if df.empty:
@@ -51,37 +51,7 @@ def convert_ohlcv_to_hft_ticks(
         return None
 
     logger.info(f"Converting {len(df)} bars to synthetic ticks...")
-
-    ticks = []
-    for ts, row in df.iterrows():
-        ts_ns = int(ts.value)  # nanosecond timestamp
-
-        # Timeframe to nanosecond interval
-        tf_ns_map = {
-            "1m": 60_000_000_000,
-            "5m": 300_000_000_000,
-            "15m": 900_000_000_000,
-            "1h": 3_600_000_000_000,
-            "4h": 14_400_000_000_000,
-            "1d": 86_400_000_000_000,
-        }
-        interval_ns = tf_ns_map.get(timeframe, 3_600_000_000_000)
-        quarter = interval_ns // 4
-
-        # 4 ticks per bar: Open, High, Low, Close
-        # side: +1 buy, -1 sell (synthetic: up moves are buys)
-        open_p = float(row["open"])
-        high_p = float(row["high"])
-        low_p = float(row["low"])
-        close_p = float(row["close"])
-        vol = float(row["volume"]) / 4  # Distribute volume
-
-        ticks.append([ts_ns, open_p, vol, 1])
-        ticks.append([ts_ns + quarter, high_p, vol, 1])
-        ticks.append([ts_ns + 2 * quarter, low_p, vol, -1])
-        ticks.append([ts_ns + 3 * quarter, close_p, 1 if close_p >= open_p else -1])
-
-    tick_array = np.array(ticks, dtype=np.float64)
+    tick_array = to_hftbacktest_ticks(df, timeframe)
 
     safe_symbol = symbol.replace("/", "")
     output_path = TICKS_DIR / f"{exchange}_{safe_symbol}_{timeframe}_ticks.npy"
@@ -111,7 +81,7 @@ def run_hft_backtest(
     and computes performance metrics.
     """
     from hftbacktest.strategies import STRATEGY_REGISTRY
-    from nautilus.nautilus_runner import compute_performance_metrics
+    from common.metrics.performance import compute_performance_metrics
 
     if strategy_name not in STRATEGY_REGISTRY:
         available = ", ".join(STRATEGY_REGISTRY.keys())

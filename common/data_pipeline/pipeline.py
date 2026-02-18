@@ -588,17 +588,27 @@ def to_vectorbt_format(df: pd.DataFrame) -> pd.DataFrame:
     return df.copy()
 
 
-def to_hftbacktest_ticks(df: pd.DataFrame) -> np.ndarray:
+def to_hftbacktest_ticks(df: pd.DataFrame, timeframe: str = "1h") -> np.ndarray:
     """Convert OHLCV DataFrame to synthetic tick numpy arrays for hftbacktest.
 
     Generates 4 ticks per bar (O/H/L/C) with interpolated nanosecond timestamps.
     Returns array of shape (N*4, 4): [timestamp_ns, price, volume, side].
     Side: +1 = buy, -1 = sell. This is a development approximation.
     """
+    tf_ns_map = {
+        "1m": 60_000_000_000,
+        "5m": 300_000_000_000,
+        "15m": 900_000_000_000,
+        "1h": 3_600_000_000_000,
+        "4h": 14_400_000_000_000,
+        "1d": 86_400_000_000_000,
+    }
+    interval_ns = tf_ns_map.get(timeframe, 3_600_000_000_000)
+    quarter = interval_ns // 4
+
     ticks = []
     for ts, row in df.iterrows():
         ts_ns = int(ts.value)
-        quarter = 900_000_000_000  # 15min in ns (default quarter of 1h)
         vol = float(row["volume"]) / 4
 
         ticks.append([ts_ns, float(row["open"]), vol, 1])

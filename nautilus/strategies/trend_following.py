@@ -39,9 +39,10 @@ class NautilusTrendFollowing(NautilusStrategyBase):
         if ind.get("volume_ratio", 0) < 0.8:
             return False
 
-        # MACD momentum (histogram positive or turning)
+        # MACD momentum (histogram positive or turning positive)
         macd_hist = ind.get("macd_hist", 0)
-        if macd_hist <= 0:
+        macd_hist_prev = ind.get("macd_hist_prev", 0)
+        if macd_hist <= 0 and macd_hist <= macd_hist_prev:
             return False
 
         # Not near BB upper band (avoid chasing)

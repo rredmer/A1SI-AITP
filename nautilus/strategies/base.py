@@ -56,6 +56,7 @@ class NautilusStrategyBase:
         self.bars: deque = deque(maxlen=self.config.get("max_bars", MAX_BARS))
         self.position: Optional[dict] = None  # {side, entry_price, size, entry_time}
         self.trades: list[dict] = []
+        self.fee_rate = self.config.get("fee_rate", 0.001)  # 0.1% per side (taker)
         self.risk_api_url = self.config.get("risk_api_url", RISK_API_URL)
         self.risk_portfolio_id = self.config.get("risk_portfolio_id", RISK_PORTFOLIO_ID)
 
@@ -83,41 +84,13 @@ class NautilusStrategyBase:
                     }
         else:
             if self.should_exit(indicators):
-                exit_price = bar["close"]
-                pnl = (exit_price - self.position["entry_price"]) * self.position["size"]
-                pnl_pct = (exit_price / self.position["entry_price"]) - 1
-                trade = {
-                    "entry_time": self.position["entry_time"],
-                    "exit_time": bar["timestamp"],
-                    "side": self.position["side"],
-                    "entry_price": self.position["entry_price"],
-                    "exit_price": exit_price,
-                    "size": self.position["size"],
-                    "pnl": pnl,
-                    "pnl_pct": pnl_pct,
-                }
-                self.trades.append(trade)
-                self.position = None
-                return trade
+                return self._make_trade(bar["close"], bar)
 
             # Check stop loss
             current_price = bar["close"]
             loss_pct = (current_price / self.position["entry_price"]) - 1
             if loss_pct <= self.stoploss:
-                pnl = (current_price - self.position["entry_price"]) * self.position["size"]
-                trade = {
-                    "entry_time": self.position["entry_time"],
-                    "exit_time": bar["timestamp"],
-                    "side": self.position["side"],
-                    "entry_price": self.position["entry_price"],
-                    "exit_price": current_price,
-                    "size": self.position["size"],
-                    "pnl": pnl,
-                    "pnl_pct": loss_pct,
-                }
-                self.trades.append(trade)
-                self.position = None
-                return trade
+                return self._make_trade(current_price, bar)
 
         return None
 
@@ -125,23 +98,31 @@ class NautilusStrategyBase:
         """Flatten any open position at the last bar's close."""
         if self.position is not None and len(self.bars) > 0:
             last_bar = self.bars[-1]
-            exit_price = last_bar["close"]
-            pnl = (exit_price - self.position["entry_price"]) * self.position["size"]
-            pnl_pct = (exit_price / self.position["entry_price"]) - 1
-            trade = {
-                "entry_time": self.position["entry_time"],
-                "exit_time": last_bar["timestamp"],
-                "side": self.position["side"],
-                "entry_price": self.position["entry_price"],
-                "exit_price": exit_price,
-                "size": self.position["size"],
-                "pnl": pnl,
-                "pnl_pct": pnl_pct,
-            }
-            self.trades.append(trade)
-            self.position = None
-            return trade
+            return self._make_trade(last_bar["close"], last_bar)
         return None
+
+    def _make_trade(self, exit_price: float, bar: dict) -> dict:
+        """Build a trade dict with fee deduction."""
+        entry_price = self.position["entry_price"]
+        size = self.position["size"]
+        fee = (entry_price + exit_price) * size * self.fee_rate
+        raw_pnl = (exit_price - entry_price) * size
+        pnl = raw_pnl - fee
+        pnl_pct = (exit_price / entry_price) - 1 - (2 * self.fee_rate)
+        trade = {
+            "entry_time": self.position["entry_time"],
+            "exit_time": bar["timestamp"],
+            "side": self.position["side"],
+            "entry_price": entry_price,
+            "exit_price": exit_price,
+            "size": size,
+            "pnl": pnl,
+            "pnl_pct": pnl_pct,
+            "fee": fee,
+        }
+        self.trades.append(trade)
+        self.position = None
+        return trade
 
     def should_enter(self, indicators: pd.Series) -> bool:
         """Override in subclass: return True to enter a long position."""
@@ -164,7 +145,7 @@ class NautilusStrategyBase:
         result = df.copy()
 
         # EMAs
-        for p in [7, 14, 21, 50, 100, 200]:
+        for p in [7, 14, 20, 21, 50, 100, 200]:
             result[f"ema_{p}"] = ema(result["close"], p)
             result[f"sma_{p}"] = sma(result["close"], p)
 
@@ -176,6 +157,7 @@ class NautilusStrategyBase:
         result["macd"] = macd_df["macd"]
         result["macd_signal"] = macd_df["macd_signal"]
         result["macd_hist"] = macd_df["macd_hist"]
+        result["macd_hist_prev"] = macd_df["macd_hist"].shift(1)
 
         # Bollinger Bands
         bb = bollinger_bands(result["close"], 20, 2.0)
@@ -196,6 +178,8 @@ class NautilusStrategyBase:
 
         # N-period highs (for breakout)
         result["high_20"] = result["high"].rolling(window=20).max()
+        # Shifted variant excludes current bar (proper breakout detection)
+        result["high_20_prev"] = result["high"].shift(1).rolling(window=20).max()
 
         return result.iloc[-1]
 

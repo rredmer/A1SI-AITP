@@ -28,8 +28,8 @@ class NautilusVolatilityBreakout(NautilusStrategyBase):
     sell_rsi_threshold: int = 85
 
     def should_enter(self, ind: pd.Series) -> bool:
-        # Breakout: close above N-period high
-        high_n = ind.get("high_20", float("inf"))
+        # Breakout: close above previous N-period high (excludes current bar)
+        high_n = ind.get("high_20_prev", float("inf"))
         if ind.get("close", 0) <= high_n:
             return False
 
