@@ -1,6 +1,8 @@
 from django.urls import path
 
 from trading.views import (
+    LiveTradingStatusView,
+    OrderCancelView,
     OrderDetailView,
     OrderListView,
     PaperTradingBalanceView,
@@ -17,6 +19,8 @@ from trading.views import (
 urlpatterns = [
     path("trading/orders/", OrderListView.as_view(), name="order-list"),
     path("trading/orders/<int:order_id>/", OrderDetailView.as_view(), name="order-detail"),
+    path("trading/orders/<int:order_id>/cancel/", OrderCancelView.as_view(), name="order-cancel"),
+    path("live-trading/status/", LiveTradingStatusView.as_view(), name="live-trading-status"),
     path("paper-trading/status/", PaperTradingStatusView.as_view(), name="paper-trading-status"),
     path("paper-trading/start/", PaperTradingStartView.as_view(), name="paper-trading-start"),
     path("paper-trading/stop/", PaperTradingStopView.as_view(), name="paper-trading-stop"),

@@ -1,8 +1,8 @@
-"""Core views — health, platform status, platform config, CSRF failure."""
+"""Core views — health, platform status, platform config, metrics, CSRF failure."""
 
 import logging
 
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -62,6 +62,61 @@ class PlatformConfigView(APIView):
                 return Response(yaml.safe_load(f) or {})
         except ImportError:
             return Response({"raw": config_path.read_text()[:5000]})
+
+
+class NotificationPreferencesView(APIView):
+    def get(self, request: Request, portfolio_id: int) -> Response:
+        from core.models import NotificationPreferences
+        from core.serializers import NotificationPreferencesSerializer
+
+        prefs, _ = NotificationPreferences.objects.get_or_create(portfolio_id=portfolio_id)
+        return Response(NotificationPreferencesSerializer(prefs).data)
+
+    def put(self, request: Request, portfolio_id: int) -> Response:
+        from core.models import NotificationPreferences
+        from core.serializers import NotificationPreferencesSerializer
+
+        prefs, _ = NotificationPreferences.objects.get_or_create(portfolio_id=portfolio_id)
+        ser = NotificationPreferencesSerializer(prefs, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+
+class MetricsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request) -> HttpResponse:
+        from core.services.metrics import metrics
+        from risk.models import RiskState
+        from trading.models import Order, OrderStatus, TradingMode
+
+        # Snapshot current state into gauges
+        try:
+            live_orders = Order.objects.filter(
+                mode=TradingMode.LIVE,
+                status__in=[OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIAL_FILL],
+            ).count()
+            paper_orders = Order.objects.filter(
+                mode=TradingMode.PAPER,
+                status__in=[OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIAL_FILL],
+            ).count()
+            metrics.gauge("active_orders", live_orders, {"mode": "live"})
+            metrics.gauge("active_orders", paper_orders, {"mode": "paper"})
+        except Exception:
+            pass
+
+        try:
+            state = RiskState.objects.filter(portfolio_id=1).first()
+            if state:
+                metrics.gauge("portfolio_equity", state.total_equity)
+                peak = state.peak_equity if state.peak_equity > 0 else 1
+                metrics.gauge("portfolio_drawdown", 1.0 - (state.total_equity / peak))
+                metrics.gauge("risk_halt_active", 1.0 if state.is_halted else 0.0)
+        except Exception:
+            pass
+
+        return HttpResponse(metrics.collect(), content_type="text/plain; charset=utf-8")
 
 
 def _get_framework_status() -> list[dict]:

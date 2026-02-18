@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { riskApi } from "../api/risk";
+import { useSystemEvents } from "../hooks/useSystemEvents";
 import type { RiskLimits, RiskStatus, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry, AlertLogEntry } from "../types";
 
 export function RiskManagement() {
   const queryClient = useQueryClient();
+  const { isHalted: wsHalted, haltReason: wsHaltReason } = useSystemEvents();
   const [portfolioId, setPortfolioId] = useState(1);
 
   const { data: status } = useQuery<RiskStatus>({
@@ -128,6 +130,10 @@ export function RiskManagement() {
       queryClient.invalidateQueries({ queryKey: ["risk-status", portfolioId] }),
   });
 
+  // Prefer WS-driven halt status for instant feedback, fall back to query data
+  const effectiveHalted = wsHalted ?? status?.is_halted ?? false;
+  const effectiveHaltReason = wsHaltReason || status?.halt_reason || "";
+
   const drawdownPct = status ? (status.drawdown * 100).toFixed(2) : "0.00";
   const drawdownColor = status
     ? status.drawdown > 0.1
@@ -205,17 +211,17 @@ export function RiskManagement() {
         />
         <StatusCard
           label="Status"
-          value={status?.is_halted ? "HALTED" : "Active"}
-          className={status?.is_halted ? "text-red-400" : "text-green-400"}
+          value={effectiveHalted ? "HALTED" : "Active"}
+          className={effectiveHalted ? "text-red-400" : "text-green-400"}
         />
       </div>
 
       {/* Kill Switch Controls */}
-      {status?.is_halted ? (
+      {effectiveHalted ? (
         <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm text-red-400">
-              <span className="font-bold">TRADING HALTED:</span> {status.halt_reason}
+              <span className="font-bold">TRADING HALTED:</span> {effectiveHaltReason}
             </div>
             <div className="flex gap-2">
               <button

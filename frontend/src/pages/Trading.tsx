@@ -1,32 +1,104 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "../hooks/useApi";
+import { useSystemEvents } from "../hooks/useSystemEvents";
 import { tradingApi } from "../api/trading";
 import { OrderForm } from "../components/OrderForm";
-import type { Order } from "../types";
+import type { Order, OrderStatus, TradingMode } from "../types";
+
+const STATUS_COLORS: Record<OrderStatus, string> = {
+  pending: "bg-gray-500/20 text-gray-400",
+  submitted: "bg-blue-500/20 text-blue-400",
+  open: "bg-blue-500/20 text-blue-400",
+  partial_fill: "bg-yellow-500/20 text-yellow-400",
+  filled: "bg-green-500/20 text-green-400",
+  cancelled: "bg-gray-500/20 text-gray-400",
+  rejected: "bg-red-500/20 text-red-400",
+  error: "bg-red-500/20 text-red-400",
+};
+
+const CANCELLABLE: Set<OrderStatus> = new Set([
+  "pending",
+  "submitted",
+  "open",
+  "partial_fill",
+]);
 
 export function Trading() {
-  const { data: orders, isLoading } = useApi<Order[]>(
-    ["orders"],
-    () => tradingApi.listOrders(),
+  const queryClient = useQueryClient();
+  const [mode, setMode] = useState<TradingMode>("paper");
+  const { isHalted } = useSystemEvents();
+
+  const { data: orders, isLoading } = useApi<Order[]>(["orders", mode], () =>
+    tradingApi.listOrders(50, mode),
   );
+
+  const cancelMutation = useMutation({
+    mutationFn: tradingApi.cancelOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
 
   return (
     <div>
-      <h2 className="mb-6 text-2xl font-bold">Trading</h2>
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Trading</h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMode("paper")}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              mode === "paper"
+                ? "bg-blue-600 text-white"
+                : "border border-[var(--color-border)] text-[var(--color-text-muted)]"
+            }`}
+          >
+            Paper
+          </button>
+          <button
+            onClick={() => setMode("live")}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              mode === "live"
+                ? "bg-red-600 text-white"
+                : "border border-[var(--color-border)] text-[var(--color-text-muted)]"
+            }`}
+          >
+            Live
+          </button>
+        </div>
+      </div>
+
+      {/* Live mode warning banner */}
+      {mode === "live" && (
+        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+          <span className="font-bold">LIVE MODE</span> — Orders will be
+          submitted to the exchange. Real money is at risk.
+        </div>
+      )}
+
+      {/* Halt banner */}
+      {isHalted && (
+        <div className="mb-4 animate-pulse rounded-lg border border-red-500/50 bg-red-500/20 p-3 text-sm font-bold text-red-400">
+          TRADING HALTED — All live order submissions are blocked
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Order form */}
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <h3 className="mb-4 text-lg font-semibold">New Order</h3>
-          <OrderForm />
+          <OrderForm mode={mode} />
         </div>
 
         {/* Order history */}
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 lg:col-span-2">
-          <h3 className="mb-4 text-lg font-semibold">Order History</h3>
+          <h3 className="mb-4 text-lg font-semibold">
+            {mode === "live" ? "Live" : "Paper"} Orders
+          </h3>
           {isLoading && <p className="text-sm">Loading orders...</p>}
           {orders && orders.length === 0 && (
             <p className="text-sm text-[var(--color-text-muted)]">
-              No orders yet.
+              No {mode} orders yet.
             </p>
           )}
           {orders && orders.length > 0 && (
@@ -38,7 +110,9 @@ export function Trading() {
                     <th className="pb-2">Side</th>
                     <th className="pb-2">Amount</th>
                     <th className="pb-2">Price</th>
+                    <th className="pb-2">Filled</th>
                     <th className="pb-2">Status</th>
+                    {mode === "live" && <th className="pb-2">Action</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -59,9 +133,49 @@ export function Trading() {
                       </td>
                       <td className="py-2">{o.amount}</td>
                       <td className="py-2">
-                        {o.price ? `$${o.price.toLocaleString()}` : "Market"}
+                        {o.avg_fill_price
+                          ? `$${o.avg_fill_price.toLocaleString()}`
+                          : o.price
+                            ? `$${o.price.toLocaleString()}`
+                            : "Market"}
                       </td>
-                      <td className="py-2">{o.status}</td>
+                      <td className="py-2">
+                        {o.filled > 0
+                          ? `${o.filled}/${o.amount}`
+                          : "—"}
+                      </td>
+                      <td className="py-2">
+                        <span
+                          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                            STATUS_COLORS[o.status] ?? ""
+                          }`}
+                        >
+                          {o.status.replace("_", " ")}
+                        </span>
+                        {o.reject_reason && (
+                          <p className="mt-0.5 text-xs text-red-400">
+                            {o.reject_reason}
+                          </p>
+                        )}
+                        {o.error_message && (
+                          <p className="mt-0.5 text-xs text-red-400">
+                            {o.error_message}
+                          </p>
+                        )}
+                      </td>
+                      {mode === "live" && (
+                        <td className="py-2">
+                          {CANCELLABLE.has(o.status) && (
+                            <button
+                              onClick={() => cancelMutation.mutate(o.id)}
+                              disabled={cancelMutation.isPending}
+                              className="rounded border border-red-700 px-2 py-0.5 text-xs text-red-400 hover:bg-red-900/30 disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

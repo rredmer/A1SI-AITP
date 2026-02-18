@@ -1,7 +1,12 @@
 from django.urls import path
 
 from core.auth import AuthStatusView, LoginView, LogoutView
-from core.views import HealthView, PlatformConfigView, PlatformStatusView
+from core.views import (
+    HealthView,
+    NotificationPreferencesView,
+    PlatformConfigView,
+    PlatformStatusView,
+)
 
 urlpatterns = [
     path("health/", HealthView.as_view(), name="health"),
@@ -10,4 +15,9 @@ urlpatterns = [
     path("auth/status/", AuthStatusView.as_view(), name="auth-status"),
     path("platform/status/", PlatformStatusView.as_view(), name="platform-status"),
     path("platform/config/", PlatformConfigView.as_view(), name="platform-config"),
+    path(
+        "notifications/<int:portfolio_id>/preferences/",
+        NotificationPreferencesView.as_view(),
+        name="notification-prefs",
+    ),
 ]

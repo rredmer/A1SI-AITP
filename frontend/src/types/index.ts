@@ -45,6 +45,28 @@ export interface OHLCVData {
   volume: number;
 }
 
+export type OrderStatus =
+  | "pending"
+  | "submitted"
+  | "open"
+  | "partial_fill"
+  | "filled"
+  | "cancelled"
+  | "rejected"
+  | "error";
+
+export type TradingMode = "paper" | "live";
+
+export interface OrderFillEvent {
+  id: number;
+  fill_price: number;
+  fill_amount: number;
+  fee: number;
+  fee_currency: string;
+  exchange_trade_id: string;
+  filled_at: string;
+}
+
 export interface Order {
   id: number;
   exchange_id: string;
@@ -55,10 +77,29 @@ export interface Order {
   amount: number;
   price: number;
   filled: number;
-  status: string;
+  status: OrderStatus;
+  mode: TradingMode;
+  portfolio_id: number;
+  avg_fill_price: number;
+  stop_loss_price: number | null;
+  fee: number;
+  fee_currency: string;
+  reject_reason: string;
+  error_message: string;
   timestamp: string;
+  submitted_at: string | null;
+  filled_at: string | null;
+  cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+  fill_events: OrderFillEvent[];
+}
+
+export interface LiveTradingStatus {
+  exchange_connected: boolean;
+  exchange_error: string;
+  is_halted: boolean;
+  active_live_orders: number;
 }
 
 // Background Job types
@@ -195,6 +236,19 @@ export interface AlertLogEntry {
   delivered: boolean;
   error: string;
   created_at: string;
+}
+
+// Notification preferences
+export interface NotificationPreferences {
+  portfolio_id: number;
+  telegram_enabled: boolean;
+  webhook_enabled: boolean;
+  on_order_submitted: boolean;
+  on_order_filled: boolean;
+  on_order_cancelled: boolean;
+  on_risk_halt: boolean;
+  on_trade_rejected: boolean;
+  on_daily_summary: boolean;
 }
 
 // Backtest types

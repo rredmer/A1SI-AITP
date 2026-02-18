@@ -61,6 +61,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.RateLimitMiddleware",
+    "core.middleware.MetricsMiddleware",
     "core.middleware.AuditMiddleware",
 ]
 

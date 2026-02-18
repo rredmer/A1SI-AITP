@@ -96,20 +96,18 @@ class RecordMetricsView(APIView):
 
 
 class HaltTradingView(APIView):
-    def post(self, request: Request, portfolio_id: int) -> Response:
+    async def post(self, request: Request, portfolio_id: int) -> Response:
         reason = request.data.get("reason", "")
-        result = RiskManagementService.halt_trading(portfolio_id, reason)
-        RiskManagementService.send_notification(
-            portfolio_id, "halt", "critical", f"Trading HALTED: {reason}",
+        result = await RiskManagementService.halt_trading_with_cancellation(
+            portfolio_id, reason
         )
         return Response(result)
 
 
 class ResumeTradingView(APIView):
-    def post(self, request: Request, portfolio_id: int) -> Response:
-        result = RiskManagementService.resume_trading(portfolio_id)
-        RiskManagementService.send_notification(
-            portfolio_id, "resume", "info", "Trading RESUMED",
+    async def post(self, request: Request, portfolio_id: int) -> Response:
+        result = await RiskManagementService.resume_trading_with_broadcast(
+            portfolio_id
         )
         return Response(result)
 

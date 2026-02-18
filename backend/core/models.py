@@ -13,3 +13,22 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.created_at} {self.user} {self.action}"
+
+
+class NotificationPreferences(models.Model):
+    portfolio_id = models.IntegerField(unique=True)
+    telegram_enabled = models.BooleanField(default=True)
+    webhook_enabled = models.BooleanField(default=False)
+    # Per-event toggles
+    on_order_submitted = models.BooleanField(default=True)
+    on_order_filled = models.BooleanField(default=True)
+    on_order_cancelled = models.BooleanField(default=True)
+    on_risk_halt = models.BooleanField(default=True)
+    on_trade_rejected = models.BooleanField(default=True)
+    on_daily_summary = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name_plural = "notification preferences"
+
+    def __str__(self):
+        return f"NotificationPreferences(portfolio={self.portfolio_id})"

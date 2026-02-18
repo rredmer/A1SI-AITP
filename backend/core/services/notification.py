@@ -1,5 +1,6 @@
 """
 Notification service — Telegram + webhook delivery for risk alerts.
+Includes formatted message templates and preference-aware delivery.
 """
 
 import logging
@@ -10,8 +11,94 @@ from django.conf import settings
 logger = logging.getLogger("notification_service")
 
 
+class TelegramFormatter:
+    """Static methods that produce HTML-formatted messages for Telegram."""
+
+    @staticmethod
+    def order_submitted(order) -> str:
+        return (
+            f"<b>Order Submitted</b>\n"
+            f"{order.side.upper()} {order.amount} {order.symbol}\n"
+            f"Type: {order.order_type} | Exchange: {order.exchange_id}\n"
+            f"ID: <code>{order.exchange_order_id or 'pending'}</code>"
+        )
+
+    @staticmethod
+    def order_filled(order) -> str:
+        fee_str = f" | Fee: {order.fee} {order.fee_currency}" if order.fee else ""
+        return (
+            f"<b>Order Filled</b>\n"
+            f"{order.side.upper()} {order.amount} {order.symbol}\n"
+            f"Fill price: {order.avg_fill_price}{fee_str}\n"
+            f"ID: <code>{order.exchange_order_id}</code>"
+        )
+
+    @staticmethod
+    def order_cancelled(order) -> str:
+        return (
+            f"<b>Order Cancelled</b>\n"
+            f"{order.side.upper()} {order.amount} {order.symbol}\n"
+            f"ID: <code>{order.exchange_order_id or 'N/A'}</code>"
+        )
+
+    @staticmethod
+    def risk_halt(reason: str, cancelled_count: int) -> str:
+        return (
+            f"<b>TRADING HALTED</b>\n"
+            f"Reason: {reason}\n"
+            f"Cancelled orders: {cancelled_count}"
+        )
+
+    @staticmethod
+    def daily_summary(equity: float, daily_pnl: float, drawdown: float) -> str:
+        pnl_str = f"+${daily_pnl:,.2f}" if daily_pnl >= 0 else f"-${abs(daily_pnl):,.2f}"
+        return (
+            f"<b>Daily Summary</b>\n"
+            f"Equity: ${equity:,.2f}\n"
+            f"Daily PnL: {pnl_str}\n"
+            f"Drawdown: {drawdown * 100:.2f}%"
+        )
+
+
+# Map event types to NotificationPreferences field names
+EVENT_PREF_MAP = {
+    "order_submitted": "on_order_submitted",
+    "order_filled": "on_order_filled",
+    "order_cancelled": "on_order_cancelled",
+    "halt": "on_risk_halt",
+    "resume": "on_risk_halt",
+    "trade_rejected": "on_trade_rejected",
+    "daily_reset": "on_daily_summary",
+    "daily_summary": "on_daily_summary",
+}
+
+
 class NotificationService:
     """Fire-and-forget notification delivery to Telegram and webhooks."""
+
+    @staticmethod
+    def _get_preferences(portfolio_id: int):
+        from core.models import NotificationPreferences
+
+        prefs, _ = NotificationPreferences.objects.get_or_create(
+            portfolio_id=portfolio_id
+        )
+        return prefs
+
+    @staticmethod
+    def should_notify(portfolio_id: int, event_type: str, channel: str) -> bool:
+        """Check if a notification should be sent based on preferences."""
+        prefs = NotificationService._get_preferences(portfolio_id)
+
+        # Check channel toggle
+        if channel == "telegram" and not prefs.telegram_enabled:
+            return False
+        if channel == "webhook" and not prefs.webhook_enabled:
+            return False
+
+        # Check event toggle
+        pref_field = EVENT_PREF_MAP.get(event_type)
+        return not (pref_field and not getattr(prefs, pref_field, True))
 
     @staticmethod
     async def send_telegram(message: str) -> tuple[bool, str]:

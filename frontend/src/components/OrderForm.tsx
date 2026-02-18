@@ -1,13 +1,19 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tradingApi } from "../api/trading";
+import type { TradingMode } from "../types";
 
-export function OrderForm() {
+interface OrderFormProps {
+  mode?: TradingMode;
+}
+
+export function OrderForm({ mode = "paper" }: OrderFormProps) {
   const queryClient = useQueryClient();
   const [symbol, setSymbol] = useState("BTC/USDT");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
   const [price, setPrice] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const mutation = useMutation({
     mutationFn: tradingApi.createOrder,
@@ -15,18 +21,30 @@ export function OrderForm() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       setAmount("");
       setPrice("");
+      setShowConfirm(false);
     },
   });
 
+  const orderData = {
+    symbol,
+    side,
+    order_type: price ? "limit" : "market",
+    amount: parseFloat(amount),
+    price: price ? parseFloat(price) : undefined,
+    mode,
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate({
-      symbol,
-      side,
-      order_type: price ? "limit" : "market",
-      amount: parseFloat(amount),
-      price: price ? parseFloat(price) : undefined,
-    });
+    if (mode === "live") {
+      setShowConfirm(true);
+    } else {
+      mutation.mutate(orderData);
+    }
+  };
+
+  const confirmLiveOrder = () => {
+    mutation.mutate(orderData);
   };
 
   return (
@@ -82,14 +100,49 @@ export function OrderForm() {
       <button
         type="submit"
         disabled={mutation.isPending}
-        className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        className={`rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${
+          mode === "live"
+            ? "bg-red-600 hover:bg-red-700"
+            : "bg-[var(--color-primary)]"
+        }`}
       >
-        {mutation.isPending ? "Placing..." : "Place Order"}
+        {mutation.isPending
+          ? "Placing..."
+          : mode === "live"
+            ? "Place Live Order"
+            : "Place Paper Order"}
       </button>
       {mutation.isError && (
         <p className="text-sm text-[var(--color-danger)]">
           {(mutation.error as Error).message}
         </p>
+      )}
+
+      {/* Live order confirmation dialog */}
+      {showConfirm && (
+        <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-4">
+          <p className="mb-3 text-sm font-medium text-red-400">
+            Confirm LIVE order: {side.toUpperCase()} {amount} {symbol}
+            {price ? ` @ $${price}` : " (market)"}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={confirmLiveOrder}
+              disabled={mutation.isPending}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {mutation.isPending ? "Submitting..." : "Confirm"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowConfirm(false)}
+              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </form>
   );

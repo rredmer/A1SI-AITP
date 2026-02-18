@@ -78,8 +78,12 @@ class ExchangeService:
         return result
 
     async def fetch_ticker(self, symbol: str) -> dict:
+        from core.services.metrics import timed
+
         exchange = await self._get_exchange()
-        ticker = await exchange.fetch_ticker(symbol)
+        labels = {"method": "fetch_ticker", "exchange": self._exchange_id}
+        with timed("exchange_api_latency_seconds", labels):
+            ticker = await exchange.fetch_ticker(symbol)
         return {
             "symbol": ticker["symbol"],
             "price": ticker["last"] or 0.0,
@@ -93,8 +97,12 @@ class ExchangeService:
         }
 
     async def fetch_tickers(self, symbols: list[str] | None = None) -> list[dict]:
+        from core.services.metrics import timed
+
         exchange = await self._get_exchange()
-        tickers = await exchange.fetch_tickers(symbols)
+        labels = {"method": "fetch_tickers", "exchange": self._exchange_id}
+        with timed("exchange_api_latency_seconds", labels):
+            tickers = await exchange.fetch_tickers(symbols)
         result = []
         for ticker in tickers.values():
             result.append({
@@ -113,8 +121,12 @@ class ExchangeService:
     async def fetch_ohlcv(
         self, symbol: str, timeframe: str = "1h", limit: int = 100
     ) -> list[dict]:
+        from core.services.metrics import timed
+
         exchange = await self._get_exchange()
-        data = await exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
+        labels = {"method": "fetch_ohlcv", "exchange": self._exchange_id}
+        with timed("exchange_api_latency_seconds", labels):
+            data = await exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
         return [
             {
                 "timestamp": candle[0],

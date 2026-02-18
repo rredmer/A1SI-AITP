@@ -13,6 +13,8 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { EmergencyStopButton } from "./EmergencyStopButton";
+import { useSystemEvents } from "../hooks/useSystemEvents";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -34,6 +36,8 @@ interface LayoutProps {
 }
 
 export function Layout({ onLogout, username }: LayoutProps) {
+  const { isHalted, haltReason } = useSystemEvents();
+
   return (
     <div className="flex h-screen">
       <nav className="flex w-56 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4">
@@ -60,6 +64,7 @@ export function Layout({ onLogout, username }: LayoutProps) {
             </li>
           ))}
         </ul>
+        <EmergencyStopButton isHalted={isHalted} />
         <div className="mt-auto border-t border-[var(--color-border)] pt-4">
           {username && (
             <p className="mb-2 truncate px-3 text-xs text-[var(--color-text-muted)]">
@@ -75,8 +80,16 @@ export function Layout({ onLogout, username }: LayoutProps) {
           </button>
         </div>
       </nav>
-      <main className="flex-1 overflow-auto p-6">
-        <Outlet />
+      <main className="flex-1 overflow-auto">
+        {/* Global halt banner */}
+        {isHalted && (
+          <div className="border-b border-red-500/50 bg-red-500/10 px-6 py-2 text-center text-sm font-bold text-red-400">
+            TRADING HALTED{haltReason ? `: ${haltReason}` : ""}
+          </div>
+        )}
+        <div className="p-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

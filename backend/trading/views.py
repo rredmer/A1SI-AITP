@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
+from asgiref.sync import async_to_sync
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from trading.models import Order
+from trading.models import Order, OrderStatus, TradingMode
 from trading.serializers import OrderCreateSerializer, OrderSerializer
 
 
@@ -13,18 +14,39 @@ class OrderListView(APIView):
     def get(self, request: Request) -> Response:
         limit = int(request.query_params.get("limit", 50))
         limit = max(1, min(limit, 200))
-        orders = Order.objects.all()[:limit]
+        mode = request.query_params.get("mode")
+        qs = Order.objects.all()
+        if mode in ("paper", "live"):
+            qs = qs.filter(mode=mode)
+        orders = qs[:limit]
         return Response(OrderSerializer(orders, many=True).data)
 
     def post(self, request: Request) -> Response:
         ser = OrderCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        mode = data.pop("mode", "paper")
+        stop_loss = data.pop("stop_loss_price", None)
+
         order = Order.objects.create(
-            **ser.validated_data,
-            status="created",
+            **data,
+            mode=mode,
+            stop_loss_price=stop_loss,
+            status=OrderStatus.PENDING,
             timestamp=datetime.now(timezone.utc),
         )
-        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+        if mode == TradingMode.LIVE:
+            from trading.services.live_trading import LiveTradingService
+            from trading.services.order_sync import start_order_sync
+
+            order = async_to_sync(LiveTradingService.submit_order)(order)
+            async_to_sync(start_order_sync)()
+
+        return Response(
+            OrderSerializer(order).data, status=status.HTTP_201_CREATED
+        )
 
 
 class OrderDetailView(APIView):
@@ -32,8 +54,80 @@ class OrderDetailView(APIView):
         try:
             order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
-            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND
+            )
         return Response(OrderSerializer(order).data)
+
+
+class OrderCancelView(APIView):
+    def post(self, request: Request, order_id: int) -> Response:
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response(
+                {"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        terminal = {
+            OrderStatus.FILLED, OrderStatus.CANCELLED,
+            OrderStatus.REJECTED, OrderStatus.ERROR,
+        }
+        if order.status in terminal:
+            return Response(
+                {"error": f"Cannot cancel order in '{order.status}' status"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if order.mode == TradingMode.LIVE and order.exchange_order_id:
+            from trading.services.live_trading import LiveTradingService
+
+            order = async_to_sync(LiveTradingService.cancel_order)(order)
+        else:
+            order.transition_to(OrderStatus.CANCELLED)
+
+        return Response(OrderSerializer(order).data)
+
+
+class LiveTradingStatusView(APIView):
+    async def get(self, request: Request) -> Response:
+        from market.services.exchange import ExchangeService
+        from risk.models import RiskState
+
+        portfolio_id = int(request.query_params.get("portfolio_id", 1))
+
+        from asgiref.sync import sync_to_async
+
+        state = await sync_to_async(
+            lambda: RiskState.objects.filter(portfolio_id=portfolio_id).first()
+        )()
+        is_halted = state.is_halted if state else False
+
+        exchange_ok = False
+        exchange_error = ""
+        service = ExchangeService()
+        try:
+            exchange = await service._get_exchange()
+            await exchange.load_markets()
+            exchange_ok = True
+        except Exception as e:
+            exchange_error = str(e)[:200]
+        finally:
+            await service.close()
+
+        active_count = await sync_to_async(
+            Order.objects.filter(
+                mode=TradingMode.LIVE,
+                status__in=[OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIAL_FILL],
+            ).count
+        )()
+
+        return Response({
+            "exchange_connected": exchange_ok,
+            "exchange_error": exchange_error,
+            "is_halted": is_halted,
+            "active_live_orders": active_count,
+        })
 
 
 class PaperTradingStatusView(APIView):

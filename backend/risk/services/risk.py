@@ -5,6 +5,8 @@ Risk management service — wraps common.risk.risk_manager with Django ORM persi
 import logging
 from datetime import datetime, timedelta, timezone
 
+from channels.layers import get_channel_layer
+
 from core.platform_bridge import ensure_platform_imports
 from core.services.notification import NotificationService
 from risk.models import AlertLog, RiskLimits, RiskMetricHistory, RiskState, TradeCheckLog
@@ -216,11 +218,80 @@ class RiskManagementService:
         return {"is_halted": True, "halt_reason": reason, "message": f"Trading halted: {reason}"}
 
     @staticmethod
+    async def halt_trading_with_cancellation(portfolio_id: int, reason: str) -> dict:
+        """Halt trading and cancel all open live orders. Broadcasts via WS."""
+        from asgiref.sync import sync_to_async
+
+        from trading.services.live_trading import LiveTradingService
+
+        state = await sync_to_async(RiskManagementService._get_or_create_state)(portfolio_id)
+        state.is_halted = True
+        state.halt_reason = reason
+        await sync_to_async(state.save)()
+
+        # Cancel all open live orders
+        cancelled = await LiveTradingService.cancel_all_open_orders(portfolio_id)
+
+        # Broadcast halt status via WebSocket
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            await channel_layer.group_send(
+                "system_events",
+                {
+                    "type": "halt_status",
+                    "data": {
+                        "is_halted": True,
+                        "halt_reason": reason,
+                        "cancelled_orders": cancelled,
+                    },
+                },
+            )
+
+        # Send notification
+        await sync_to_async(RiskManagementService.send_notification)(
+            portfolio_id, "halt", "critical",
+            f"Trading HALTED: {reason} ({cancelled} orders cancelled)",
+        )
+
+        return {
+            "is_halted": True,
+            "halt_reason": reason,
+            "cancelled_orders": cancelled,
+            "message": f"Trading halted: {reason} ({cancelled} orders cancelled)",
+        }
+
+    @staticmethod
     def resume_trading(portfolio_id: int) -> dict:
         state = RiskManagementService._get_or_create_state(portfolio_id)
         state.is_halted = False
         state.halt_reason = ""
         state.save()
+        return {"is_halted": False, "halt_reason": "", "message": "Trading resumed"}
+
+    @staticmethod
+    async def resume_trading_with_broadcast(portfolio_id: int) -> dict:
+        """Resume trading and broadcast via WebSocket."""
+        from asgiref.sync import sync_to_async
+
+        state = await sync_to_async(RiskManagementService._get_or_create_state)(portfolio_id)
+        state.is_halted = False
+        state.halt_reason = ""
+        await sync_to_async(state.save)()
+
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            await channel_layer.group_send(
+                "system_events",
+                {
+                    "type": "halt_status",
+                    "data": {"is_halted": False, "halt_reason": ""},
+                },
+            )
+
+        await sync_to_async(RiskManagementService.send_notification)(
+            portfolio_id, "resume", "info", "Trading RESUMED",
+        )
+
         return {"is_halted": False, "halt_reason": "", "message": "Trading resumed"}
 
     @staticmethod

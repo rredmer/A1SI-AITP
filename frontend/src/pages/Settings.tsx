@@ -4,12 +4,14 @@ import {
   exchangeConfigsApi,
   dataSourcesApi,
 } from "../api/exchangeConfigs";
+import { notificationsApi } from "../api/notifications";
 import type {
   ExchangeConfig,
   ExchangeConfigCreate,
   DataSourceConfig,
   DataSourceConfigCreate,
   ExchangeTestResult,
+  NotificationPreferences,
 } from "../types";
 
 const EXCHANGE_OPTIONS = [
@@ -640,6 +642,9 @@ export function Settings() {
           )}
         </div>
 
+        {/* Notification Preferences */}
+        <NotificationPreferencesSection />
+
         {/* About */}
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <h3 className="mb-2 text-lg font-semibold">About</h3>
@@ -648,6 +653,101 @@ export function Settings() {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+const NOTIFICATION_TOGGLES: { key: keyof NotificationPreferences; label: string; description: string }[] = [
+  { key: "on_order_submitted", label: "Order Submitted", description: "When a live order is placed on the exchange" },
+  { key: "on_order_filled", label: "Order Filled", description: "When an order is completely filled" },
+  { key: "on_order_cancelled", label: "Order Cancelled", description: "When an order is cancelled" },
+  { key: "on_risk_halt", label: "Risk Halt/Resume", description: "When trading is halted or resumed" },
+  { key: "on_trade_rejected", label: "Trade Rejected", description: "When a trade fails risk checks" },
+  { key: "on_daily_summary", label: "Daily Summary", description: "Daily PnL and equity summary" },
+];
+
+function NotificationPreferencesSection() {
+  const queryClient = useQueryClient();
+  const portfolioId = 1;
+
+  const { data: prefs } = useQuery<NotificationPreferences>({
+    queryKey: ["notification-prefs", portfolioId],
+    queryFn: () => notificationsApi.getPreferences(portfolioId),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (updates: Partial<NotificationPreferences>) =>
+      notificationsApi.updatePreferences(portfolioId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notification-prefs", portfolioId] });
+    },
+  });
+
+  const toggle = (key: keyof NotificationPreferences) => {
+    if (!prefs) return;
+    updateMutation.mutate({ [key]: !prefs[key] });
+  };
+
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+      <h3 className="mb-2 text-lg font-semibold">Notifications</h3>
+      <p className="mb-4 text-sm text-[var(--color-text-muted)]">
+        Configure which events trigger notifications. Requires Telegram bot token
+        and chat ID in environment variables.
+      </p>
+
+      {prefs && (
+        <div className="space-y-4">
+          {/* Channel toggles */}
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={prefs.telegram_enabled}
+                onChange={() => toggle("telegram_enabled")}
+                className="h-4 w-4 rounded border-gray-600 bg-gray-700"
+              />
+              Telegram
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={prefs.webhook_enabled}
+                onChange={() => toggle("webhook_enabled")}
+                className="h-4 w-4 rounded border-gray-600 bg-gray-700"
+              />
+              Webhook
+            </label>
+          </div>
+
+          {/* Event toggles */}
+          <div className="space-y-2">
+            {NOTIFICATION_TOGGLES.map(({ key, label, description }) => (
+              <div
+                key={key}
+                className="flex items-center justify-between rounded-lg border border-[var(--color-border)] px-3 py-2"
+              >
+                <div>
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">{description}</p>
+                </div>
+                <button
+                  onClick={() => toggle(key)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${
+                    prefs[key] ? "bg-blue-600" : "bg-gray-600"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      prefs[key] ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
