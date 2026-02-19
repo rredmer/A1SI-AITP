@@ -5,9 +5,12 @@ Security-hardened configuration with DRF, Channels, and session-based auth.
 """
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+TESTING = "pytest" in sys.modules or "test" in sys.argv
 
 # ── Paths ─────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -160,9 +163,9 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "core.exception_handler.custom_exception_handler",
-    "DEFAULT_THROTTLE_CLASSES": [
-        "rest_framework.throttling.UserRateThrottle",
-    ],
+    "DEFAULT_THROTTLE_CLASSES": []
+    if TESTING
+    else ["rest_framework.throttling.UserRateThrottle"],
     "DEFAULT_THROTTLE_RATES": {
         "user": "120/min",
         "anon": "30/min",

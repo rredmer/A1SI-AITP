@@ -44,10 +44,11 @@ export function PortfolioPage() {
       )}
 
       {portfolios?.map((p) => {
-        const totalCost = p.holdings.reduce((sum, h) => sum + h.amount * h.avg_buy_price, 0);
+        const totalCost = p.holdings.reduce((sum, h) => sum + (h.amount ?? 0) * (h.avg_buy_price ?? 0), 0);
         const totalValue = p.holdings.reduce((sum, h) => {
+          const amt = h.amount ?? 0;
           const price = priceMap[h.symbol];
-          return sum + (price != null ? h.amount * price : h.amount * h.avg_buy_price);
+          return sum + (price != null ? amt * price : amt * (h.avg_buy_price ?? 0));
         }, 0);
         const unrealizedPnl = totalValue - totalCost;
         const pnlPct = totalCost > 0 ? (unrealizedPnl / totalCost) * 100 : 0;

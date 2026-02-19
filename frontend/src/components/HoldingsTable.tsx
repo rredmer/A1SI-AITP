@@ -20,9 +20,11 @@ export function HoldingsTable({ holdings, priceMap = {} }: HoldingsTableProps) {
   let totalCost = 0;
   let totalValue = 0;
   for (const h of holdings) {
-    const cost = h.amount * h.avg_buy_price;
+    const amt = h.amount ?? 0;
+    const avg = h.avg_buy_price ?? 0;
+    const cost = amt * avg;
     const price = priceMap[h.symbol];
-    const value = price != null ? h.amount * price : cost;
+    const value = price != null ? amt * price : cost;
     totalCost += cost;
     totalValue += value;
   }
@@ -45,9 +47,11 @@ export function HoldingsTable({ holdings, priceMap = {} }: HoldingsTableProps) {
         </thead>
         <tbody>
           {holdings.map((h) => {
-            const cost = h.amount * h.avg_buy_price;
+            const amt = h.amount ?? 0;
+            const avg = h.avg_buy_price ?? 0;
+            const cost = amt * avg;
             const price = priceMap[h.symbol];
-            const value = price != null ? h.amount * price : null;
+            const value = price != null ? amt * price : null;
             const pnl = value != null ? value - cost : null;
             const pnlPct = cost > 0 && pnl != null ? (pnl / cost) * 100 : null;
 
@@ -57,8 +61,8 @@ export function HoldingsTable({ holdings, priceMap = {} }: HoldingsTableProps) {
                 className="border-b border-[var(--color-border)]"
               >
                 <td className="py-2 font-medium">{h.symbol}</td>
-                <td className="py-2">{h.amount.toFixed(6)}</td>
-                <td className="py-2">${h.avg_buy_price.toLocaleString()}</td>
+                <td className="py-2">{amt.toFixed(6)}</td>
+                <td className="py-2">${avg.toLocaleString()}</td>
                 {hasLivePrices && (
                   <td className="py-2">
                     {price != null ? `$${price.toLocaleString()}` : "\u2014"}

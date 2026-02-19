@@ -1,26 +1,19 @@
 from datetime import datetime, timezone
 
 from asgiref.sync import async_to_sync
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.utils import safe_int as _safe_int
 from trading.models import Order, OrderStatus, TradingMode
 from trading.serializers import OrderCreateSerializer, OrderSerializer
 
 
-def _safe_int(value: str | None, default: int, min_val: int = 1, max_val: int = 1000) -> int:
-    """Safely convert a query parameter to int with bounds."""
-    if value is None:
-        return default
-    try:
-        return max(min_val, min(int(value), max_val))
-    except (ValueError, TypeError):
-        return default
-
-
 class OrderListView(APIView):
+    @extend_schema(responses=OrderSerializer(many=True), tags=["Trading"])
     def get(self, request: Request) -> Response:
         limit = _safe_int(request.query_params.get("limit"), 50, max_val=200)
         mode = request.query_params.get("mode")
@@ -30,6 +23,9 @@ class OrderListView(APIView):
         orders = qs[:limit]
         return Response(OrderSerializer(orders, many=True).data)
 
+    @extend_schema(
+        request=OrderCreateSerializer, responses=OrderSerializer, tags=["Trading"],
+    )
     def post(self, request: Request) -> Response:
         ser = OrderCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)

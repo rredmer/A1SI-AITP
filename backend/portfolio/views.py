@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,10 +14,14 @@ from portfolio.serializers import (
 
 
 class PortfolioListView(APIView):
+    @extend_schema(responses=PortfolioSerializer(many=True), tags=["Portfolio"])
     def get(self, request: Request) -> Response:
         portfolios = Portfolio.objects.prefetch_related("holdings").all()
         return Response(PortfolioSerializer(portfolios, many=True).data)
 
+    @extend_schema(
+        request=PortfolioCreateSerializer, responses=PortfolioSerializer, tags=["Portfolio"],
+    )
     def post(self, request: Request) -> Response:
         ser = PortfolioCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -28,6 +33,7 @@ class PortfolioListView(APIView):
 
 
 class PortfolioDetailView(APIView):
+    @extend_schema(responses=PortfolioSerializer, tags=["Portfolio"])
     def get(self, request: Request, portfolio_id: int) -> Response:
         try:
             portfolio = Portfolio.objects.prefetch_related("holdings").get(id=portfolio_id)
@@ -35,6 +41,7 @@ class PortfolioDetailView(APIView):
             return Response({"error": "Portfolio not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(PortfolioSerializer(portfolio).data)
 
+    @extend_schema(tags=["Portfolio"])
     def delete(self, request: Request, portfolio_id: int) -> Response:
         try:
             portfolio = Portfolio.objects.get(id=portfolio_id)
@@ -45,6 +52,9 @@ class PortfolioDetailView(APIView):
 
 
 class HoldingCreateView(APIView):
+    @extend_schema(
+        request=HoldingCreateSerializer, responses=HoldingSerializer, tags=["Portfolio"],
+    )
     def post(self, request: Request, portfolio_id: int) -> Response:
         try:
             Portfolio.objects.get(id=portfolio_id)

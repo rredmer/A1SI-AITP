@@ -1,29 +1,25 @@
+// ── Generated types from OpenAPI schema (via openapi-typescript) ──
+// Run `npm run generate:types` to regenerate from backend schema.
+import type { components } from "./api-schema";
+
+export type Holding = components["schemas"]["Holding"];
+export type HoldingCreate = components["schemas"]["HoldingCreate"];
+export type Order = components["schemas"]["Order"];
+export type OrderCreate = components["schemas"]["OrderCreate"];
+export type OrderFillEvent = components["schemas"]["OrderFillEvent"];
+export type OrderStatus = components["schemas"]["StatusEnum"];
+export type TradingMode = components["schemas"]["OrderModeEnum"];
+export type Portfolio = components["schemas"]["Portfolio"];
+export type PortfolioCreate = components["schemas"]["PortfolioCreate"];
+
+// ── Manual types (not yet in OpenAPI schema) ──
+
 export interface ExchangeInfo {
   id: string;
   name: string;
   countries: string[];
   has_fetch_tickers: boolean;
   has_fetch_ohlcv: boolean;
-}
-
-export interface Holding {
-  id: number;
-  portfolio_id: number;
-  symbol: string;
-  amount: number;
-  avg_buy_price: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Portfolio {
-  id: number;
-  name: string;
-  exchange_id: string;
-  description: string;
-  holdings: Holding[];
-  created_at: string;
-  updated_at: string;
 }
 
 export interface TickerData {
@@ -43,56 +39,6 @@ export interface OHLCVData {
   low: number;
   close: number;
   volume: number;
-}
-
-export type OrderStatus =
-  | "pending"
-  | "submitted"
-  | "open"
-  | "partial_fill"
-  | "filled"
-  | "cancelled"
-  | "rejected"
-  | "error";
-
-export type TradingMode = "paper" | "live";
-
-export interface OrderFillEvent {
-  id: number;
-  fill_price: number;
-  fill_amount: number;
-  fee: number;
-  fee_currency: string;
-  exchange_trade_id: string;
-  filled_at: string;
-}
-
-export interface Order {
-  id: number;
-  exchange_id: string;
-  exchange_order_id: string;
-  symbol: string;
-  side: "buy" | "sell";
-  order_type: string;
-  amount: number;
-  price: number;
-  filled: number;
-  status: OrderStatus;
-  mode: TradingMode;
-  portfolio_id: number;
-  avg_fill_price: number;
-  stop_loss_price: number | null;
-  fee: number;
-  fee_currency: string;
-  reject_reason: string;
-  error_message: string;
-  timestamp: string;
-  submitted_at: string | null;
-  filled_at: string | null;
-  cancelled_at: string | null;
-  created_at: string;
-  updated_at: string;
-  fill_events: OrderFillEvent[];
 }
 
 export interface LiveTradingStatus {

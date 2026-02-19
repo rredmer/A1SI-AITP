@@ -1,24 +1,17 @@
 """Risk management views."""
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.utils import safe_int as _safe_int
 from risk.services.risk import RiskManagementService
 
 
-def _safe_int(value: str | None, default: int, min_val: int = 1, max_val: int = 1000) -> int:
-    """Safely convert a query parameter to int with bounds."""
-    if value is None:
-        return default
-    try:
-        return max(min_val, min(int(value), max_val))
-    except (ValueError, TypeError):
-        return default
-
-
 class RiskStatusView(APIView):
+    @extend_schema(tags=["Risk"])
     def get(self, request: Request, portfolio_id: int) -> Response:
         return Response(RiskManagementService.get_status(portfolio_id))
 

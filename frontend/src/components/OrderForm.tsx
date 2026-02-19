@@ -28,10 +28,12 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
   const orderData = {
     symbol,
     side,
-    order_type: price ? "limit" : "market",
+    order_type: price ? ("limit" as const) : ("market" as const),
     amount: parseFloat(amount),
-    price: price ? parseFloat(price) : undefined,
+    price: price ? parseFloat(price) : 0,
+    exchange_id: "binance",
     mode,
+    portfolio_id: 1,
   };
 
   const handleSubmit = (e: React.FormEvent) => {

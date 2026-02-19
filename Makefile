@@ -1,4 +1,4 @@
-.PHONY: setup dev test lint build clean harden audit certs backup test-security
+.PHONY: setup dev test lint build clean harden audit certs backup test-security ci typecheck docker-build
 
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
@@ -83,6 +83,31 @@ lint-frontend:
 build:
 	cd $(FRONTEND_DIR) && npm run build
 	@echo "✓ Frontend built to $(FRONTEND_DIR)/dist/"
+
+# ── Type checking ─────────────────────────────────────────
+
+typecheck:
+	cd $(FRONTEND_DIR) && npx tsc --noEmit -p tsconfig.app.json
+	@echo "✓ TypeScript type check passed"
+
+generate-types:
+	$(MANAGE) spectacular --file $(CURDIR)/$(FRONTEND_DIR)/schema.yaml
+	cd $(FRONTEND_DIR) && npx openapi-typescript schema.yaml -o src/types/api-schema.ts
+	@echo "✓ TypeScript API types regenerated"
+
+# ── Docker build validation ───────────────────────────────
+
+docker-build:
+	@echo "→ Building backend Docker image..."
+	docker build -t crypto-investor-backend:ci $(BACKEND_DIR)
+	@echo "→ Building frontend Docker image..."
+	docker build -t crypto-investor-frontend:ci $(FRONTEND_DIR)
+	@echo "✓ Docker builds passed"
+
+# ── CI pipeline (lint + typecheck + test + audit) ─────────
+
+ci: lint typecheck test audit
+	@echo "✓ CI pipeline passed"
 
 # ── Security ──────────────────────────────────────────────
 

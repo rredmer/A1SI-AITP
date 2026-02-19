@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.utils import safe_int as _safe_int
 from market.models import DataSourceConfig, ExchangeConfig
 from market.serializers import (
     DataSourceConfigCreateSerializer,
@@ -21,16 +22,6 @@ from market.serializers import (
 logger = logging.getLogger(__name__)
 
 _thread_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="indicator")
-
-
-def _safe_int(value: str | None, default: int, min_val: int = 1, max_val: int = 1000) -> int:
-    """Safely convert a query parameter to int with bounds."""
-    if value is None:
-        return default
-    try:
-        return max(min_val, min(int(value), max_val))
-    except (ValueError, TypeError):
-        return default
 
 
 # ── Exchange Config CRUD ─────────────────────────────────────
