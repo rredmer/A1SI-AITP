@@ -1,15 +1,21 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { portfoliosApi } from "../api/portfolios";
 import { riskApi } from "../api/risk";
 import { useToast } from "../hooks/useToast";
 import { useSystemEvents } from "../hooks/useSystemEvents";
-import type { RiskLimits, RiskStatus, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry, AlertLogEntry } from "../types";
+import type { Portfolio, RiskLimits, RiskStatus, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry, AlertLogEntry } from "../types";
 
 export function RiskManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isHalted: wsHalted, haltReason: wsHaltReason } = useSystemEvents();
   const [portfolioId, setPortfolioId] = useState(1);
+
+  const { data: portfolios } = useQuery<Portfolio[]>({
+    queryKey: ["portfolios"],
+    queryFn: () => portfoliosApi.list(),
+  });
 
   const { data: status } = useQuery<RiskStatus>({
     queryKey: ["risk-status", portfolioId],
@@ -194,14 +200,21 @@ export function RiskManagement() {
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold">Risk Management</h2>
         <div className="flex items-center gap-2">
-          <label htmlFor="risk-portfolio-id" className="text-sm text-[var(--color-text-muted)]">Portfolio ID:</label>
-          <input
+          <label htmlFor="risk-portfolio-id" className="text-sm text-[var(--color-text-muted)]">Portfolio:</label>
+          <select
             id="risk-portfolio-id"
-            type="number"
             value={portfolioId}
             onChange={(e) => setPortfolioId(Number(e.target.value))}
-            className="w-20 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-sm"
-          />
+            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-sm"
+          >
+            {portfolios && portfolios.length > 0 ? (
+              portfolios.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))
+            ) : (
+              <option value={1}>Portfolio 1</option>
+            )}
+          </select>
         </div>
       </div>
 

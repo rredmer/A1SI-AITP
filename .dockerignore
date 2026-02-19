@@ -1,0 +1,65 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node (frontend has its own Dockerfile)
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Generated data (mounted as volumes)
+data/
+backend/data/*.db
+backend/data/*.db-wal
+backend/data/*.db-shm
+backend/data/backups/
+backend/data/logs/
+research/results/
+nautilus/catalog/
+nautilus/results/
+hftbacktest/catalog/
+hftbacktest/results/
+
+# External frameworks
+frameworks/
+
+# Docs and non-runtime files
+*.md
+*.log
+*.zip
+LICENSE
+Documents/
+Downloads/
+
+# TLS certs
+backend/certs/
+
+# Claude/AI config
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

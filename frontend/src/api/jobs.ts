@@ -10,7 +10,7 @@ export const jobsApi = {
     return api.get<BackgroundJob[]>(`/jobs/${qs ? `?${qs}` : ""}`);
   },
 
-  get: (id: string) => api.get<BackgroundJob>(`/jobs/${id}`),
+  get: (id: string) => api.get<BackgroundJob>(`/jobs/${id}/`),
 
   cancel: (id: string) => api.post<{ status: string }>(`/jobs/${id}/cancel/`),
 };

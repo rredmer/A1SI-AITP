@@ -5,6 +5,7 @@ import {
   dataSourcesApi,
 } from "../api/exchangeConfigs";
 import { notificationsApi } from "../api/notifications";
+import { portfoliosApi } from "../api/portfolios";
 import { useToast } from "../hooks/useToast";
 import type {
   ExchangeConfig,
@@ -13,6 +14,7 @@ import type {
   DataSourceConfigCreate,
   ExchangeTestResult,
   NotificationPreferences,
+  Portfolio,
 } from "../types";
 
 const EXCHANGE_OPTIONS = [
@@ -680,7 +682,13 @@ const NOTIFICATION_TOGGLES: { key: keyof NotificationPreferences; label: string;
 
 function NotificationPreferencesSection() {
   const queryClient = useQueryClient();
-  const portfolioId = 1;
+  const { toast } = useToast();
+  const [portfolioId, setPortfolioId] = useState(1);
+
+  const { data: portfolios } = useQuery<Portfolio[]>({
+    queryKey: ["portfolios"],
+    queryFn: () => portfoliosApi.list(),
+  });
 
   const { data: prefs } = useQuery<NotificationPreferences>({
     queryKey: ["notification-prefs", portfolioId],
@@ -703,11 +711,30 @@ function NotificationPreferencesSection() {
 
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-      <h3 className="mb-2 text-lg font-semibold">Notifications</h3>
-      <p className="mb-4 text-sm text-[var(--color-text-muted)]">
-        Configure which events trigger notifications. Requires Telegram bot token
-        and chat ID in environment variables.
-      </p>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Notifications</h3>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Configure which events trigger notifications. Requires Telegram bot token
+            and chat ID in environment variables.
+          </p>
+        </div>
+        {portfolios && portfolios.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="notif-portfolio" className="text-sm text-[var(--color-text-muted)]">Portfolio:</label>
+            <select
+              id="notif-portfolio"
+              value={portfolioId}
+              onChange={(e) => setPortfolioId(Number(e.target.value))}
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-sm"
+            >
+              {portfolios.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {prefs && (
         <div className="space-y-4">

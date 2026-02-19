@@ -25,7 +25,7 @@ export const indicatorsApi = {
     if (limit) params.set("limit", String(limit));
     const qs = params.toString();
     return api.get<IndicatorData>(
-      `/indicators/${exchange}/${safeSymbol}/${timeframe}${qs ? `?${qs}` : ""}`,
+      `/indicators/${exchange}/${safeSymbol}/${timeframe}/${qs ? `?${qs}` : ""}`,
     );
   },
 };

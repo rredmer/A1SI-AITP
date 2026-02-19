@@ -6,7 +6,7 @@ export const dataApi = {
 
   getInfo: (exchange: string, symbol: string, timeframe: string) => {
     const safeSymbol = symbol.replace("/", "_");
-    return api.get<DataFileInfo>(`/data/${exchange}/${safeSymbol}/${timeframe}`);
+    return api.get<DataFileInfo>(`/data/${exchange}/${safeSymbol}/${timeframe}/`);
   },
 
   download: (params: {

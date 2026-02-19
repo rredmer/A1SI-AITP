@@ -47,7 +47,8 @@ class RiskLimitsView(APIView):
     def put(self, request: Request, portfolio_id: int) -> Response:
         ser = RiskLimitsUpdateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        updates = {k: v for k, v in ser.validated_data.items() if v is not None}
+        # Only include fields that were explicitly sent in the request
+        updates = {k: v for k, v in ser.validated_data.items() if k in request.data}
         limits = RiskManagementService.update_limits(portfolio_id, updates)
         return Response(RiskLimitsSerializer(limits).data)
 
@@ -59,12 +60,9 @@ class EquityUpdateView(APIView):
         tags=["Risk"],
     )
     def post(self, request: Request, portfolio_id: int) -> Response:
-        try:
-            equity = float(request.data.get("equity", 0))
-        except (ValueError, TypeError):
-            return Response(
-                {"error": "Invalid equity value"}, status=status.HTTP_400_BAD_REQUEST
-            )
+        ser = EquityUpdateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        equity = ser.validated_data["equity"]
         if equity < 0:
             return Response(
                 {"error": "Equity must be non-negative"}, status=status.HTTP_400_BAD_REQUEST

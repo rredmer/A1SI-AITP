@@ -47,14 +47,14 @@ urlpatterns = [
         name="screening-result-detail",
     ),
     path("screening/strategies/", ScreeningStrategyListView.as_view(), name="screening-strategies"),
-    # Data pipeline
+    # Data pipeline — static routes before parameterized
     path("data/", DataListView.as_view(), name="data-list"),
+    path("data/download/", DataDownloadView.as_view(), name="data-download"),
+    path("data/generate-sample/", DataGenerateSampleView.as_view(), name="data-generate-sample"),
     path(
         "data/<str:exchange>/<str:symbol>/<str:timeframe>/",
         DataDetailView.as_view(), name="data-detail",
     ),
-    path("data/download/", DataDownloadView.as_view(), name="data-download"),
-    path("data/generate-sample/", DataGenerateSampleView.as_view(), name="data-generate-sample"),
     # ML
     path("ml/train/", MLTrainView.as_view(), name="ml-train"),
     path("ml/models/", MLModelListView.as_view(), name="ml-model-list"),

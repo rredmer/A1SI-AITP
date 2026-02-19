@@ -3,7 +3,7 @@ import type { Holding, Portfolio } from "../types";
 
 export const portfoliosApi = {
   list: () => api.get<Portfolio[]>("/portfolios/"),
-  get: (id: number) => api.get<Portfolio>(`/portfolios/${id}`),
+  get: (id: number) => api.get<Portfolio>(`/portfolios/${id}/`),
   create: (data: { name: string; exchange_id?: string }) =>
     api.post<Portfolio>("/portfolios/", data),
   update: (id: number, data: { name?: string; exchange_id?: string; description?: string }) =>

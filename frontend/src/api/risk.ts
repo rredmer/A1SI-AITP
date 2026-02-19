@@ -3,10 +3,10 @@ import type { RiskStatus, RiskLimits, VaRData, HeatCheckData, RiskMetricHistoryE
 
 export const riskApi = {
   getStatus: (portfolioId: number) =>
-    api.get<RiskStatus>(`/risk/${portfolioId}/status`),
+    api.get<RiskStatus>(`/risk/${portfolioId}/status/`),
 
   getLimits: (portfolioId: number) =>
-    api.get<RiskLimits>(`/risk/${portfolioId}/limits`),
+    api.get<RiskLimits>(`/risk/${portfolioId}/limits/`),
 
   updateLimits: (portfolioId: number, limits: Partial<RiskLimits>) =>
     api.put<RiskLimits>(`/risk/${portfolioId}/limits/`, limits),
@@ -42,16 +42,16 @@ export const riskApi = {
     api.post<RiskStatus>(`/risk/${portfolioId}/reset-daily/`),
 
   getVaR: (portfolioId: number, method: string = "parametric") =>
-    api.get<VaRData>(`/risk/${portfolioId}/var?method=${method}`),
+    api.get<VaRData>(`/risk/${portfolioId}/var/?method=${method}`),
 
   getHeatCheck: (portfolioId: number) =>
-    api.get<HeatCheckData>(`/risk/${portfolioId}/heat-check`),
+    api.get<HeatCheckData>(`/risk/${portfolioId}/heat-check/`),
 
   getMetricHistory: (portfolioId: number, hours: number = 168) =>
-    api.get<RiskMetricHistoryEntry[]>(`/risk/${portfolioId}/metric-history?hours=${hours}`),
+    api.get<RiskMetricHistoryEntry[]>(`/risk/${portfolioId}/metric-history/?hours=${hours}`),
 
   getTradeLog: (portfolioId: number, limit: number = 50) =>
-    api.get<TradeCheckLogEntry[]>(`/risk/${portfolioId}/trade-log?limit=${limit}`),
+    api.get<TradeCheckLogEntry[]>(`/risk/${portfolioId}/trade-log/?limit=${limit}`),
 
   haltTrading: (portfolioId: number, reason: string) =>
     api.post<HaltResponse>(`/risk/${portfolioId}/halt/`, { reason }),
@@ -60,5 +60,5 @@ export const riskApi = {
     api.post<HaltResponse>(`/risk/${portfolioId}/resume/`),
 
   getAlerts: (portfolioId: number, limit: number = 50) =>
-    api.get<AlertLogEntry[]>(`/risk/${portfolioId}/alerts?limit=${limit}`),
+    api.get<AlertLogEntry[]>(`/risk/${portfolioId}/alerts/?limit=${limit}`),
 };

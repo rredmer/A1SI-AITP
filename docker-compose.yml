@@ -1,8 +1,8 @@
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -19,7 +19,8 @@ services:
       TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID:-}"
       NOTIFICATION_WEBHOOK_URL: "${NOTIFICATION_WEBHOOK_URL:-}"
     volumes:
-      - backend-data:/app/data
+      - backend-data:/project/backend/data
+      - market-data:/project/data
     restart: unless-stopped
     deploy:
       resources:
@@ -53,3 +54,4 @@ services:
 
 volumes:
   backend-data:
+  market-data:

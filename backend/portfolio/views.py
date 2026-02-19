@@ -62,7 +62,16 @@ class PortfolioDetailView(APIView):
         request=PortfolioUpdateSerializer, responses=PortfolioSerializer, tags=["Portfolio"],
     )
     def patch(self, request: Request, portfolio_id: int) -> Response:
-        return self.put(request, portfolio_id)
+        try:
+            portfolio = Portfolio.objects.prefetch_related("holdings").get(id=portfolio_id)
+        except Portfolio.DoesNotExist:
+            return Response({"error": "Portfolio not found"}, status=status.HTTP_404_NOT_FOUND)
+        ser = PortfolioUpdateSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        for field, value in ser.validated_data.items():
+            setattr(portfolio, field, value)
+        portfolio.save()
+        return Response(PortfolioSerializer(portfolio).data)
 
     @extend_schema(tags=["Portfolio"])
     def delete(self, request: Request, portfolio_id: int) -> Response:

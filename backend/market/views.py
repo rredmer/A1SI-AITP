@@ -100,9 +100,8 @@ class ExchangeConfigDetailView(APIView):
 class ExchangeConfigTestView(APIView):
     @extend_schema(responses=ExchangeTestResultSerializer, tags=["Market"])
     def post(self, request: Request, pk: int) -> Response:
-        import asyncio
-
         import ccxt.async_support as ccxt
+        from asgiref.sync import async_to_sync
 
         try:
             config = ExchangeConfig.objects.get(pk=pk)
@@ -133,11 +132,7 @@ class ExchangeConfigTestView(APIView):
             finally:
                 await exchange.close()
 
-        loop = asyncio.new_event_loop()
-        try:
-            success, markets_count, error_msg = loop.run_until_complete(_test_connection())
-        finally:
-            loop.close()
+        success, markets_count, error_msg = async_to_sync(_test_connection)()
 
         now = datetime.now(tz=timezone.utc)
         ExchangeConfig.objects.filter(pk=pk).update(
