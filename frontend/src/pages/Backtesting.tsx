@@ -52,7 +52,7 @@ export function Backtesting() {
             <div>
               <label className="mb-1 block text-xs text-[var(--color-text-muted)]">Framework</label>
               <div className="flex gap-1">
-                {["freqtrade", "nautilus"].map((fw) => (
+                {["freqtrade", "nautilus", "hftbacktest"].map((fw) => (
                   <button
                     key={fw}
                     onClick={() => { setFramework(fw); setStrategy(""); }}

@@ -171,7 +171,7 @@ class RegimeDetector:
             regimes.append(raw_regime)
             confidences.append(conf)
 
-        result["regime"] = regimes
+        result["regime"] = pd.Series(regimes, index=result.index, dtype=object)
         result["confidence"] = confidences
         return result
 
