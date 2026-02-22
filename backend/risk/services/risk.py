@@ -137,12 +137,15 @@ class RiskManagementService:
         )
 
         if not approved:
-            RiskManagementService.send_notification(
-                portfolio_id,
-                "trade_rejected",
-                "warning",
-                f"Trade REJECTED: {symbol} {side} x{size} @ {entry_price} — {reason}",
-            )
+            try:
+                RiskManagementService.send_notification(
+                    portfolio_id,
+                    "trade_rejected",
+                    "warning",
+                    f"Trade REJECTED: {symbol} {side} x{size} @ {entry_price} — {reason}",
+                )
+            except Exception as e:
+                logger.error(f"Failed to send trade rejection notification: {e}")
 
         return approved, reason
 
@@ -172,12 +175,15 @@ class RiskManagementService:
         rm = RiskManagementService._build_risk_manager(limits_config, state)
         rm.reset_daily()
         RiskManagementService._persist_state(rm, state)
-        RiskManagementService.send_notification(
-            portfolio_id,
-            "daily_reset",
-            "info",
-            "Daily risk counters reset",
-        )
+        try:
+            RiskManagementService.send_notification(
+                portfolio_id,
+                "daily_reset",
+                "info",
+                "Daily risk counters reset",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send daily reset notification: {e}")
         return RiskManagementService.get_status(portfolio_id)
 
     @staticmethod
@@ -283,12 +289,15 @@ class RiskManagementService:
             )
 
         # Send notification with audit trail
-        await sync_to_async(RiskManagementService.send_notification)(
-            portfolio_id,
-            "kill_switch_halt",
-            "critical",
-            f"Trading HALTED: {reason} ({cancelled} orders cancelled)",
-        )
+        try:
+            await sync_to_async(RiskManagementService.send_notification)(
+                portfolio_id,
+                "kill_switch_halt",
+                "critical",
+                f"Trading HALTED: {reason} ({cancelled} orders cancelled)",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send halt notification: {e}")
 
         return {
             "is_halted": True,
@@ -336,12 +345,15 @@ class RiskManagementService:
                 },
             )
 
-        await sync_to_async(RiskManagementService.send_notification)(
-            portfolio_id,
-            "kill_switch_resume",
-            "info",
-            "Trading RESUMED",
-        )
+        try:
+            await sync_to_async(RiskManagementService.send_notification)(
+                portfolio_id,
+                "kill_switch_resume",
+                "info",
+                "Trading RESUMED",
+            )
+        except Exception as e:
+            logger.error(f"Failed to send resume notification: {e}")
 
         return {"is_halted": False, "halt_reason": "", "message": "Trading resumed"}
 

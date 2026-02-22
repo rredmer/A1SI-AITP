@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -24,10 +24,14 @@ gzip "${BACKUP_BASE}.db"
 
 # Encrypt with GPG symmetric AES256 if BACKUP_ENCRYPTION_KEY is set
 if [ -n "$BACKUP_ENCRYPTION_KEY" ]; then
-    echo "$BACKUP_ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 \
+    if echo "$BACKUP_ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 \
         --symmetric --cipher-algo AES256 \
-        -o "${BACKUP_BASE}.db.gz.gpg" "${BACKUP_BASE}.db.gz"
-    rm -f "${BACKUP_BASE}.db.gz"
+        -o "${BACKUP_BASE}.db.gz.gpg" "${BACKUP_BASE}.db.gz"; then
+        rm -f "${BACKUP_BASE}.db.gz"
+    else
+        echo "ERROR: GPG encryption failed — keeping unencrypted backup"
+        exit 1
+    fi
 
     # SHA256 checksum
     sha256sum "${BACKUP_BASE}.db.gz.gpg" > "${BACKUP_BASE}.db.gz.gpg.sha256"

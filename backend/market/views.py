@@ -252,6 +252,12 @@ class TickerListView(APIView):
         symbols_param = request.query_params.get("symbols")
         symbol_list = symbols_param.split(",") if symbols_param else None
 
+        if symbol_list and len(symbol_list) > 50:
+            return Response(
+                {"error": "Too many symbols. Maximum 50 per request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         async def _fetch():
             service = ExchangeService()
             try:

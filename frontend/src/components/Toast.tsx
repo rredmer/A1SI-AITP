@@ -35,7 +35,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {/* Toast container — bottom-right */}
       {toasts.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+        <div aria-live="polite" className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
           {toasts.map((t) => (
             <div
               key={t.id}
@@ -45,6 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <span className="text-base">{TOAST_ICONS[t.type]}</span>
               <span className="flex-1">{t.message}</span>
               <button
+                aria-label="Dismiss notification"
                 onClick={() => dismiss(t.id)}
                 className="ml-2 opacity-60 hover:opacity-100"
               >

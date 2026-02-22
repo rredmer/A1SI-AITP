@@ -65,11 +65,11 @@ export function Layout({ onLogout, username }: LayoutProps) {
 
   return (
     <div className="flex h-screen">
-      <nav className="flex w-56 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <nav aria-label="Main navigation" className="flex w-56 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <h1 className="mb-8 text-xl font-bold text-[var(--color-primary)]">
           A1SI-AITP
         </h1>
-        <ul className="flex flex-1 flex-col gap-1">
+        <ul role="list" className="flex flex-1 flex-col gap-1">
           {navItems.map(({ to, icon: Icon, label }) => (
             <li key={to}>
               <NavLink
@@ -93,6 +93,8 @@ export function Layout({ onLogout, username }: LayoutProps) {
         <div className="mt-auto border-t border-[var(--color-border)] pt-4">
           <div className="mb-2 flex items-center gap-2 px-3">
             <span
+              role="status"
+              aria-label={isConnected ? "WebSocket connected" : "WebSocket disconnected"}
               className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"}`}
               title={isConnected ? "WebSocket connected" : "WebSocket disconnected"}
             />
@@ -106,6 +108,7 @@ export function Layout({ onLogout, username }: LayoutProps) {
             </p>
           )}
           <button
+            aria-label="Sign out"
             onClick={onLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-bg)] hover:text-red-400"
           >
@@ -114,10 +117,10 @@ export function Layout({ onLogout, username }: LayoutProps) {
           </button>
         </div>
       </nav>
-      <main className="flex-1 overflow-auto">
+      <main role="main" className="flex-1 overflow-auto">
         {/* Global halt banner */}
         {isHalted && (
-          <div className="border-b border-red-500/50 bg-red-500/10 px-6 py-2 text-center text-sm font-bold text-red-400">
+          <div role="alert" className="border-b border-red-500/50 bg-red-500/10 px-6 py-2 text-center text-sm font-bold text-red-400">
             TRADING HALTED{haltReason ? `: ${haltReason}` : ""}
           </div>
         )}

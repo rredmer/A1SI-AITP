@@ -96,7 +96,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "data" / "a1si_aitp.db",
         "OPTIONS": {
-            "timeout": 20,
+            "timeout": 30,
         },
     }
 }

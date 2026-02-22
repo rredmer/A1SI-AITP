@@ -68,8 +68,8 @@ class DataPipelineService:
         ensure_platform_imports()
         from common.data_pipeline.pipeline import fetch_ohlcv, save_ohlcv
 
-        symbols = params.get("symbols", ["BTC/USDT"])
-        timeframes = params.get("timeframes", ["1h"])
+        symbols = params.get("symbols", ["BTC/USDT"])[:50]
+        timeframes = params.get("timeframes", ["1h"])[:10]
         exchange_id = params.get("exchange", "binance")
         since_days = params.get("since_days", 365)
 

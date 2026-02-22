@@ -7,6 +7,7 @@ VaR/CVaR estimation, and daily loss limits.
 """
 
 import logging
+import threading
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -211,44 +212,47 @@ class RiskManager:
         self.limits = limits or RiskLimits()
         self.state = PortfolioState()
         self.return_tracker = ReturnTracker()
+        self._lock = threading.Lock()
         logger.info(f"RiskManager initialized: {self.limits}")
 
     def update_equity(self, current_equity: float):
         """Update portfolio equity and check drawdown limits."""
-        self.state.total_equity = current_equity
-        self.state.peak_equity = max(self.state.peak_equity, current_equity)
-        self.state.last_update = datetime.now(timezone.utc)
+        with self._lock:
+            self.state.total_equity = current_equity
+            self.state.peak_equity = max(self.state.peak_equity, current_equity)
+            self.state.last_update = datetime.now(timezone.utc)
 
-        # Check max drawdown
-        drawdown = 1.0 - (current_equity / self.state.peak_equity)
-        if drawdown >= self.limits.max_portfolio_drawdown:
-            self.state.is_halted = True
-            self.state.halt_reason = (
-                f"Max drawdown breached: {drawdown:.2%} >= {self.limits.max_portfolio_drawdown:.2%}"
-            )
-            logger.critical(self.state.halt_reason)
-            return False
+            # Check max drawdown
+            drawdown = 1.0 - (current_equity / self.state.peak_equity)
+            if drawdown >= self.limits.max_portfolio_drawdown:
+                self.state.is_halted = True
+                self.state.halt_reason = (
+                    f"Max drawdown breached: {drawdown:.2%} >= {self.limits.max_portfolio_drawdown:.2%}"
+                )
+                logger.critical(self.state.halt_reason)
+                return False
 
-        # Check daily loss
-        daily_change = (current_equity - self.state.daily_start_equity) / self.state.daily_start_equity
-        if daily_change <= -self.limits.max_daily_loss:
-            self.state.is_halted = True
-            self.state.halt_reason = (
-                f"Daily loss limit breached: {daily_change:.2%} <= -{self.limits.max_daily_loss:.2%}"
-            )
-            logger.critical(self.state.halt_reason)
-            return False
+            # Check daily loss
+            daily_change = (current_equity - self.state.daily_start_equity) / self.state.daily_start_equity
+            if daily_change <= -self.limits.max_daily_loss:
+                self.state.is_halted = True
+                self.state.halt_reason = (
+                    f"Daily loss limit breached: {daily_change:.2%} <= -{self.limits.max_daily_loss:.2%}"
+                )
+                logger.critical(self.state.halt_reason)
+                return False
 
-        return True
+            return True
 
     def reset_daily(self):
         """Reset daily tracking (call at start of each trading day)."""
-        self.state.daily_start_equity = self.state.total_equity
-        self.state.daily_pnl = 0.0
-        if self.state.is_halted and "Daily" in self.state.halt_reason:
-            self.state.is_halted = False
-            self.state.halt_reason = ""
-            logger.info("Daily halt cleared, trading resumed")
+        with self._lock:
+            self.state.daily_start_equity = self.state.total_equity
+            self.state.daily_pnl = 0.0
+            if self.state.is_halted and "Daily" in self.state.halt_reason:
+                self.state.is_halted = False
+                self.state.halt_reason = ""
+                logger.info("Daily halt cleared, trading resumed")
 
     def calculate_position_size(
         self,
@@ -388,30 +392,32 @@ class RiskManager:
 
     def register_trade(self, symbol: str, side: str, size: float, entry_price: float):
         """Register an executed trade for tracking."""
-        self.state.open_positions[symbol] = {
-            "side": side,
-            "size": size,
-            "entry_price": entry_price,
-            "entry_time": datetime.now(timezone.utc),
-            "value": size * entry_price,
-        }
+        with self._lock:
+            self.state.open_positions[symbol] = {
+                "side": side,
+                "size": size,
+                "entry_price": entry_price,
+                "entry_time": datetime.now(timezone.utc),
+                "value": size * entry_price,
+            }
 
     def close_trade(self, symbol: str, exit_price: float) -> float:
         """Close a tracked position and return PnL."""
-        if symbol not in self.state.open_positions:
-            logger.warning(f"No open position found for {symbol}")
-            return 0.0
+        with self._lock:
+            if symbol not in self.state.open_positions:
+                logger.warning(f"No open position found for {symbol}")
+                return 0.0
 
-        pos = self.state.open_positions.pop(symbol)
-        if pos["side"] == "buy":
-            pnl = (exit_price - pos["entry_price"]) * pos["size"]
-        else:
-            pnl = (pos["entry_price"] - exit_price) * pos["size"]
+            pos = self.state.open_positions.pop(symbol)
+            if pos["side"] == "buy":
+                pnl = (exit_price - pos["entry_price"]) * pos["size"]
+            else:
+                pnl = (pos["entry_price"] - exit_price) * pos["size"]
 
-        self.state.daily_pnl += pnl
-        self.state.total_pnl += pnl
-        logger.info(f"Closed {symbol}: PnL ${pnl:.2f} (daily: ${self.state.daily_pnl:.2f})")
-        return pnl
+            self.state.daily_pnl += pnl
+            self.state.total_pnl += pnl
+            logger.info(f"Closed {symbol}: PnL ${pnl:.2f} (daily: ${self.state.daily_pnl:.2f})")
+            return pnl
 
     def get_status(self) -> dict:
         """Return current risk manager status."""

@@ -7,6 +7,7 @@ all framework tiers: VectorBT (research), Freqtrade (crypto), NautilusTrader (mu
 Data is stored in Parquet format for fast columnar reads across all frameworks.
 """
 
+import fcntl
 import os
 import sys
 import time
@@ -192,17 +193,27 @@ def save_ohlcv(
     exchange_id: str = "binance",
     directory: Optional[Path] = None,
 ) -> Path:
-    """Save OHLCV DataFrame to Parquet, merging with existing data."""
+    """Save OHLCV DataFrame to Parquet, merging with existing data.
+
+    Uses file locking to prevent corruption from concurrent writes.
+    """
     directory = directory or PROCESSED_DIR
     path = _parquet_path(symbol, timeframe, exchange_id, directory)
+    lock_path = path.with_suffix(".parquet.lock")
 
-    if path.exists():
-        existing = pd.read_parquet(path)
-        df = pd.concat([existing, df])
-        df = df[~df.index.duplicated(keep="last")].sort_index()
+    with open(lock_path, "w") as lock_file:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        try:
+            if path.exists():
+                existing = pd.read_parquet(path)
+                df = pd.concat([existing, df])
+                df = df[~df.index.duplicated(keep="last")].sort_index()
 
-    df.to_parquet(path, engine="pyarrow", compression="snappy")
-    logger.info(f"Saved {len(df)} rows to {path}")
+            df.to_parquet(path, engine="pyarrow", compression="snappy")
+            logger.info(f"Saved {len(df)} rows to {path}")
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+
     return path
 
 

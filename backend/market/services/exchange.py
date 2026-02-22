@@ -15,11 +15,17 @@ def _load_db_config(config_id: int | None = None):
     """Load ExchangeConfig from DB. Returns None if unavailable."""
     try:
         from market.models import ExchangeConfig
+    except ImportError:
+        return None
 
+    try:
         if config_id is not None:
             return ExchangeConfig.objects.get(pk=config_id, is_active=True)
         return ExchangeConfig.objects.filter(is_default=True, is_active=True).first()
+    except ExchangeConfig.DoesNotExist:
+        return None
     except Exception:
+        logger.warning("Failed to load exchange config from DB", exc_info=True)
         return None
 
 

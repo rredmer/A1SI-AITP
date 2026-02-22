@@ -49,7 +49,7 @@ export function EmergencyStopButton({
 
   if (isHalted) {
     return (
-      <div className="mx-3 mb-2 flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/20 px-3 py-2">
+      <div role="status" aria-label="Trading halted" className="mx-3 mb-2 flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/20 px-3 py-2">
         <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
         <span className="text-xs font-bold text-red-400">HALTED</span>
       </div>
@@ -59,6 +59,7 @@ export function EmergencyStopButton({
   return (
     <div className="mx-3 mb-2">
       <button
+        aria-label="Emergency stop — hold for 2 seconds to halt all trading"
         onMouseDown={startHold}
         onMouseUp={cancelHold}
         onMouseLeave={cancelHold}
