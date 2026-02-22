@@ -4,13 +4,20 @@ import { portfoliosApi } from "../api/portfolios";
 import { riskApi } from "../api/risk";
 import { useToast } from "../hooks/useToast";
 import { useSystemEvents } from "../hooks/useSystemEvents";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { Pagination } from "../components/Pagination";
 import type { Portfolio, RiskLimits, RiskStatus, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry, AlertLogEntry } from "../types";
+
+const PAGE_SIZE = 15;
 
 export function RiskManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isHalted: wsHalted, haltReason: wsHaltReason } = useSystemEvents();
-  const [portfolioId, setPortfolioId] = useState(1);
+  const [portfolioId, setPortfolioId] = useLocalStorage("ci:risk-portfolio", 1);
+  const [varHistoryPage, setVarHistoryPage] = useState(1);
+  const [tradeLogPage, setTradeLogPage] = useState(1);
+  const [alertsPage, setAlertsPage] = useState(1);
 
   useEffect(() => { document.title = "Risk Management | Crypto Investor"; }, []);
 
@@ -30,7 +37,7 @@ export function RiskManagement() {
   });
 
   // VaR query
-  const [varMethod, setVarMethod] = useState("parametric");
+  const [varMethod, setVarMethod] = useLocalStorage("ci:risk-var-method", "parametric");
   const { data: varData } = useQuery<VaRData>({
     queryKey: ["risk-var", portfolioId, varMethod],
     queryFn: () => riskApi.getVaR(portfolioId, varMethod),
@@ -44,7 +51,7 @@ export function RiskManagement() {
   });
 
   // Metric history query
-  const [historyHours, setHistoryHours] = useState(168);
+  const [historyHours, setHistoryHours] = useLocalStorage("ci:risk-history-hours", 168);
   const { data: metricHistory } = useQuery<RiskMetricHistoryEntry[]>({
     queryKey: ["risk-metric-history", portfolioId, historyHours],
     queryFn: () => riskApi.getMetricHistory(portfolioId, historyHours),
@@ -662,7 +669,7 @@ export function RiskManagement() {
                 </tr>
               </thead>
               <tbody>
-                {metricHistory.map((entry) => (
+                {metricHistory.slice((varHistoryPage - 1) * PAGE_SIZE, varHistoryPage * PAGE_SIZE).map((entry) => (
                   <tr key={entry.id} className="border-b border-[var(--color-border)]/30">
                     <td className="py-1.5 text-[var(--color-text-muted)]">
                       {new Date(entry.recorded_at).toLocaleString()}
@@ -678,6 +685,7 @@ export function RiskManagement() {
                 ))}
               </tbody>
             </table>
+            <Pagination page={varHistoryPage} pageSize={PAGE_SIZE} total={metricHistory.length} onPageChange={setVarHistoryPage} />
           </div>
         ) : (
           <p className="text-sm text-[var(--color-text-muted)]">
@@ -704,7 +712,7 @@ export function RiskManagement() {
                 </tr>
               </thead>
               <tbody>
-                {tradeLog.map((entry) => (
+                {tradeLog.slice((tradeLogPage - 1) * PAGE_SIZE, tradeLogPage * PAGE_SIZE).map((entry) => (
                   <tr
                     key={entry.id}
                     className={`border-b border-[var(--color-border)]/30 ${
@@ -734,6 +742,7 @@ export function RiskManagement() {
                 ))}
               </tbody>
             </table>
+            <Pagination page={tradeLogPage} pageSize={PAGE_SIZE} total={tradeLog.length} onPageChange={setTradeLogPage} />
           </div>
         ) : (
           <p className="text-sm text-[var(--color-text-muted)]">
@@ -758,7 +767,7 @@ export function RiskManagement() {
                 </tr>
               </thead>
               <tbody>
-                {alerts.map((alert) => (
+                {alerts.slice((alertsPage - 1) * PAGE_SIZE, alertsPage * PAGE_SIZE).map((alert) => (
                   <tr key={alert.id} className="border-b border-[var(--color-border)]/30">
                     <td className="py-1.5 text-[var(--color-text-muted)]">
                       {new Date(alert.created_at).toLocaleString()}
@@ -790,6 +799,7 @@ export function RiskManagement() {
                 ))}
               </tbody>
             </table>
+            <Pagination page={alertsPage} pageSize={PAGE_SIZE} total={alerts.length} onPageChange={setAlertsPage} />
           </div>
         ) : (
           <p className="text-sm text-[var(--color-text-muted)]">

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { marketApi } from "../api/market";
 import { indicatorsApi, type IndicatorData } from "../api/indicators";
 import { regimeApi } from "../api/regime";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { PriceChart } from "../components/PriceChart";
 import type { OHLCVData, RegimeState, RegimeType } from "../types";
 
@@ -28,9 +29,9 @@ function formatRegimeName(regime: RegimeType): string {
 }
 
 export function MarketAnalysis() {
-  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
-  const [timeframe, setTimeframe] = useState("1h");
-  const [exchange, setExchange] = useState("sample");
+  const [symbol, setSymbol] = useLocalStorage("ci:market-symbol", DEFAULT_SYMBOL);
+  const [timeframe, setTimeframe] = useLocalStorage("ci:market-timeframe", "1h");
+  const [exchange, setExchange] = useLocalStorage("ci:market-exchange", "sample");
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>([]);
 
   useEffect(() => { document.title = "Market Analysis | Crypto Investor"; }, []);

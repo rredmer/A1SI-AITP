@@ -323,6 +323,40 @@ export interface DataSourceConfigCreate {
   fetch_interval_minutes?: number;
 }
 
+// WebSocket event types — discriminated unions for type-safe message routing
+export interface HaltStatusEvent {
+  type: "halt_status";
+  data: {
+    is_halted: boolean;
+    halt_reason: string;
+  };
+}
+
+export interface OrderUpdateEvent {
+  type: "order_update";
+  data: {
+    id: number;
+    symbol: string;
+    side: string;
+    status: string;
+    amount: number;
+    filled: number;
+    avg_fill_price: number | null;
+  };
+}
+
+export interface RiskAlertEvent {
+  type: "risk_alert";
+  data: {
+    severity: "info" | "warning" | "critical";
+    event_type: string;
+    message: string;
+    portfolio_id: number;
+  };
+}
+
+export type SystemEvent = HaltStatusEvent | OrderUpdateEvent | RiskAlertEvent;
+
 // Platform types
 export interface FrameworkStatus {
   name: string;

@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { regimeApi } from "../api/regime";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { Pagination } from "../components/Pagination";
 import type {
   RegimeState,
   RegimeType,
@@ -37,8 +39,21 @@ function formatRegime(regime: RegimeType): string {
     .join(" ");
 }
 
+const HISTORY_PAGE_SIZE = 15;
+
+const REGIME_FILL: Record<RegimeType, string> = {
+  strong_trend_up: "#4ade80",
+  weak_trend_up: "#34d399",
+  ranging: "#facc15",
+  weak_trend_down: "#fb923c",
+  strong_trend_down: "#f87171",
+  high_volatility: "#c084fc",
+  unknown: "#9ca3af",
+};
+
 export function RegimeDashboard() {
-  const [selectedSymbol, setSelectedSymbol] = useState(SYMBOLS[0]);
+  const [selectedSymbol, setSelectedSymbol] = useLocalStorage("ci:regime-symbol", SYMBOLS[0]);
+  const [historyPage, setHistoryPage] = useState(1);
 
   const { data: regimeState } = useQuery<RegimeState>({
     queryKey: ["regime-current", selectedSymbol],
@@ -235,6 +250,14 @@ export function RegimeDashboard() {
         </div>
       </div>
 
+      {/* Regime Timeline Chart */}
+      {history && history.length > 1 && (
+        <div className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <h3 className="mb-4 text-lg font-semibold">Regime Timeline</h3>
+          <RegimeTimeline history={history} />
+        </div>
+      )}
+
       {/* Regime History */}
       <div className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
         <h3 className="mb-4 text-lg font-semibold">Regime History</h3>
@@ -250,7 +273,7 @@ export function RegimeDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {history.map((entry, i) => (
+                {history.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE).map((entry, i) => (
                   <tr
                     key={i}
                     className="border-b border-[var(--color-border)]/30"
@@ -275,6 +298,7 @@ export function RegimeDashboard() {
                 ))}
               </tbody>
             </table>
+            <Pagination page={historyPage} pageSize={HISTORY_PAGE_SIZE} total={history.length} onPageChange={setHistoryPage} />
           </div>
         ) : (
           <p className="text-sm text-[var(--color-text-muted)]">
@@ -383,6 +407,102 @@ function Gauge({
           className={`h-2 rounded-full transition-all ${barColor}`}
           style={{ width: `${clampedPct}%` }}
         />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SVG timeline chart showing regime transitions over time.
+ * Each regime period is rendered as a colored bar, with confidence as opacity.
+ */
+function RegimeTimeline({ history }: { history: RegimeHistoryEntry[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(600);
+
+  useEffect(() => {
+    if (!containerRef.current || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setWidth(w);
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const sorted = [...history].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+  if (sorted.length < 2) return null;
+
+  const tStart = new Date(sorted[0].timestamp).getTime();
+  const tEnd = new Date(sorted[sorted.length - 1].timestamp).getTime();
+  const tRange = tEnd - tStart || 1;
+
+  const barHeight = 28;
+  const svgHeight = barHeight + 24; // bar + labels
+  const labelY = barHeight + 16;
+
+  // Build segments from consecutive entries
+  const segments: { x: number; w: number; regime: RegimeType; confidence: number }[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const t = new Date(sorted[i].timestamp).getTime();
+    const tNext = i < sorted.length - 1 ? new Date(sorted[i + 1].timestamp).getTime() : tEnd;
+    const x = ((t - tStart) / tRange) * width;
+    const w = Math.max(2, ((tNext - t) / tRange) * width);
+    segments.push({ x, w, regime: sorted[i].regime, confidence: sorted[i].confidence });
+  }
+
+  // Time labels — show ~5 evenly spaced
+  const labelCount = Math.min(5, sorted.length);
+  const labels: { x: number; text: string }[] = [];
+  for (let i = 0; i < labelCount; i++) {
+    const frac = i / (labelCount - 1);
+    const t = tStart + frac * tRange;
+    labels.push({
+      x: frac * width,
+      text: new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+    });
+  }
+
+  return (
+    <div ref={containerRef}>
+      <svg width={width} height={svgHeight} className="w-full">
+        {segments.map((seg, i) => (
+          <rect
+            key={i}
+            x={seg.x}
+            y={0}
+            width={seg.w}
+            height={barHeight}
+            fill={REGIME_FILL[seg.regime]}
+            opacity={0.4 + seg.confidence * 0.6}
+            rx={2}
+          >
+            <title>{formatRegime(seg.regime)} ({(seg.confidence * 100).toFixed(0)}%)</title>
+          </rect>
+        ))}
+        {labels.map((l, i) => (
+          <text
+            key={i}
+            x={l.x}
+            y={labelY}
+            textAnchor={i === 0 ? "start" : i === labelCount - 1 ? "end" : "middle"}
+            className="fill-[var(--color-text-muted)]"
+            fontSize={10}
+          >
+            {l.text}
+          </text>
+        ))}
+      </svg>
+      {/* Legend */}
+      <div className="mt-2 flex flex-wrap gap-3 text-xs">
+        {(Object.keys(REGIME_FILL) as RegimeType[]).map((r) => (
+          <div key={r} className="flex items-center gap-1">
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: REGIME_FILL[r] }} />
+            <span className="text-[var(--color-text-muted)]">{formatRegime(r)}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

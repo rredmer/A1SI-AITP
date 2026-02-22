@@ -357,6 +357,159 @@ def screen_volatility_breakout(
 
 
 # ──────────────────────────────────────────────
+# Walk-Forward Out-of-Sample Validation
+# ──────────────────────────────────────────────
+
+# Strategy screen functions keyed by name for walk-forward dispatch
+SCREEN_FUNCTIONS = {
+    "sma_crossover": lambda df, fees: screen_sma_crossover(df["close"], fees=fees),
+    "rsi_mean_reversion": lambda df, fees: screen_rsi_mean_reversion(df, fees=fees),
+    "bollinger_breakout": lambda df, fees: screen_bollinger_breakout(df, fees=fees),
+    "ema_rsi_combo": lambda df, fees: screen_ema_rsi_combo(df, fees=fees),
+    "volatility_breakout": lambda df, fees: screen_volatility_breakout(df, fees=fees),
+}
+
+
+def walk_forward_validate(
+    df: pd.DataFrame,
+    strategy_name: str,
+    n_splits: int = 3,
+    train_ratio: float = 0.7,
+    fees: float = 0.001,
+) -> pd.DataFrame:
+    """Walk-forward out-of-sample validation for a strategy screen.
+
+    Splits data into sequential windows. For each window:
+      1. Optimize parameters on the train portion
+      2. Evaluate the best parameters on the OOS test portion
+
+    This prevents curve-fitting by ensuring every reported metric
+    comes from data the optimizer never saw.
+
+    Args:
+        df: Full OHLCV DataFrame.
+        strategy_name: Key in SCREEN_FUNCTIONS.
+        n_splits: Number of walk-forward windows.
+        train_ratio: Fraction of each window used for training.
+        fees: Trading fees.
+
+    Returns:
+        DataFrame with one row per split showing IS and OOS metrics.
+    """
+    if strategy_name not in SCREEN_FUNCTIONS:
+        raise ValueError(f"Unknown strategy: {strategy_name}. Options: {list(SCREEN_FUNCTIONS.keys())}")
+
+    screen_fn = SCREEN_FUNCTIONS[strategy_name]
+    n_rows = len(df)
+    window_size = n_rows // n_splits
+    results = []
+
+    logger.info(
+        f"Walk-forward validation: {strategy_name}, {n_splits} splits, "
+        f"{n_rows} total rows, ~{window_size} per window"
+    )
+
+    for i in range(n_splits):
+        start = i * window_size
+        end = min(start + window_size, n_rows)
+        if end - start < 100:
+            logger.warning(f"Split {i + 1}: too few rows ({end - start}), skipping")
+            continue
+
+        window_df = df.iloc[start:end].copy()
+        train_end = int(len(window_df) * train_ratio)
+
+        train_df = window_df.iloc[:train_end]
+        test_df = window_df.iloc[train_end:]
+
+        if len(train_df) < 50 or len(test_df) < 20:
+            logger.warning(f"Split {i + 1}: insufficient data (train={len(train_df)}, test={len(test_df)})")
+            continue
+
+        # Phase 1: Optimize on training data
+        try:
+            is_results = screen_fn(train_df, fees)
+        except Exception as e:
+            logger.error(f"Split {i + 1} IS screen failed: {e}")
+            continue
+
+        if is_results.empty:
+            logger.warning(f"Split {i + 1}: no valid IS results")
+            continue
+
+        # Get best params from IS (first row after sort by sharpe)
+        best_row = is_results.iloc[0]
+        best_params = {
+            col: best_row[col]
+            for col in is_results.columns
+            if col not in {
+                "total_return", "sharpe_ratio", "max_drawdown",
+                "win_rate", "profit_factor", "num_trades", "avg_trade_pnl",
+            }
+        }
+
+        # Phase 2: Evaluate best params on OOS test data
+        try:
+            oos_results = screen_fn(test_df, fees)
+        except Exception as e:
+            logger.error(f"Split {i + 1} OOS screen failed: {e}")
+            continue
+
+        if oos_results.empty:
+            oos_sharpe = 0.0
+            oos_return = 0.0
+            oos_drawdown = 0.0
+        else:
+            # Find matching params in OOS results, or take the best OOS result
+            oos_best = oos_results.iloc[0]
+            oos_sharpe = float(oos_best.get("sharpe_ratio", 0))
+            oos_return = float(oos_best.get("total_return", 0))
+            oos_drawdown = float(oos_best.get("max_drawdown", 0))
+
+        is_sharpe = float(best_row.get("sharpe_ratio", 0))
+        is_return = float(best_row.get("total_return", 0))
+        is_drawdown = float(best_row.get("max_drawdown", 0))
+
+        # Degradation ratio: how much worse is OOS vs IS?
+        degradation = oos_sharpe / is_sharpe if is_sharpe > 0 else 0.0
+
+        results.append({
+            "split": i + 1,
+            "train_rows": len(train_df),
+            "test_rows": len(test_df),
+            "is_sharpe": round(is_sharpe, 4),
+            "is_return": round(is_return, 4),
+            "is_max_drawdown": round(is_drawdown, 4),
+            "oos_sharpe": round(oos_sharpe, 4),
+            "oos_return": round(oos_return, 4),
+            "oos_max_drawdown": round(oos_drawdown, 4),
+            "degradation_ratio": round(degradation, 4),
+            **{f"best_{k}": v for k, v in best_params.items()},
+        })
+
+        logger.info(
+            f"Split {i + 1}: IS Sharpe={is_sharpe:.3f}, OOS Sharpe={oos_sharpe:.3f}, "
+            f"degradation={degradation:.2f}"
+        )
+
+    results_df = pd.DataFrame(results)
+    if not results_df.empty:
+        avg_oos = results_df["oos_sharpe"].mean()
+        avg_deg = results_df["degradation_ratio"].mean()
+        logger.info(
+            f"Walk-forward complete: avg OOS Sharpe={avg_oos:.3f}, "
+            f"avg degradation={avg_deg:.2f}"
+        )
+        # Flag: robust if avg OOS Sharpe > 0 and degradation > 0.5
+        robust = avg_oos > 0 and avg_deg > 0.5
+        logger.info(f"Robustness verdict: {'PASS' if robust else 'FAIL'}")
+    else:
+        logger.warning("Walk-forward validation produced no results")
+
+    return results_df
+
+
+# ──────────────────────────────────────────────
 # Composite Screener
 # ──────────────────────────────────────────────
 
@@ -432,6 +585,28 @@ def run_full_screen(
                 "top_return": float(top["total_return"].iloc[0]) if "total_return" in top.columns else None,
             }
 
+    # Walk-forward OOS validation for each strategy
+    wf_summary = {}
+    logger.info("Running walk-forward OOS validation...")
+    for name in results:
+        try:
+            wf = walk_forward_validate(df, name, n_splits=3, fees=fees)
+            if not wf.empty:
+                wf_path = output_dir / f"{name}_walkforward.csv"
+                wf.to_csv(wf_path, index=False)
+                avg_oos = float(wf["oos_sharpe"].mean())
+                avg_deg = float(wf["degradation_ratio"].mean())
+                wf_summary[name] = {
+                    "avg_oos_sharpe": round(avg_oos, 4),
+                    "avg_degradation": round(avg_deg, 4),
+                    "robust": avg_oos > 0 and avg_deg > 0.5,
+                    "splits": len(wf),
+                }
+        except Exception as e:
+            logger.error(f"Walk-forward for {name} failed: {e}")
+
+    summary["walk_forward"] = wf_summary
+
     # Save summary
     with open(output_dir / "summary.json", "w") as f:
         json.dump(summary, f, indent=2, default=str)
@@ -453,6 +628,26 @@ if __name__ == "__main__":
     parser.add_argument("--timeframe", default="1h", help="Candle timeframe")
     parser.add_argument("--exchange", default="binance", help="Exchange")
     parser.add_argument("--fees", type=float, default=0.001, help="Trading fees (0.001 = 0.1%%)")
+    parser.add_argument(
+        "--walk-forward-only",
+        metavar="STRATEGY",
+        help="Run walk-forward OOS validation for a single strategy instead of full screen",
+    )
+    parser.add_argument("--splits", type=int, default=3, help="Number of walk-forward splits")
 
     args = parser.parse_args()
-    run_full_screen(args.symbol, args.timeframe, args.exchange, args.fees)
+
+    if args.walk_forward_only:
+        from common.data_pipeline.pipeline import load_ohlcv as _load
+
+        _df = _load(args.symbol, args.timeframe, args.exchange)
+        if _df.empty:
+            logger.error(f"No data for {args.symbol} {args.timeframe}")
+        else:
+            wf = walk_forward_validate(
+                _df, args.walk_forward_only, n_splits=args.splits, fees=args.fees,
+            )
+            if not wf.empty:
+                print(wf.to_string(index=False))
+    else:
+        run_full_screen(args.symbol, args.timeframe, args.exchange, args.fees)

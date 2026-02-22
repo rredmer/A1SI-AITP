@@ -1,0 +1,29 @@
+[Unit]
+Description=Crypto Investor Backend (Daphne ASGI)
+After=network.target
+
+[Service]
+Type=simple
+User=crypto
+Group=crypto
+WorkingDirectory=/opt/crypto-investor/backend
+Environment=DJANGO_SETTINGS_MODULE=config.settings
+Environment=PYTHONPATH=/opt/crypto-investor
+ExecStartPre=/opt/crypto-investor/backend/.venv/bin/python manage.py migrate --noinput
+ExecStartPre=/opt/crypto-investor/backend/.venv/bin/python manage.py collectstatic --noinput --clear
+ExecStart=/opt/crypto-investor/backend/.venv/bin/daphne -b 127.0.0.1 -p 8000 config.asgi:application
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto-investor
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/crypto-investor/backend/data /opt/crypto-investor/logs
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

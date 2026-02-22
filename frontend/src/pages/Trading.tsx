@@ -2,10 +2,14 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSystemEvents } from "../hooks/useSystemEvents";
 import { useToast } from "../hooks/useToast";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { tradingApi } from "../api/trading";
 import { OrderForm } from "../components/OrderForm";
 import { QueryResult } from "../components/QueryResult";
+import { Pagination } from "../components/Pagination";
 import type { Order, OrderStatus, TradingMode } from "../types";
+
+const PAGE_SIZE = 15;
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
   pending: "bg-gray-500/20 text-gray-400",
@@ -28,7 +32,8 @@ const CANCELLABLE: Set<OrderStatus> = new Set([
 export function Trading() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [mode, setMode] = useState<TradingMode>("paper");
+  const [mode, setMode] = useLocalStorage<TradingMode>("ci:trading-mode", "paper");
+  const [page, setPage] = useState(1);
   const { isConnected, isHalted } = useSystemEvents();
 
   useEffect(() => { document.title = "Trading | Crypto Investor"; }, []);
@@ -136,7 +141,7 @@ export function Trading() {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((o) => (
+                    {orders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((o) => (
                       <tr
                         key={o.id}
                         className="border-b border-[var(--color-border)]"
@@ -198,6 +203,7 @@ export function Trading() {
                     ))}
                   </tbody>
                 </table>
+                <Pagination page={page} pageSize={PAGE_SIZE} total={orders.length} onPageChange={setPage} />
               </div>
             )}
           </QueryResult>

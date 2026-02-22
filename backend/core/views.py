@@ -92,6 +92,8 @@ class NotificationPreferencesView(APIView):
 
 
 class MetricsView(APIView):
+    permission_classes = [AllowAny]
+
     @extend_schema(tags=["Core"], exclude=True)
     def get(self, request: Request) -> HttpResponse:
         from core.services.metrics import metrics
