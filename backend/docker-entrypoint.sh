@@ -13,5 +13,8 @@ else
     echo "→ Skipping superuser creation (set DJANGO_SUPERUSER_PASSWORD to enable)"
 fi
 
+echo "→ Collecting static files..."
+python manage.py collectstatic --noinput --clear 2>/dev/null
+
 echo "→ Starting Daphne..."
 exec "$@"
