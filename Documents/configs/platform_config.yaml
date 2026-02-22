@@ -1,11 +1,11 @@
-# ~/Dev/crypto-investor/configs/platform_config.yaml
-# Master configuration for the crypto-investor platform
+# ~/Dev/A1SI-AITP/configs/platform_config.yaml
+# Master configuration for the A1SI-AITP platform
 # All sensitive values (API keys) should be set via environment variables
 
 platform:
-  name: "crypto-investor"
+  name: "a1si-aitp"
   version: "0.1.0"
-  base_dir: "~/Dev/crypto-investor"
+  base_dir: "~/Dev/A1SI-AITP"
   log_level: "INFO"
 
 # ──────────────────────────────────────────────

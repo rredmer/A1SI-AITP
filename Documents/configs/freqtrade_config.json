@@ -88,7 +88,7 @@
         "username": "freqtrader",
         "password": "freqtrader"
     },
-    "bot_name": "crypto-investor-ft",
+    "bot_name": "a1si-aitp-ft",
     "initial_state": "running",
     "force_entry_enable": false,
     "internals": {

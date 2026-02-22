@@ -1,4 +1,4 @@
-# Crypto-Investor Platform v0.1.0
+# A1SI-AITP Platform v0.1.0
 
 Multi-layered algorithmic trading platform integrating VectorBT, Freqtrade, NautilusTrader, and hftbacktest.
 
