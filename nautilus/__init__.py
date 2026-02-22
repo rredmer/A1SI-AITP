@@ -1,1 +1,1 @@
-# Crypto-Investor NautilusTrader integration
+# A1SI-AITP NautilusTrader integration

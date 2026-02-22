@@ -34,7 +34,7 @@ export function MarketAnalysis() {
   const [exchange, setExchange] = useLocalStorage("ci:market-exchange", "sample");
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>([]);
 
-  useEffect(() => { document.title = "Market Analysis | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Market Analysis | A1SI-AITP"; }, []);
 
   const { data: ohlcv, isLoading, isError, error } = useQuery<OHLCVData[]>({
     queryKey: ["ohlcv", symbol, timeframe],

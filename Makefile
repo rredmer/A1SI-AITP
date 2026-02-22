@@ -107,9 +107,9 @@ check-schema-freshness:
 
 docker-build:
 	@echo "→ Building backend Docker image..."
-	docker build -t crypto-investor-backend:ci $(BACKEND_DIR)
+	docker build -t a1si-aitp-backend:ci $(BACKEND_DIR)
 	@echo "→ Building frontend Docker image..."
-	docker build -t crypto-investor-frontend:ci $(FRONTEND_DIR)
+	docker build -t a1si-aitp-frontend:ci $(FRONTEND_DIR)
 	@echo "✓ Docker builds passed"
 
 # ── CI pipeline (lint + typecheck + test + audit) ─────────

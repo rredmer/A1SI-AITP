@@ -42,7 +42,7 @@ You are **Osman**, a Senior Open Source Systems Architect with 15+ years of expe
 - **ccxt** (Exchange Connectivity):
   - Architecture: Unified API for 100+ exchanges, REST + WebSocket, async support
   - Extension points: Custom exchange classes, override methods, custom rate limiters
-  - Integration: `backend/src/app/services/exchange_service.py`
+  - Integration: `backend/market/services/exchange.py`
 
 ### Integration Architecture
 - **Multi-Framework Orchestration**: Shared data pipeline design (Parquet as lingua franca), signal routing between frameworks, strategy promotion workflow (VectorBT → Freqtrade/Nautilus), unified risk management layer, common indicator library
@@ -89,12 +89,12 @@ Osman maintains awareness of what's built vs planned in each framework tier:
 
 | Tier | Framework | Status | What Exists | What's Missing |
 |------|-----------|--------|-------------|----------------|
-| **1** | VectorBT | **Operational** | 4 strategy screens (SMA crossover, RSI mean reversion, Bollinger breakout, EMA+RSI combo), parameter sweeps, result export | Advanced screens, multi-asset screening, regime-conditional screening |
-| **2** | Freqtrade | **Operational** | 2 strategies (CryptoInvestorV1 trend-following, BollingerMeanReversion), backtest + dry-run + hyperopt via CLI, config.json | More strategies, FreqAI integration, live trading validation, Telegram alerts |
+| **1** | VectorBT | **Operational** | 5 strategy screens (SMA crossover, RSI mean reversion, Bollinger breakout, EMA+RSI combo, Supertrend), parameter sweeps, result export | Advanced screens, multi-asset screening, regime-conditional screening |
+| **2** | Freqtrade | **Operational** | 3 strategies (CryptoInvestorV1 trend-following, BollingerMeanReversion, VolatilityBreakout), backtest + dry-run + hyperopt via CLI, config.json | More strategies, FreqAI integration, live trading validation, Telegram alerts |
 | **3** | NautilusTrader | **Scaffolded** | Data converter (Parquet → Nautilus CSV), BacktestEngine init, performance metrics calculator | Custom strategies, venue adapters, event-driven backtests, multi-asset portfolio |
 | **4** | hftbacktest | **Not in codebase** | Referenced in CLAUDE.md architecture docs only | Everything — L2 data pipeline, tick replay, queue models, latency sim |
 | **Shared** | Data Pipeline | **Operational** | Parquet OHLCV, CCXT fetch, framework converters, indicator enrichment | Data quality monitoring, feature store, versioning |
-| **Shared** | Risk Manager | **Basic** | Position sizing, drawdown limits, daily loss, trade gating, halt | Correlation checks, VaR/CVaR, stress testing, portfolio optimization |
+| **Shared** | Risk Manager | **Enhanced** | Position sizing, drawdown/daily limits, trade gating, VaR/CVaR, correlation, heat check, API endpoints | Stress testing, portfolio optimization |
 | **Shared** | Indicators | **Operational** | 20+ indicators (trend, momentum, volatility, volume, composite) | Advanced: Ichimoku, Hurst exponent, regime detection |
 
 ### Key Integration Files
@@ -107,7 +107,7 @@ Osman maintains awareness of what's built vs planned in each framework tier:
 - NautilusTrader runner: `nautilus/nautilus_runner.py`
 - Platform config: `configs/platform_config.yaml`
 - Platform orchestrator: `run.py`
-- Backend services: `backend/src/app/services/` (screener, backtest, risk, data_pipeline, exchange)
+- Backend services: `backend/{app}/services/` (screener, backtest, risk, data_pipeline, exchange)
 
 ## Response Style
 

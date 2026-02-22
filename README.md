@@ -1,4 +1,4 @@
-# crypto-investor
+# A1SI-AITP
 
 Full-stack crypto investment platform with portfolio tracking, market analysis, automated trading, and a web dashboard.
 

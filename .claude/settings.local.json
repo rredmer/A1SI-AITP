@@ -116,7 +116,25 @@
       "Bash(/tmp/debug_sharpe2.py:*)",
       "Bash(/tmp/test_config_loading.py:*)",
       "Bash(/tmp/final_review.txt:*)",
-      "Bash(backend/.venv/bin/python:*)"
+      "Bash(backend/.venv/bin/python:*)",
+      "Bash(sort:*)",
+      "Bash(for test_file in /home/rredmer/Dev/Portfolio/crypto-investor/backend/tests/test_*.py)",
+      "Bash(do basename \"$test_file\")",
+      "Bash(done)",
+      "Bash(npx openapi-typescript:*)",
+      "Bash(echo:*)",
+      "Bash(/home/rredmer/Dev/Portfolio/crypto-investor/backend/.venv/bin/python -m ruff check:*)",
+      "Bash(npx --no-install tsc:*)",
+      "Bash(/home/rredmer/miniforge3/bin/python -m pytest:*)",
+      "Bash(conda activate:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git rm:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings PYTHONPATH=backend:. python -m pytest:*)",
+      "Bash(tail:*)",
+      "Bash(gh run:*)",
+      "Bash(DJANGO_DEBUG=true /home/rredmer/Dev/Portfolio/crypto-investor/backend/.venv/bin/python:*)",
+      "Bash(gh repo:*)",
+      "Bash(git remote:*)"
     ]
   }
 }

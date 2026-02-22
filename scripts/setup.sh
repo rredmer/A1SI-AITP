@@ -6,7 +6,7 @@ BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 VENV="$BACKEND_DIR/.venv"
 
-echo "=== crypto-investor setup ==="
+echo "=== A1SI-AITP setup ==="
 echo ""
 
 # Backend

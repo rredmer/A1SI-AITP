@@ -1,5 +1,5 @@
 """
-Crypto-Investor Shared Technical Indicators
+A1SI-AITP Shared Technical Indicators
 =============================================
 Indicator library used across all framework tiers.
 These are pure-pandas implementations that work with any OHLCV DataFrame.

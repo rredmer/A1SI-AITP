@@ -42,9 +42,9 @@ You are **Lena**, a Senior Frontend Developer with 12+ years of experience build
 ## This Project's Stack
 
 ### Architecture
-- **Frontend**: React 19 + TypeScript strict + Vite 7 + TanStack React Query v5 + Tailwind CSS v4 + Lightweight-charts 5.x
-- **Backend**: FastAPI at `:8000`, frontend proxied via Vite in dev (`:5173`), served by backend in prod
-- **Routing**: React Router v7, Layout outlet pattern, 9 routes (Dashboard, Portfolio, MarketAnalysis, Trading, DataManagement, Screening, RiskManagement, Backtesting, Settings)
+- **Frontend**: React 19 + TypeScript strict + Vite 6 + TanStack React Query v5 + Tailwind CSS v4 + Lightweight-charts 5.x
+- **Backend**: Django/Daphne at `:8000`, frontend proxied via Vite in dev (`:5173`), served by nginx in prod (Docker)
+- **Routing**: React Router v7, Layout outlet pattern, 11 pages (Dashboard, Portfolio, MarketAnalysis, Trading, DataManagement, Screening, RiskManagement, Backtesting, Settings, PaperTrading, EquityCurve)
 - **Theme**: Dark theme with CSS custom properties, no light mode toggle currently
 
 ### Key Paths

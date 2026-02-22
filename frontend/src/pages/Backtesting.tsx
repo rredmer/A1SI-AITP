@@ -11,7 +11,7 @@ export function Backtesting() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  useEffect(() => { document.title = "Backtesting | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Backtesting | A1SI-AITP"; }, []);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [framework, setFramework] = useState("freqtrade");
   const [strategy, setStrategy] = useState("");

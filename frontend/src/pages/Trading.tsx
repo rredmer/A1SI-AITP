@@ -36,7 +36,7 @@ export function Trading() {
   const [page, setPage] = useState(1);
   const { isConnected, isHalted } = useSystemEvents();
 
-  useEffect(() => { document.title = "Trading | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Trading | A1SI-AITP"; }, []);
 
   const ordersQuery = useQuery<Order[]>({
     queryKey: ["orders", mode],

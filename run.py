@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Crypto-Investor Platform Orchestrator
-=======================================
+A1SI-AITP Platform Orchestrator
+=================================
 Master CLI that coordinates all framework tiers:
     - Data Pipeline (shared OHLCV acquisition)
     - VectorBT Research (rapid strategy screening)
@@ -48,7 +48,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 LOGO = r"""
   ╔══════════════════════════════════════════════════════╗
-  ║         CRYPTO-INVESTOR PLATFORM v0.1.0              ║
+  ║            A1SI-AITP PLATFORM v0.1.0                 ║
   ║  Research → Backtest → Validate → Deploy             ║
   ╚══════════════════════════════════════════════════════╝
 """
@@ -545,7 +545,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Crypto-Investor Platform Orchestrator",
+        description="A1SI-AITP Platform Orchestrator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

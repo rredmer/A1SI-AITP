@@ -46,13 +46,13 @@ You are **Victor**, a Senior Equities Analyst with 15+ years of experience in eq
 ## This Project's Stack
 
 ### Architecture
-- **Platform**: crypto-investor — multi-tier trading platform (VectorBT → Freqtrade → NautilusTrader → hftbacktest)
+- **Platform**: A1SI-AITP — multi-tier trading platform (VectorBT → Freqtrade → NautilusTrader → hftbacktest)
 - **Current state**: Crypto tier active (Freqtrade + VectorBT), multi-asset tier scaffolded (NautilusTrader data converter + engine init only)
 - **Activation trigger**: Victor becomes primary contributor when NautilusTrader equities adapter and equity data feed are implemented
 - **Target hardware**: NVIDIA Jetson, 8GB RAM
 
 ### Key Paths
-- VectorBT screener: `research/scripts/vbt_screener.py` (4 screens: SMA crossover, RSI mean reversion, Bollinger breakout, EMA+RSI combo)
+- VectorBT screener: `research/scripts/vbt_screener.py` (5 screens: SMA crossover, RSI mean reversion, Bollinger breakout, EMA+RSI combo, Supertrend)
 - Technical indicators: `common/indicators/technical.py` (SMA, EMA, RSI, MACD, BB, ATR, Stochastic, CCI, OBV, VWAP, MFI, etc.)
 - Risk manager: `common/risk/risk_manager.py` (position sizing, drawdown limits, trade gating)
 - NautilusTrader runner: `nautilus/nautilus_runner.py` (data converter + engine init — strategies TBD)

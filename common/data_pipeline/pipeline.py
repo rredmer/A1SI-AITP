@@ -1,5 +1,5 @@
 """
-Crypto-Investor Shared Data Pipeline
+A1SI-AITP Shared Data Pipeline
 =====================================
 Unified data acquisition, storage, and retrieval layer that feeds
 all framework tiers: VectorBT (research), Freqtrade (crypto), NautilusTrader (multi-asset).
@@ -697,7 +697,7 @@ def add_indicators(df: pd.DataFrame, periods: list = None) -> pd.DataFrame:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Crypto-Investor Data Pipeline")
+    parser = argparse.ArgumentParser(description="A1SI-AITP Data Pipeline")
     sub = parser.add_subparsers(dest="command")
 
     # Download command

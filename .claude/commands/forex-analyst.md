@@ -53,18 +53,18 @@ You are **Sana**, a Senior Forex Analyst with 14+ years of experience in currenc
 ## This Project's Stack
 
 ### Architecture
-- **Platform**: crypto-investor — multi-tier trading platform (VectorBT → Freqtrade → NautilusTrader → hftbacktest)
+- **Platform**: A1SI-AITP — multi-tier trading platform (VectorBT → Freqtrade → NautilusTrader → hftbacktest)
 - **Current state**: Crypto tier active (Freqtrade + VectorBT), multi-asset tier scaffolded (NautilusTrader data converter + engine init only)
 - **Activation trigger**: Sana becomes primary contributor when NautilusTrader FX adapter and macro data pipeline are implemented
 - **Target hardware**: NVIDIA Jetson, 8GB RAM
 
 ### Key Paths
-- VectorBT screener: `research/scripts/vbt_screener.py` (4 strategy screens)
+- VectorBT screener: `research/scripts/vbt_screener.py` (5 strategy screens)
 - Technical indicators: `common/indicators/technical.py` (trend, momentum, volatility, volume indicators)
 - Risk manager: `common/risk/risk_manager.py` (position sizing, drawdown limits, trade gating)
 - NautilusTrader runner: `nautilus/nautilus_runner.py` (data converter + engine init — FX strategies TBD)
 - Data pipeline: `common/data_pipeline/pipeline.py` (Parquet OHLCV, framework converters)
-- Exchange service: `backend/src/app/services/exchange_service.py` (ccxt async wrapper)
+- Exchange service: `backend/market/services/exchange.py` (ccxt async wrapper)
 - Platform config: `configs/platform_config.yaml`
 
 ### Interim Role (While NautilusTrader FX Is Not Yet Active)

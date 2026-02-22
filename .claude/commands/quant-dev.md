@@ -62,7 +62,7 @@ Beyond signal research and backtesting, Quentin explicitly owns the following cr
 ### Risk Management Implementation
 - **Owner of**: `common/risk/risk_manager.py` — quantitative risk modeling and implementation
 - **Responsibilities**: VaR/CVaR calculation, correlation monitoring (field exists, logic incomplete), stress testing / scenario analysis, multi-position portfolio risk, dynamic risk budgeting
-- **Current state**: Basic RiskManager with position sizing, drawdown limits (15%), daily loss limits (5%), trade gating, halt mechanism. Missing: correlation checks, VaR, stress testing, portfolio optimization
+- **Current state**: Enhanced RiskManager with position sizing, drawdown/daily limits, trade gating, VaR/CVaR, correlation, heat check — API endpoints exposed. Missing: stress testing, portfolio optimization
 
 ### ML / FreqAI Integration
 - **Owner of**: FreqAI pipeline (configured in `configs/platform_config.yaml` but disabled)
@@ -72,16 +72,16 @@ Beyond signal research and backtesting, Quentin explicitly owns the following cr
 ## This Project's Stack
 
 ### Architecture
-- **Platform**: crypto-investor — multi-tier trading (VectorBT → Freqtrade → NautilusTrader → hftbacktest)
-- **Current state**: VectorBT screening (4 screens) + Freqtrade (2 strategies) operational; NautilusTrader scaffolded; hftbacktest not yet in codebase
+- **Platform**: A1SI-AITP — multi-tier trading (VectorBT → Freqtrade → NautilusTrader → hftbacktest)
+- **Current state**: VectorBT screening (5 screens) + Freqtrade (3 strategies) operational; NautilusTrader scaffolded; hftbacktest not yet in codebase
 - **Target hardware**: NVIDIA Jetson, 8GB RAM — memory-conscious computation
 
 ### Key Paths (Quentin's Primary Files)
 - Data pipeline: `common/data_pipeline/pipeline.py` (Parquet OHLCV, framework converters)
 - Technical indicators: `common/indicators/technical.py` (20+ indicators: SMA, EMA, HMA, RSI, MACD, Stochastic, CCI, Williams %R, ATR, BB, Keltner, OBV, VWAP, MFI, Supertrend)
 - Risk manager: `common/risk/risk_manager.py` (RiskLimits, PortfolioState, RiskManager classes)
-- VectorBT screener: `research/scripts/vbt_screener.py` (SMA crossover, RSI mean reversion, Bollinger breakout, EMA+RSI combo)
-- Freqtrade strategies: `freqtrade/user_data/strategies/` (CryptoInvestorV1, BollingerMeanReversion)
+- VectorBT screener: `research/scripts/vbt_screener.py` (SMA crossover, RSI mean reversion, Bollinger breakout, EMA+RSI combo, Supertrend)
+- Freqtrade strategies: `freqtrade/user_data/strategies/` (CryptoInvestorV1, BollingerMeanReversion, VolatilityBreakout)
 - NautilusTrader runner: `nautilus/nautilus_runner.py` (data converter + engine init)
 - Platform config: `configs/platform_config.yaml` (VectorBT: fees=0.001, slippage=0.0005, 1000 tests; Risk: 15% max DD, 2% per trade, 5% daily loss)
 - Market data: `data/processed/` (Parquet, 10 crypto pairs, 6 timeframes)

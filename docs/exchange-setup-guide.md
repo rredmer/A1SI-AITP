@@ -1,6 +1,6 @@
 # Exchange Connectors & Data Sources Setup Guide
 
-This guide walks through signing up for cryptocurrency exchange accounts, generating API keys, and connecting them to the crypto-investor platform.
+This guide walks through signing up for cryptocurrency exchange accounts, generating API keys, and connecting them to the A1SI-AITP platform.
 
 ---
 
@@ -64,7 +64,7 @@ Each exchange has an API management page where you create keys. You need an **AP
 
 1. Log in and go to **Account > API Management** (https://www.binance.com/en/my/settings/api-management)
 2. Click **Create API** and choose **System Generated**
-3. Name your key (e.g., "crypto-investor")
+3. Name your key (e.g., "a1si-aitp")
 4. Complete 2FA verification
 5. Copy the **API Key** and **Secret Key** immediately — the secret is only shown once
 6. Configure restrictions:
@@ -88,7 +88,7 @@ Each exchange has an API management page where you create keys. You need an **AP
 
 1. Log in and go to **Security > API** (https://www.kraken.com/u/security/api)
 2. Click **Add key**
-3. Set a description (e.g., "crypto-investor")
+3. Set a description (e.g., "a1si-aitp")
 4. Configure permissions:
    - **Query Funds** (required)
    - **Query Open Orders & Trades** (required)
@@ -380,7 +380,7 @@ print(report.issues_summary)
 - **KuCoin "Passphrase required"**: KuCoin API keys require a passphrase set during key creation. Enter it in the Passphrase field.
 - **Binance US vs Binance Global**: If you're in the US, you may need to use `binanceus` instead of `binance`. Update the exchange ID accordingly in Freqtrade config.
 - **Rate limiting**: The platform handles rate limits automatically with backoff. If you see persistent rate limit errors, reduce the number of symbols or increase the fetch interval.
-- **IP restrictions**: If you set IP restrictions on your API key, ensure the IP of the machine running crypto-investor is whitelisted.
+- **IP restrictions**: If you set IP restrictions on your API key, ensure the IP of the machine running A1SI-AITP is whitelisted.
 
 ### Verify Platform Status
 

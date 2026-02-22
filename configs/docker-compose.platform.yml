@@ -1,4 +1,4 @@
-# Docker Compose for Crypto-Investor Platform
+# Docker Compose for A1SI-AITP Platform
 # Run: docker-compose up -d
 # Profiles: research, trading, monitoring
 
@@ -55,7 +55,7 @@ services:
       - "8888:8888"
     environment:
       - JUPYTER_ENABLE_LAB=yes
-    command: start-notebook.sh --NotebookApp.token='crypto-investor'
+    command: start-notebook.sh --NotebookApp.token='a1si-aitp'
     profiles: ["research", "full"]
 
   # ──────────────────────────────────────────────

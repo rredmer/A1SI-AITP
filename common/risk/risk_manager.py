@@ -1,5 +1,5 @@
 """
-Crypto-Investor Risk Management Module
+A1SI-AITP Risk Management Module
 =======================================
 Shared risk controls that wrap all framework tiers.
 Enforces position sizing, drawdown limits, correlation checks,

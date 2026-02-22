@@ -20,7 +20,7 @@ export function PortfolioPage() {
   const [editExchange, setEditExchange] = useState("binance");
   const [editDescription, setEditDescription] = useState("");
 
-  useEffect(() => { document.title = "Portfolio | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Portfolio | A1SI-AITP"; }, []);
 
   const portfoliosQuery = useQuery<Portfolio[]>({
     queryKey: ["portfolios"],

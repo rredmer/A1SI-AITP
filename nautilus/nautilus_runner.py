@@ -1,7 +1,7 @@
 """
 NautilusTrader Integration Layer
 =================================
-Bridge between crypto-investor platform and NautilusTrader's
+Bridge between A1SI-AITP platform and NautilusTrader's
 institutional-grade backtesting and execution engine.
 
 Dual-mode operation:

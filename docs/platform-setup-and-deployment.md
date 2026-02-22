@@ -1,6 +1,6 @@
 # Platform Setup & Deployment
 
-This document covers how to set up the crypto-investor platform for local development, run it in Docker containers, configure it for production, and maintain it with backups, TLS, and monitoring.
+This document covers how to set up the A1SI-AITP platform for local development, run it in Docker containers, configure it for production, and maintain it with backups, TLS, and monitoring.
 
 ---
 
@@ -37,8 +37,8 @@ The platform is designed for the NVIDIA Jetson Orin Nano Super but runs on any L
 
 ```bash
 # Clone the repository
-git clone git@github.com:rredmer/crypto-investor.git
-cd crypto-investor
+git clone git@github.com:rredmer/A1SI-AITP.git
+cd A1SI-AITP
 
 # Generate secrets and create .env
 bash scripts/generate_secrets.sh
@@ -137,7 +137,7 @@ This runs the following steps:
    - Bootstraps pip via `get-pip.py`
 2. **Install Python dependencies** from `backend/pyproject.toml` (editable install with dev extras)
 3. **Create data directory** at `backend/data/`
-4. **Run database migrations** (creates SQLite database at `backend/data/crypto_investor.db`)
+4. **Run database migrations** (creates SQLite database at `backend/data/a1si_aitp.db`)
 5. **Create admin superuser** (`admin`/`admin`) or re-hash existing password with Argon2id
 
 ### Python Dependencies
@@ -234,7 +234,7 @@ make migrate          # Run makemigrations + migrate
 make createsuperuser  # Create a new superuser interactively
 ```
 
-The SQLite database is stored at `backend/data/crypto_investor.db` with WAL mode for concurrent read performance.
+The SQLite database is stored at `backend/data/a1si_aitp.db` with WAL mode for concurrent read performance.
 
 ### Testing
 
@@ -494,7 +494,7 @@ make backup
 
 This runs `scripts/backup_db.sh`, which:
 
-1. Creates a SQLite `.backup` of `backend/data/crypto_investor.db`
+1. Creates a SQLite `.backup` of `backend/data/a1si_aitp.db`
 2. Compresses with gzip
 3. If `BACKUP_ENCRYPTION_KEY` is set:
    - Encrypts with GPG symmetric AES-256
@@ -504,19 +504,19 @@ This runs `scripts/backup_db.sh`, which:
 
 Output location: `backend/data/backups/`
 
-File naming: `crypto_investor_{TIMESTAMP}.db.gz.gpg` (encrypted) or `crypto_investor_{TIMESTAMP}.db.gz` (unencrypted)
+File naming: `a1si_aitp_{TIMESTAMP}.db.gz.gpg` (encrypted) or `a1si_aitp_{TIMESTAMP}.db.gz` (unencrypted)
 
 ### Restoring from Backup
 
 ```bash
 # Decrypted backup
-gunzip backend/data/backups/crypto_investor_20260218_120000.db.gz
-cp backend/data/backups/crypto_investor_20260218_120000.db backend/data/crypto_investor.db
+gunzip backend/data/backups/a1si_aitp_20260218_120000.db.gz
+cp backend/data/backups/a1si_aitp_20260218_120000.db backend/data/a1si_aitp.db
 
 # Encrypted backup
-gpg --decrypt --output backup.db.gz backend/data/backups/crypto_investor_20260218_120000.db.gz.gpg
+gpg --decrypt --output backup.db.gz backend/data/backups/a1si_aitp_20260218_120000.db.gz.gpg
 gunzip backup.db.gz
-cp backup.db backend/data/crypto_investor.db
+cp backup.db backend/data/a1si_aitp.db
 ```
 
 ### Automated Backups
@@ -528,7 +528,7 @@ Add a cron job for daily backups:
 crontab -e
 
 # Add line (daily at 2 AM)
-0 2 * * * cd /home/rredmer/Dev/crypto-investor && make backup >> backend/data/logs/backup.log 2>&1
+0 2 * * * cd /home/rredmer/Dev/A1SI-AITP && make backup >> backend/data/logs/backup.log 2>&1
 ```
 
 ---
@@ -593,7 +593,7 @@ python run.py nautilus convert --symbol BTC/USDT --timeframe 1h
 ## Project Structure
 
 ```
-crypto-investor/
+A1SI-AITP/
 ├── backend/                     # Django backend
 │   ├── config/                  #   Settings, URLs, ASGI config
 │   │   ├── settings.py

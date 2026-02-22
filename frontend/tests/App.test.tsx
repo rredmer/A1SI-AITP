@@ -17,7 +17,7 @@ describe("App", () => {
   it("renders the sidebar navigation", async () => {
     renderWithProviders(<App />);
     await waitFor(() => {
-      expect(screen.getByText("CryptoInvestor")).toBeInTheDocument();
+      expect(screen.getByText("A1SI-AITP")).toBeInTheDocument();
     });
     const nav = screen.getByRole("navigation");
     expect(nav).toHaveTextContent("Dashboard");

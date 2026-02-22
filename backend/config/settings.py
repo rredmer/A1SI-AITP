@@ -1,5 +1,5 @@
 """
-Django settings for crypto-investor.
+Django settings for A1SI-AITP.
 
 Security-hardened configuration with DRF, Channels, and session-based auth.
 """
@@ -94,7 +94,7 @@ TEMPLATES = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "data" / "crypto_investor.db",
+        "NAME": BASE_DIR / "data" / "a1si_aitp.db",
         "OPTIONS": {
             "timeout": 20,
         },
@@ -186,7 +186,7 @@ REST_FRAMEWORK = {
 
 # ── OpenAPI / drf-spectacular ─────────────────────────────────
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Crypto Investor API",
+    "TITLE": "A1SI-AITP API",
     "DESCRIPTION": (
         "Full-stack crypto investment platform — portfolio, trading,"
         " market analysis, risk management, backtesting, and ML."

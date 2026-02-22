@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "crypto-investor"
+name = "a1si-aitp"
 version = "0.1.0"
 description = "Crypto investment platform backend"
 requires-python = ">=3.10"

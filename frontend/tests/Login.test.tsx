@@ -16,7 +16,7 @@ describe("Login", () => {
     expect(screen.getByLabelText("Username")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign In" })).toBeInTheDocument();
-    expect(screen.getByText("CryptoInvestor")).toBeInTheDocument();
+    expect(screen.getByText("A1SI-AITP")).toBeInTheDocument();
     expect(screen.getByText("Sign in to continue")).toBeInTheDocument();
   });
 

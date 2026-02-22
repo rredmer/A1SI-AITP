@@ -1,7 +1,7 @@
 """
 hftbacktest Runner
 ===================
-Bridge between crypto-investor platform and hftbacktest HFT simulation.
+Bridge between A1SI-AITP platform and hftbacktest HFT simulation.
 
 Handles:
     - Converting OHLCV Parquet data to synthetic tick arrays

@@ -17,7 +17,7 @@ export function PaperTrading() {
   const { toast } = useToast();
   const [selectedStrategy, setSelectedStrategy] = useState("CryptoInvestorV1");
 
-  useEffect(() => { document.title = "Paper Trading | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Paper Trading | A1SI-AITP"; }, []);
 
   const { data: status, isError: statusError } = useQuery<PaperTradingStatus>({
     queryKey: ["paper-trading-status"],

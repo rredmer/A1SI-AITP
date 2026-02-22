@@ -129,7 +129,7 @@ def build_report() -> dict:
     report = {
         "pipeline_run": {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "platform": "crypto-investor",
+            "platform": "a1si-aitp",
             "run_type": "e2e_pipeline",
         },
         "phase1_data": collect_data_summary(),

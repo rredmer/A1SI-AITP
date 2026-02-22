@@ -20,7 +20,7 @@ import type {
 export function Dashboard() {
   const queryClient = useQueryClient();
 
-  useEffect(() => { document.title = "Dashboard | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Dashboard | A1SI-AITP"; }, []);
   const exchanges = useQuery<ExchangeInfo[]>({
     queryKey: ["exchanges"],
     queryFn: exchangesApi.list,

@@ -103,7 +103,7 @@ describe("Settings Page", () => {
   it("renders About section", () => {
     renderWithProviders(<Settings />);
     expect(screen.getByText("About")).toBeInTheDocument();
-    expect(screen.getByText("crypto-investor v0.1.0")).toBeInTheDocument();
+    expect(screen.getByText("A1SI-AITP v0.1.0")).toBeInTheDocument();
   });
 });
 

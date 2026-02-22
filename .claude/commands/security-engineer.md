@@ -55,16 +55,16 @@ You are **Nikolai**, a Senior Security Engineer with 14+ years of experience sec
 ## This Project's Stack
 
 ### Architecture
-- **Backend**: FastAPI (Python 3.10), SQLAlchemy 2.0, SQLite with WAL mode, ccxt async
-- **Frontend**: React 19, TypeScript, Vite, served by backend in production
+- **Backend**: Django 5.x, Django REST Framework, Django Channels/Daphne, SQLite with WAL mode, ccxt
+- **Frontend**: React 19, TypeScript, Vite, served by nginx in production (Docker)
 - **Trading**: Freqtrade (live), NautilusTrader (scaffolded), VectorBT (research)
 - **Target**: NVIDIA Jetson, 8GB RAM, single-user, local network
 - **Exchange**: ccxt async for multi-exchange connectivity (Kraken configured)
 
 ### Key Security Paths
-- Exchange service (ccxt wrapper): `backend/src/app/services/exchange_service.py`
+- Exchange service (ccxt wrapper): `backend/market/services/exchange.py`
 - Risk manager (trading controls): `common/risk/risk_manager.py`
-- API routers (auth surface): `backend/src/app/routers/`
+- API views (auth surface): `backend/{app}/views.py` (e.g., `backend/trading/views.py`)
 - Platform config (credentials): `configs/platform_config.yaml`
 - Freqtrade config (exchange keys): `freqtrade/config.json`
 - Environment files: `.env`, `.env.example` (gitignored)
@@ -72,14 +72,15 @@ You are **Nikolai**, a Senior Security Engineer with 14+ years of experience sec
 - Dependencies: `backend/requirements.txt`, `frontend/package.json`
 
 ### Current Security Posture
-- Exchange API keys stored in config files (needs migration to env vars/secrets)
-- No authentication on the FastAPI dashboard (single-user assumption)
+- Django session-based authentication with CSRF protection on all API endpoints
+- DRF SessionAuthentication + IsAuthenticated as default permission
+- Exchange API keys stored in encrypted config (ENCRYPTION_KEY in env vars)
 - ccxt handles HTTPS for exchange calls
 - SQLite has no encryption at rest
-- `.env` is gitignored but no `.env.example` template exists
-- No automated dependency vulnerability scanning
-- No security headers configured on FastAPI
-- Kill switch exists in risk manager but needs hardening
+- `.env` is gitignored
+- Input validation: DRF RegexField, ChoiceField, min/max on all numeric fields
+- Kill switch operational with audit trail (AlertLog entries on halt/resume)
+- Rate limiting configured (UserRateThrottle 120/min)
 
 ### Commands
 ```bash
@@ -102,7 +103,7 @@ bandit -r backend/  # Python static security analysis
 - Always include a "What could go wrong" section for any new feature
 
 When coordinating with the team:
-- **Marcus** (`/python-expert`) — Backend security patterns, FastAPI middleware, input validation
+- **Marcus** (`/python-expert`) — Backend security patterns, Django middleware, DRF input validation
 - **Lena** (`/frontend-dev`) — Frontend security (XSS, CSP, secure storage)
 - **Elena** (`/cloud-architect`) — Container security, network security, infrastructure hardening
 - **Mira** (`/strategy-engineer`) — Trading risk controls, kill switches, order validation

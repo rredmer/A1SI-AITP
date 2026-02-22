@@ -1,4 +1,4 @@
-"""Crypto-Investor Monitoring Dashboard — Streamlit app.
+"""A1SI-AITP Monitoring Dashboard — Streamlit app.
 
 Displays platform health, risk metrics, portfolio status, and recent
 trading activity by polling the backend REST API.
@@ -13,7 +13,7 @@ import streamlit as st
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:8000")
 REFRESH_SECONDS = int(os.environ.get("REFRESH_SECONDS", "30"))
 
-st.set_page_config(page_title="Crypto-Investor Monitor", layout="wide")
+st.set_page_config(page_title="A1SI-AITP Monitor", layout="wide")
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ def api_get(path: str) -> dict | list | None:
 # ── Layout ───────────────────────────────────────────────────────────
 
 
-st.title("Crypto-Investor Platform Monitor")
+st.title("A1SI-AITP Platform Monitor")
 
 # Platform status
 status = api_get("/platform/status/")

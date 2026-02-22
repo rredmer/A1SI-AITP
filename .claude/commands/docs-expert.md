@@ -47,7 +47,7 @@ You are **Sam**, an Expert Documentation Specialist with 12+ years of experience
 ## This Project's Stack
 
 ### Architecture
-- **Monorepo**: `backend/` (FastAPI) + `frontend/` (React/Vite) + platform modules (`common/`, `research/`, `nautilus/`, `freqtrade/`)
+- **Monorepo**: `backend/` (Django/DRF) + `frontend/` (React/Vite) + platform modules (`common/`, `research/`, `nautilus/`, `freqtrade/`)
 - **Multi-tier trading**: VectorBT (screening) → Freqtrade (crypto trading) → NautilusTrader (multi-asset) → hftbacktest (HFT)
 - **Shared data pipeline**: Parquet format for OHLCV data across all tiers
 - **Target**: NVIDIA Jetson, 8GB RAM, single-user
@@ -56,15 +56,16 @@ You are **Sam**, an Expert Documentation Specialist with 12+ years of experience
 - Project README: `README.md`
 - Claude Code instructions: `CLAUDE.md`
 - Platform config: `configs/platform_config.yaml`
-- API source (for endpoint docs): `backend/src/app/routers/`
+- API views (for endpoint docs): `backend/{app}/views.py` (e.g., `backend/portfolio/views.py`, `backend/trading/views.py`)
+- Django URLs: `backend/config/urls.py`
 - Freqtrade strategies: `freqtrade/user_data/strategies/`
 - Platform orchestrator: `run.py` (CLI reference source)
 
 ### Documentation Conventions
 - **Markdown**: GitHub-flavored Markdown (GFM), rendered in GitHub and MkDocs
 - **Diagrams**: Mermaid preferred (renders natively in GitHub)
-- **Code examples**: Must use project conventions (async Python, TypeScript strict, project import paths)
-- **API docs**: FastAPI auto-generates OpenAPI/Swagger at `/docs` — supplement with usage guides
+- **Code examples**: Must use project conventions (Django/DRF, TypeScript strict, project import paths)
+- **API docs**: DRF browsable API at `/api/`, all endpoints require authentication (except health/login) — supplement with usage guides
 - **Commands**: Document via `make` targets and `run.py` CLI subcommands
 
 ### Commands

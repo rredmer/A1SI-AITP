@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-crypto-investor — Full-stack crypto investment platform with portfolio tracking, market analysis, automated trading, and a web dashboard. Integrates multiple trading frameworks in a multi-tier architecture.
+A1SI-AITP — Full-stack crypto investment platform with portfolio tracking, market analysis, automated trading, and a web dashboard. Integrates multiple trading frameworks in a multi-tier architecture.
 
 ## Tech Stack
 

@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-DB_FILE="$ROOT_DIR/backend/data/crypto_investor.db"
+DB_FILE="$ROOT_DIR/backend/data/a1si_aitp.db"
 BACKUP_DIR="$ROOT_DIR/backend/data/backups"
 
 if [ ! -f "$DB_FILE" ]; then
@@ -14,7 +14,7 @@ fi
 mkdir -p "$BACKUP_DIR"
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_BASE="$BACKUP_DIR/crypto_investor_$TIMESTAMP"
+BACKUP_BASE="$BACKUP_DIR/a1si_aitp_$TIMESTAMP"
 
 echo "Backing up database..."
 sqlite3 "$DB_FILE" ".backup '${BACKUP_BASE}.db'"
@@ -36,17 +36,17 @@ if [ -n "$BACKUP_ENCRYPTION_KEY" ]; then
 
     # Keep only the 7 most recent encrypted backups
     cd "$BACKUP_DIR"
-    ls -t crypto_investor_*.db.gz.gpg 2>/dev/null | tail -n +8 | xargs -r rm -f
-    ls -t crypto_investor_*.db.gz.gpg.sha256 2>/dev/null | tail -n +8 | xargs -r rm -f
-    REMAINING=$(ls -1 crypto_investor_*.db.gz.gpg 2>/dev/null | wc -l)
+    ls -t a1si_aitp_*.db.gz.gpg 2>/dev/null | tail -n +8 | xargs -r rm -f
+    ls -t a1si_aitp_*.db.gz.gpg.sha256 2>/dev/null | tail -n +8 | xargs -r rm -f
+    REMAINING=$(ls -1 a1si_aitp_*.db.gz.gpg 2>/dev/null | wc -l)
 else
     echo "WARNING: BACKUP_ENCRYPTION_KEY not set — backup is compressed but NOT encrypted."
     echo "Compressed backup: ${BACKUP_BASE}.db.gz"
 
     # Keep only the 7 most recent compressed backups
     cd "$BACKUP_DIR"
-    ls -t crypto_investor_*.db.gz 2>/dev/null | tail -n +8 | xargs -r rm -f
-    REMAINING=$(ls -1 crypto_investor_*.db.gz 2>/dev/null | wc -l)
+    ls -t a1si_aitp_*.db.gz 2>/dev/null | tail -n +8 | xargs -r rm -f
+    REMAINING=$(ls -1 a1si_aitp_*.db.gz 2>/dev/null | wc -l)
 fi
 
 echo "Backups retained: $REMAINING"

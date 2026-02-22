@@ -1,6 +1,6 @@
 # Risk Management System
 
-This document describes the risk management system used by the crypto-investor platform. The system operates as a centralized gate that every trade must pass through before execution, backed by persistent state in the Django database, real-time monitoring, and multi-channel alert delivery.
+This document describes the risk management system used by the A1SI-AITP platform. The system operates as a centralized gate that every trade must pass through before execution, backed by persistent state in the Django database, real-time monitoring, and multi-channel alert delivery.
 
 ---
 

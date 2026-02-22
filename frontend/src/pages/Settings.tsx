@@ -325,7 +325,7 @@ export function Settings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  useEffect(() => { document.title = "Settings | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Settings | A1SI-AITP"; }, []);
 
   // Exchange configs
   const { data: configs, isError: configsError } = useQuery({
@@ -686,7 +686,7 @@ export function Settings() {
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <h3 className="mb-2 text-lg font-semibold">About</h3>
           <p className="text-sm text-[var(--color-text-muted)]">
-            crypto-investor v0.1.0
+            A1SI-AITP v0.1.0
           </p>
         </div>
       </div>

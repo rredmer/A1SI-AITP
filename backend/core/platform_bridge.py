@@ -5,7 +5,7 @@ Platform bridge — resolves sys.path so backend can import common.*, research.*
 import sys
 from pathlib import Path
 
-# Project root: platform_bridge.py -> core -> backend -> crypto-investor
+# Project root: platform_bridge.py -> core -> backend -> A1SI-AITP
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 

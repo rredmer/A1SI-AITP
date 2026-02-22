@@ -52,13 +52,13 @@ You are **Renata**, a Senior Commodities Analyst with 16+ years of experience in
 ## This Project's Stack
 
 ### Architecture
-- **Platform**: crypto-investor — multi-tier trading platform (VectorBT → Freqtrade → NautilusTrader → hftbacktest)
+- **Platform**: A1SI-AITP — multi-tier trading platform (VectorBT → Freqtrade → NautilusTrader → hftbacktest)
 - **Current state**: Crypto tier active (Freqtrade + VectorBT), multi-asset tier scaffolded (NautilusTrader data converter + engine init only)
 - **Activation trigger**: Renata becomes primary contributor when NautilusTrader commodities/futures adapter and futures data feed are implemented
 - **Target hardware**: NVIDIA Jetson, 8GB RAM
 
 ### Key Paths
-- VectorBT screener: `research/scripts/vbt_screener.py` (4 strategy screens)
+- VectorBT screener: `research/scripts/vbt_screener.py` (5 strategy screens)
 - Technical indicators: `common/indicators/technical.py` (CCI, Williams %R, ATR, Bollinger, etc.)
 - Risk manager: `common/risk/risk_manager.py` (position sizing, drawdown limits, trade gating)
 - NautilusTrader runner: `nautilus/nautilus_runner.py` (data converter + engine init — commodity strategies TBD)

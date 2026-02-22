@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-# Build context is project root (crypto-investor/), not backend/
+# Build context is project root (A1SI-AITP/), not backend/
 WORKDIR /project
 
 # System deps for cryptography and argon2

@@ -67,7 +67,7 @@ export function Layout({ onLogout, username }: LayoutProps) {
     <div className="flex h-screen">
       <nav className="flex w-56 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <h1 className="mb-8 text-xl font-bold text-[var(--color-primary)]">
-          CryptoInvestor
+          A1SI-AITP
         </h1>
         <ul className="flex flex-1 flex-col gap-1">
           {navItems.map(({ to, icon: Icon, label }) => (

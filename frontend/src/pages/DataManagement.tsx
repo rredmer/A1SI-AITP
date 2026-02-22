@@ -13,7 +13,7 @@ export function DataManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  useEffect(() => { document.title = "Data Management | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Data Management | A1SI-AITP"; }, []);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [downloadSymbols, setDownloadSymbols] = useState(DEFAULT_SYMBOLS.join(", "));
   const [downloadTimeframes, setDownloadTimeframes] = useState(["1h"]);

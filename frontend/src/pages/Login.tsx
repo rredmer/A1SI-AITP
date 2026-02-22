@@ -34,7 +34,7 @@ export function Login({ onLogin }: LoginProps) {
         <div className="mb-6 flex flex-col items-center gap-2">
           <Shield size={40} className="text-[var(--color-primary)]" />
           <h1 className="text-2xl font-bold text-[var(--color-text)]">
-            CryptoInvestor
+            A1SI-AITP
           </h1>
           <p className="text-sm text-[var(--color-text-muted)]">
             Sign in to continue

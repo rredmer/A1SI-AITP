@@ -1,6 +1,6 @@
 # Multi-Tier Trading Architecture
 
-This document describes the graduated trading system used by the crypto-investor platform. Strategies progress through tiers of increasing fidelity—from rapid parameter discovery to live execution—unified by a shared data pipeline, risk management layer, and market regime detection system.
+This document describes the graduated trading system used by the A1SI-AITP platform. Strategies progress through tiers of increasing fidelity—from rapid parameter discovery to live execution—unified by a shared data pipeline, risk management layer, and market regime detection system.
 
 ---
 

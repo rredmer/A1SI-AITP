@@ -19,7 +19,7 @@ export function RiskManagement() {
   const [tradeLogPage, setTradeLogPage] = useState(1);
   const [alertsPage, setAlertsPage] = useState(1);
 
-  useEffect(() => { document.title = "Risk Management | Crypto Investor"; }, []);
+  useEffect(() => { document.title = "Risk Management | A1SI-AITP"; }, []);
 
   const { data: portfolios } = useQuery<Portfolio[]>({
     queryKey: ["portfolios"],
