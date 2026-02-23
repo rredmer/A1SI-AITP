@@ -9,7 +9,6 @@ Output: standard OHLCV DataFrame compatible with the shared Parquet pipeline.
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 import pandas as pd
 
