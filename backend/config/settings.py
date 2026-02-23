@@ -273,8 +273,8 @@ LOGIN_LOCKOUT_WINDOW = 900  # 15 minutes
 LOGIN_LOCKOUT_DURATION = 1800  # 30 minutes
 
 # ── Rate limiting ─────────────────────────────────────────────
-RATE_LIMIT_GENERAL = 60  # requests per minute
-RATE_LIMIT_LOGIN = 5  # login attempts per minute
+RATE_LIMIT_GENERAL = 120  # requests per minute
+RATE_LIMIT_LOGIN = 20  # login attempts per minute
 
 # ── Logging ───────────────────────────────────────────────────
 LOG_DIR = BASE_DIR / "data" / "logs"

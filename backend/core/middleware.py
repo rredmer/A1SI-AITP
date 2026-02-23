@@ -121,7 +121,7 @@ class RateLimitMiddleware:
     def _get_ip(self, request) -> str:
         remote_addr = request.META.get("REMOTE_ADDR", "unknown")
         xff = request.META.get("HTTP_X_FORWARDED_FOR")
-        if xff and remote_addr in self._TRUSTED_PROXIES:
+        if xff and (remote_addr in self._TRUSTED_PROXIES or remote_addr.startswith("172.")):
             return xff.split(",")[0].strip()
         return remote_addr
 
