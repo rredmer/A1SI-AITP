@@ -48,7 +48,7 @@ describe("MarketAnalysis Page", () => {
 
   it("renders exchange selector", () => {
     renderWithProviders(<MarketAnalysis />);
-    expect(screen.getByDisplayValue("Sample")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Binance")).toBeInTheDocument();
   });
 
   it("renders overlay indicator buttons", () => {
@@ -151,9 +151,9 @@ describe("MarketAnalysis - Form Controls", () => {
 
   it("allows changing exchange selector", () => {
     renderWithProviders(<MarketAnalysis />);
-    const select = screen.getByDisplayValue("Sample");
-    fireEvent.change(select, { target: { value: "binance" } });
-    expect(screen.getByDisplayValue("Binance")).toBeInTheDocument();
+    const select = screen.getByDisplayValue("Binance");
+    fireEvent.change(select, { target: { value: "sample" } });
+    expect(screen.getByDisplayValue("Sample")).toBeInTheDocument();
   });
 
   it("renders all timeframe options", () => {

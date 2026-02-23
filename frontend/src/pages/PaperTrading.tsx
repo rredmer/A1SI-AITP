@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { paperTradingApi } from "../api/paperTrading";
 import { backtestApi } from "../api/backtest";
 import { useToast } from "../hooks/useToast";
+import { useAssetClass } from "../hooks/useAssetClass";
+import { BACKTEST_FRAMEWORKS, ASSET_CLASS_LABELS } from "../constants/assetDefaults";
 import type {
   PaperTradingStatus,
   PaperTrade,
@@ -15,6 +17,8 @@ import type {
 export function PaperTrading() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { assetClass } = useAssetClass();
+  const frameworks = BACKTEST_FRAMEWORKS[assetClass].map((f) => f.label).join(", ");
   const [selectedStrategy, setSelectedStrategy] = useState("CryptoInvestorV1");
 
   useEffect(() => { document.title = "Paper Trading | A1SI-AITP"; }, []);
@@ -145,6 +149,12 @@ export function PaperTrading() {
       {statusError && (
         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
           Failed to connect to paper trading service. Status may be unavailable.
+        </div>
+      )}
+
+      {assetClass !== "crypto" && (
+        <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-sm text-blue-400">
+          {ASSET_CLASS_LABELS[assetClass]} paper trading uses: {frameworks}
         </div>
       )}
 

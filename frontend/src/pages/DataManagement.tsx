@@ -3,21 +3,28 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { dataApi } from "../api/data";
 import { useJobPolling } from "../hooks/useJobPolling";
 import { useToast } from "../hooks/useToast";
+import { useAssetClass } from "../hooks/useAssetClass";
 import { ProgressBar } from "../components/ProgressBar";
+import {
+  DEFAULT_SYMBOLS as DEFAULT_SYMBOLS_MAP,
+  EXCHANGE_OPTIONS,
+  TIMEFRAME_OPTIONS,
+} from "../constants/assetDefaults";
 import type { DataFileInfo } from "../types";
-
-const DEFAULT_SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"];
-const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"];
 
 export function DataManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { assetClass } = useAssetClass();
+
+  const defaultSymbols = DEFAULT_SYMBOLS_MAP[assetClass];
+  const timeframes = TIMEFRAME_OPTIONS[assetClass].map((tf) => tf.value);
 
   useEffect(() => { document.title = "Data Management | A1SI-AITP"; }, []);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [downloadSymbols, setDownloadSymbols] = useState(DEFAULT_SYMBOLS.join(", "));
+  const [downloadSymbols, setDownloadSymbols] = useState(defaultSymbols.join(", "));
   const [downloadTimeframes, setDownloadTimeframes] = useState(["1h"]);
-  const [downloadExchange, setDownloadExchange] = useState("binance");
+  const [downloadExchange, setDownloadExchange] = useState(EXCHANGE_OPTIONS[assetClass][0]?.value ?? "binance");
   const [downloadDays, setDownloadDays] = useState(90);
 
   const { data: files, isLoading, isError: filesError } = useQuery<DataFileInfo[]>({
@@ -41,6 +48,7 @@ export function DataManagement() {
         timeframes: downloadTimeframes,
         exchange: downloadExchange,
         since_days: downloadDays,
+        asset_class: assetClass,
       }),
     onSuccess: (data) => setActiveJobId(data.job_id),
     onError: (err) => toast((err as Error).message || "Failed to start download", "error"),
@@ -49,7 +57,7 @@ export function DataManagement() {
   const sampleMutation = useMutation({
     mutationFn: () =>
       dataApi.generateSample({
-        symbols: DEFAULT_SYMBOLS,
+        symbols: defaultSymbols.slice(0, 3),
         timeframes: ["1h", "4h"],
         days: 90,
       }),
@@ -119,7 +127,7 @@ export function DataManagement() {
                 Timeframes
               </label>
               <div className="flex flex-wrap gap-1">
-                {TIMEFRAMES.map((tf) => (
+                {timeframes.map((tf) => (
                   <button
                     key={tf}
                     onClick={() => tfToggle(tf)}
@@ -136,7 +144,7 @@ export function DataManagement() {
             </div>
             <div>
               <label htmlFor="data-exchange" className="mb-1 block text-xs text-[var(--color-text-muted)]">
-                Exchange
+                Data Source
               </label>
               <select
                 id="data-exchange"
@@ -144,9 +152,9 @@ export function DataManagement() {
                 onChange={(e) => setDownloadExchange(e.target.value)}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
               >
-                <option value="binance">Binance</option>
-                <option value="bybit">Bybit</option>
-                <option value="kraken">Kraken</option>
+                {EXCHANGE_OPTIONS[assetClass].map((ex) => (
+                  <option key={ex.value} value={ex.value}>{ex.label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -183,7 +191,7 @@ export function DataManagement() {
               Generate Sample Data
             </button>
             <p className="text-xs text-[var(--color-text-muted)]">
-              Creates synthetic OHLCV data for BTC, ETH, SOL (1h + 4h, 90 days) — no API keys
+              Creates synthetic OHLCV data for {defaultSymbols.slice(0, 3).join(", ")} (1h + 4h, 90 days) — no API keys
               required.
             </p>
           </div>

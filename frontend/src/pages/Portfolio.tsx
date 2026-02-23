@@ -3,17 +3,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { portfoliosApi } from "../api/portfolios";
 import { marketApi } from "../api/market";
 import { HoldingsTable } from "../components/HoldingsTable";
+import { AssetClassBadge } from "../components/AssetClassBadge";
 import { QueryResult } from "../components/QueryResult";
 import { useToast } from "../hooks/useToast";
+import { useAssetClass } from "../hooks/useAssetClass";
 import { useTickerStream } from "../hooks/useTickerStream";
+import { EXCHANGE_OPTIONS } from "../constants/assetDefaults";
 import type { Portfolio, TickerData } from "../types";
 
 export function PortfolioPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { assetClass } = useAssetClass();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newExchange, setNewExchange] = useState("binance");
+  const [newExchange, setNewExchange] = useState(EXCHANGE_OPTIONS[assetClass][0]?.value ?? "binance");
   const [newDescription, setNewDescription] = useState("");
   const [editingPortfolioId, setEditingPortfolioId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
@@ -29,7 +33,7 @@ export function PortfolioPage() {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      portfoliosApi.create({ name: newName, exchange_id: newExchange, description: newDescription }),
+      portfoliosApi.create({ name: newName, exchange_id: newExchange, description: newDescription, asset_class: assetClass }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolios"] });
       setShowCreateForm(false);
@@ -140,9 +144,9 @@ export function PortfolioPage() {
                 onChange={(e) => setNewExchange(e.target.value)}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
               >
-                <option value="binance">Binance</option>
-                <option value="bybit">Bybit</option>
-                <option value="kraken">Kraken</option>
+                {EXCHANGE_OPTIONS[assetClass].map((ex) => (
+                  <option key={ex.value} value={ex.value}>{ex.label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -260,7 +264,12 @@ export function PortfolioPage() {
                     ) : (
                       <div className="mb-4 flex items-start justify-between">
                         <div>
-                          <h3 className="mb-1 text-lg font-semibold">{p.name}</h3>
+                          <div className="mb-1 flex items-center gap-2">
+                            <h3 className="text-lg font-semibold">{p.name}</h3>
+                            {(p as Record<string, unknown>).asset_class && (
+                              <AssetClassBadge assetClass={(p as Record<string, unknown>).asset_class as "crypto" | "equity" | "forex"} />
+                            )}
+                          </div>
                           <p className="text-sm text-[var(--color-text-muted)]">
                             {p.exchange_id} &middot; {p.description || "No description"}
                           </p>

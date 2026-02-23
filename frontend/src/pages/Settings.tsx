@@ -23,6 +23,7 @@ const EXCHANGE_OPTIONS = [
   { id: "kraken", label: "Kraken" },
   { id: "kucoin", label: "KuCoin" },
   { id: "bybit", label: "Bybit" },
+  { id: "yfinance", label: "Yahoo Finance" },
 ];
 
 const TIMEFRAME_OPTIONS = ["1m", "5m", "15m", "1h", "4h", "1d"];

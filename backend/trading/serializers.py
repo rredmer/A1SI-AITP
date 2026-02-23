@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from market.constants import AssetClass
 from trading.models import Order, OrderFillEvent
 
 
@@ -27,6 +28,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "exchange_id",
             "exchange_order_id",
             "symbol",
+            "asset_class",
             "side",
             "order_type",
             "amount",
@@ -83,3 +85,6 @@ class OrderCreateSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=["paper", "live"], default="paper")
     portfolio_id = serializers.IntegerField(default=1, min_value=1)
     stop_loss_price = serializers.FloatField(required=False, allow_null=True, min_value=0.0)
+    asset_class = serializers.ChoiceField(
+        choices=AssetClass.choices, default=AssetClass.CRYPTO,
+    )

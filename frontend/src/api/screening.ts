@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { ScreenResult } from "../types";
+import type { AssetClass, ScreenResult } from "../types";
 
 export const screeningApi = {
   run: (params: {
@@ -7,6 +7,7 @@ export const screeningApi = {
     timeframe: string;
     exchange: string;
     fees: number;
+    asset_class?: AssetClass;
   }) => api.post<{ job_id: string }>("/screening/run/", params),
 
   results: (limit?: number) =>

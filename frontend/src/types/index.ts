@@ -1,3 +1,13 @@
+export type AssetClass = "crypto" | "equity" | "forex";
+
+export interface MarketStatus {
+  is_open: boolean;
+  next_open: string | null;
+  next_close: string | null;
+  timezone: string;
+  session: string;
+}
+
 // ── Generated types from OpenAPI schema (via openapi-typescript) ──
 // Run `npm run generate:types` or `make generate-types` to regenerate.
 import type { components } from "./api-schema";

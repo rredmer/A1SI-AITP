@@ -65,7 +65,7 @@ describe("DataManagement Page", () => {
 
   it("shows default symbols in download form", () => {
     renderWithProviders(<DataManagement />);
-    const input = screen.getByDisplayValue("BTC/USDT, ETH/USDT, SOL/USDT");
+    const input = screen.getByDisplayValue("BTC/USDT, ETH/USDT, SOL/USDT, BNB/USDT, XRP/USDT");
     expect(input).toBeInTheDocument();
   });
 
@@ -94,7 +94,7 @@ describe("DataManagement - Form Interactions", () => {
 
   it("allows changing symbols input", () => {
     renderWithProviders(<DataManagement />);
-    const input = screen.getByDisplayValue("BTC/USDT, ETH/USDT, SOL/USDT");
+    const input = screen.getByDisplayValue("BTC/USDT, ETH/USDT, SOL/USDT, BNB/USDT, XRP/USDT");
     fireEvent.change(input, { target: { value: "DOGE/USDT" } });
     expect(screen.getByDisplayValue("DOGE/USDT")).toBeInTheDocument();
   });

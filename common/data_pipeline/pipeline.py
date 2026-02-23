@@ -180,10 +180,19 @@ def fetch_ohlcv(
 # Parquet Storage
 # ──────────────────────────────────────────────
 
-def _parquet_path(symbol: str, timeframe: str, exchange_id: str, directory: Path) -> Path:
-    """Generate a standardized Parquet file path."""
+def _parquet_path(
+    symbol: str, timeframe: str, exchange_id: str, directory: Path, source: str = "",
+) -> Path:
+    """Generate a standardized Parquet file path.
+
+    Parameters
+    ----------
+    source : str
+        Override the source prefix (e.g., "yfinance"). Defaults to exchange_id.
+    """
     safe_symbol = symbol.replace("/", "_")
-    return directory / f"{exchange_id}_{safe_symbol}_{timeframe}.parquet"
+    prefix = source or exchange_id
+    return directory / f"{prefix}_{safe_symbol}_{timeframe}.parquet"
 
 
 def save_ohlcv(
@@ -271,20 +280,62 @@ def list_available_data(directory: Optional[Path] = None) -> pd.DataFrame:
 # Bulk Download
 # ──────────────────────────────────────────────
 
+def fetch_ohlcv_multi(
+    symbol: str,
+    timeframe: str = "1h",
+    since_days: int = 365,
+    asset_class: str = "crypto",
+    exchange_id: str = "binance",
+) -> pd.DataFrame:
+    """Fetch OHLCV data routing to the correct data source by asset class.
+
+    crypto  -> CCXT (existing)
+    equity  -> yfinance
+    forex   -> yfinance
+    """
+    if asset_class in ("equity", "forex"):
+        from common.data_pipeline.yfinance_adapter import _fetch_ohlcv_sync
+        return _fetch_ohlcv_sync(symbol, timeframe, since_days, asset_class)
+    return fetch_ohlcv(symbol, timeframe, since_days, exchange_id)
+
+
+# Default watchlists per asset class
+_DEFAULT_WATCHLISTS: dict[str, list[str]] = {
+    "crypto": [
+        "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT",
+        "ADA/USDT", "AVAX/USDT", "DOGE/USDT", "DOT/USDT", "LINK/USDT",
+    ],
+    "equity": [
+        "AAPL/USD", "MSFT/USD", "GOOGL/USD", "AMZN/USD", "NVDA/USD",
+        "SPY/USD", "QQQ/USD", "IWM/USD", "GLD/USD", "TLT/USD",
+    ],
+    "forex": [
+        "EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD",
+        "NZD/USD", "USD/CAD", "EUR/GBP", "EUR/JPY", "GBP/JPY",
+        "AUD/JPY", "EUR/CHF", "EUR/AUD", "GBP/CHF", "NZD/JPY",
+    ],
+}
+
+
 def download_watchlist(
     symbols: Optional[list] = None,
     timeframes: Optional[list] = None,
     exchange_id: str = "binance",
     since_days: int = 365,
+    asset_class: str = "crypto",
 ) -> dict:
     """Download OHLCV data for multiple symbols and timeframes."""
     if symbols is None:
-        symbols = [
-            "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT",
-            "ADA/USDT", "AVAX/USDT", "DOGE/USDT", "DOT/USDT", "LINK/USDT",
-        ]
+        symbols = _DEFAULT_WATCHLISTS.get(asset_class, _DEFAULT_WATCHLISTS["crypto"])
     if timeframes is None:
-        timeframes = ["1h", "4h", "1d"]
+        if asset_class in ("equity",):
+            timeframes = ["1d"]
+        elif asset_class == "forex":
+            timeframes = ["1h", "4h", "1d"]
+        else:
+            timeframes = ["1h", "4h", "1d"]
+
+    source = "yfinance" if asset_class in ("equity", "forex") else exchange_id
 
     results = {}
     total = len(symbols) * len(timeframes)
@@ -293,11 +344,13 @@ def download_watchlist(
     for symbol in symbols:
         for tf in timeframes:
             done += 1
-            logger.info(f"[{done}/{total}] Downloading {symbol} {tf}...")
+            logger.info(f"[{done}/{total}] Downloading {symbol} {tf} ({asset_class})...")
             try:
-                df = fetch_ohlcv(symbol, tf, since_days, exchange_id)
+                df = fetch_ohlcv_multi(
+                    symbol, tf, since_days, asset_class, exchange_id,
+                )
                 if not df.empty:
-                    path = save_ohlcv(df, symbol, tf, exchange_id)
+                    path = save_ohlcv(df, symbol, tf, source)
                     results[f"{symbol}_{tf}"] = {
                         "rows": len(df),
                         "path": str(path),
@@ -383,15 +436,26 @@ def detect_gaps(
     return gaps
 
 
+_STALE_THRESHOLDS: dict[str, float] = {
+    "crypto": 2.0,
+    "equity": 18.0,  # Overnight gap
+    "forex": 4.0,
+}
+
+
 def detect_stale_data(
     df: pd.DataFrame,
     max_stale_hours: float = 2.0,
+    asset_class: str = "crypto",
 ) -> tuple[bool, float]:
     """
     Check if data hasn't been updated recently.
 
     Returns (is_stale, hours_since_last_update).
+    Uses per-asset-class thresholds when max_stale_hours is the default.
     """
+    if max_stale_hours == 2.0:
+        max_stale_hours = _STALE_THRESHOLDS.get(asset_class, 2.0)
     if df.empty:
         return True, float("inf")
 

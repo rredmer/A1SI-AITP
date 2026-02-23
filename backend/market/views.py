@@ -34,6 +34,28 @@ logger = logging.getLogger(__name__)
 _thread_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="indicator")
 
 
+# ── Market Status ────────────────────────────────────────────
+
+
+class MarketStatusView(APIView):
+    @extend_schema(tags=["Market"])
+    def get(self, request: Request) -> Response:
+        asset_class = request.query_params.get("asset_class", "crypto")
+        if asset_class not in ("crypto", "equity", "forex"):
+            return Response(
+                {"error": "Invalid asset_class. Must be crypto, equity, or forex."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from core.platform_bridge import ensure_platform_imports
+
+        ensure_platform_imports()
+        from common.market_hours.sessions import MarketHoursService
+
+        info = MarketHoursService.get_session_info(asset_class)
+        return Response(info)
+
+
 # ── Exchange Config CRUD ─────────────────────────────────────
 
 
@@ -230,16 +252,11 @@ class TickerView(APIView):
     def get(self, request: Request, symbol: str) -> Response:
         from asgiref.sync import async_to_sync
 
-        from market.services.exchange import ExchangeService
+        from market.services.data_router import DataServiceRouter
 
-        async def _fetch():
-            service = ExchangeService()
-            try:
-                return await service.fetch_ticker(symbol)
-            finally:
-                await service.close()
-
-        return Response(async_to_sync(_fetch)())
+        asset_class = request.query_params.get("asset_class", "crypto")
+        router = DataServiceRouter()
+        return Response(async_to_sync(router.fetch_ticker)(symbol, asset_class))
 
 
 class TickerListView(APIView):
@@ -251,12 +268,21 @@ class TickerListView(APIView):
 
         symbols_param = request.query_params.get("symbols")
         symbol_list = symbols_param.split(",") if symbols_param else None
+        asset_class = request.query_params.get("asset_class", "crypto")
 
         if symbol_list and len(symbol_list) > 50:
             return Response(
                 {"error": "Too many symbols. Maximum 50 per request."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if asset_class in ("equity", "forex"):
+            from market.services.data_router import DataServiceRouter
+
+            router = DataServiceRouter()
+            return Response(async_to_sync(router.fetch_tickers)(
+                symbol_list, asset_class,
+            ))
 
         async def _fetch():
             service = ExchangeService()
@@ -273,19 +299,16 @@ class OHLCVView(APIView):
     def get(self, request: Request, symbol: str) -> Response:
         from asgiref.sync import async_to_sync
 
-        from market.services.exchange import ExchangeService
+        from market.services.data_router import DataServiceRouter
 
         timeframe = request.query_params.get("timeframe", "1h")
         limit = _safe_int(request.query_params.get("limit"), 100, max_val=1000)
+        asset_class = request.query_params.get("asset_class", "crypto")
 
-        async def _fetch():
-            service = ExchangeService()
-            try:
-                return await service.fetch_ohlcv(symbol, timeframe, limit)
-            finally:
-                await service.close()
-
-        return Response(async_to_sync(_fetch)())
+        router = DataServiceRouter()
+        return Response(async_to_sync(router.fetch_ohlcv)(
+            symbol, timeframe, limit, asset_class,
+        ))
 
 
 class IndicatorListView(APIView):

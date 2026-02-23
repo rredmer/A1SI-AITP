@@ -5,7 +5,9 @@ import { riskApi } from "../api/risk";
 import { useToast } from "../hooks/useToast";
 import { useSystemEvents } from "../hooks/useSystemEvents";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useAssetClass } from "../hooks/useAssetClass";
 import { Pagination } from "../components/Pagination";
+import { DEFAULT_SYMBOL } from "../constants/assetDefaults";
 import type { Portfolio, RiskLimits, RiskStatus, VaRData, HeatCheckData, RiskMetricHistoryEntry, TradeCheckLogEntry, AlertLogEntry } from "../types";
 
 const PAGE_SIZE = 15;
@@ -13,6 +15,7 @@ const PAGE_SIZE = 15;
 export function RiskManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { assetClass } = useAssetClass();
   const { isHalted: wsHalted, haltReason: wsHaltReason } = useSystemEvents();
   const [portfolioId, setPortfolioId] = useLocalStorage("ci:risk-portfolio", 1);
   const [varHistoryPage, setVarHistoryPage] = useState(1);
@@ -132,7 +135,7 @@ export function RiskManagement() {
   });
 
   // Trade checker state
-  const [tradeSymbol, setTradeSymbol] = useState("BTC/USDT");
+  const [tradeSymbol, setTradeSymbol] = useState(DEFAULT_SYMBOL[assetClass]);
   const [tradeSide, setTradeSide] = useState("buy");
   const [tradeSize, setTradeSize] = useState(0.1);
   const [tradeEntry, setTradeEntry] = useState(50000);

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from market.constants import AssetClass
 from risk.models import AlertLog, RiskLimits, RiskMetricHistory, TradeCheckLog
 
 
@@ -54,6 +55,9 @@ class TradeCheckRequestSerializer(serializers.Serializer):
     size = serializers.FloatField(min_value=1e-8)
     entry_price = serializers.FloatField(min_value=1e-8)
     stop_loss_price = serializers.FloatField(required=False, allow_null=True, min_value=0.0)
+    asset_class = serializers.ChoiceField(
+        choices=AssetClass.choices, default=AssetClass.CRYPTO,
+    )
 
 
 class TradeCheckResponseSerializer(serializers.Serializer):
@@ -155,6 +159,7 @@ class TradeCheckLogSerializer(serializers.ModelSerializer):
             "id",
             "portfolio_id",
             "symbol",
+            "asset_class",
             "side",
             "size",
             "entry_price",

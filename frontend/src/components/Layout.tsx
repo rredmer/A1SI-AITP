@@ -17,8 +17,12 @@ import {
 } from "lucide-react";
 import { EmergencyStopButton } from "./EmergencyStopButton";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { AssetClassSelector } from "./AssetClassSelector";
+import { AssetClassContext } from "../contexts/assetClass";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useSystemEvents } from "../hooks/useSystemEvents";
 import { useToast } from "../hooks/useToast";
+import type { AssetClass } from "../types";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -41,6 +45,7 @@ interface LayoutProps {
 }
 
 export function Layout({ onLogout, username }: LayoutProps) {
+  const [assetClass, setAssetClass] = useLocalStorage<AssetClass>("ci:asset-class", "crypto");
   const { isConnected, isHalted, haltReason, lastOrderUpdate, lastRiskAlert } = useSystemEvents();
   const { toast } = useToast();
   const prevOrderRef = useRef(lastOrderUpdate);
@@ -64,11 +69,15 @@ export function Layout({ onLogout, username }: LayoutProps) {
   }, [lastRiskAlert, toast]);
 
   return (
+    <AssetClassContext.Provider value={{ assetClass, setAssetClass }}>
     <div className="flex h-screen">
       <nav aria-label="Main navigation" className="flex w-56 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-        <h1 className="mb-8 text-xl font-bold text-[var(--color-primary)]">
+        <h1 className="mb-4 text-xl font-bold text-[var(--color-primary)]">
           A1SI-AITP
         </h1>
+        <div className="mb-4">
+          <AssetClassSelector />
+        </div>
         <ul role="list" className="flex flex-1 flex-col gap-1">
           {navItems.map(({ to, icon: Icon, label }) => (
             <li key={to}>
@@ -131,5 +140,6 @@ export function Layout({ onLogout, username }: LayoutProps) {
         </div>
       </main>
     </div>
+    </AssetClassContext.Provider>
   );
 }

@@ -126,6 +126,7 @@ def run_nautilus_backtest(
     timeframe: str = "1h",
     exchange: str = "binance",
     initial_balance: float = 10000.0,
+    asset_class: str = "crypto",
 ) -> dict:
     """
     Run a backtest using one of the registered Nautilus strategies.
@@ -143,10 +144,11 @@ def run_nautilus_backtest(
         available = ", ".join(STRATEGY_REGISTRY.keys())
         return {"error": f"Unknown strategy '{strategy_name}'. Available: {available}"}
 
-    # Load data
-    df = load_ohlcv(symbol, timeframe, exchange)
+    # Load data — route to correct source by asset class
+    source = "yfinance" if asset_class in ("equity", "forex") else exchange
+    df = load_ohlcv(symbol, timeframe, source)
     if df.empty:
-        return {"error": f"No data for {symbol} {timeframe} on {exchange}"}
+        return {"error": f"No data for {symbol} {timeframe} on {source}"}
 
     # Try native engine first
     if HAS_NAUTILUS_TRADER:
@@ -191,6 +193,10 @@ def _run_native_backtest(
             "NautilusTrendFollowing": "NativeTrendFollowing",
             "NautilusMeanReversion": "NativeMeanReversion",
             "NautilusVolatilityBreakout": "NativeVolatilityBreakout",
+            "EquityMomentum": "NativeEquityMomentum",
+            "EquityMeanReversion": "NativeEquityMeanReversion",
+            "ForexTrend": "NativeForexTrend",
+            "ForexRange": "NativeForexRange",
         }
         native_name = native_name_map.get(strategy_name)
         if not native_name or native_name not in NATIVE_STRATEGY_REGISTRY:

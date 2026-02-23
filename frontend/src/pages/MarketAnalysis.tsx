@@ -4,10 +4,12 @@ import { marketApi } from "../api/market";
 import { indicatorsApi, type IndicatorData } from "../api/indicators";
 import { regimeApi } from "../api/regime";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useAssetClass } from "../hooks/useAssetClass";
 import { PriceChart } from "../components/PriceChart";
+import { MarketStatusBadge } from "../components/MarketStatusBadge";
+import { DEFAULT_SYMBOL as DEFAULT_SYMBOL_MAP, EXCHANGE_OPTIONS, TIMEFRAME_OPTIONS } from "../constants/assetDefaults";
 import type { OHLCVData, RegimeState, RegimeType } from "../types";
 
-const DEFAULT_SYMBOL = "BTC/USDT";
 const OVERLAY_INDICATORS = ["sma_21", "sma_50", "sma_200", "ema_21", "ema_50", "bb_upper", "bb_mid", "bb_lower"];
 const PANE_INDICATORS = ["rsi_14", "macd", "macd_signal", "macd_hist", "volume_ratio"];
 
@@ -29,16 +31,17 @@ function formatRegimeName(regime: RegimeType): string {
 }
 
 export function MarketAnalysis() {
-  const [symbol, setSymbol] = useLocalStorage("ci:market-symbol", DEFAULT_SYMBOL);
-  const [timeframe, setTimeframe] = useLocalStorage("ci:market-timeframe", "1h");
-  const [exchange, setExchange] = useLocalStorage("ci:market-exchange", "sample");
+  const { assetClass } = useAssetClass();
+  const [symbol, setSymbol] = useLocalStorage(`ci:${assetClass}:market-symbol`, DEFAULT_SYMBOL_MAP[assetClass]);
+  const [timeframe, setTimeframe] = useLocalStorage(`ci:${assetClass}:market-timeframe`, "1h");
+  const [exchange, setExchange] = useLocalStorage(`ci:${assetClass}:market-exchange`, EXCHANGE_OPTIONS[assetClass][0]?.value ?? "sample");
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>([]);
 
   useEffect(() => { document.title = "Market Analysis | A1SI-AITP"; }, []);
 
   const { data: ohlcv, isLoading, isError, error } = useQuery<OHLCVData[]>({
-    queryKey: ["ohlcv", symbol, timeframe],
-    queryFn: () => marketApi.ohlcv(symbol, timeframe),
+    queryKey: ["ohlcv", symbol, timeframe, assetClass],
+    queryFn: () => marketApi.ohlcv(symbol, timeframe, 100, assetClass),
   });
 
   const { data: indicatorData } = useQuery<IndicatorData>({
@@ -76,12 +79,9 @@ export function MarketAnalysis() {
           onChange={(e) => setTimeframe(e.target.value)}
           className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         >
-          <option value="1m">1m</option>
-          <option value="5m">5m</option>
-          <option value="15m">15m</option>
-          <option value="1h">1h</option>
-          <option value="4h">4h</option>
-          <option value="1d">1d</option>
+          {TIMEFRAME_OPTIONS[assetClass].map((tf) => (
+            <option key={tf.value} value={tf.value}>{tf.label}</option>
+          ))}
         </select>
         <select
           value={exchange}
@@ -89,8 +89,11 @@ export function MarketAnalysis() {
           className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         >
           <option value="sample">Sample</option>
-          <option value="binance">Binance</option>
+          {EXCHANGE_OPTIONS[assetClass].map((ex) => (
+            <option key={ex.value} value={ex.value}>{ex.label}</option>
+          ))}
         </select>
+        <MarketStatusBadge assetClass={assetClass} />
         {regimeState && (
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${REGIME_COLORS[regimeState.regime] ?? "bg-gray-400/15 text-gray-400"}`}
@@ -157,6 +160,7 @@ export function MarketAnalysis() {
             indicatorData={indicatorData?.data}
             overlayIndicators={selectedIndicators.filter((i) => OVERLAY_INDICATORS.includes(i))}
             paneIndicators={selectedIndicators.filter((i) => PANE_INDICATORS.includes(i))}
+            assetClass={assetClass}
           />
         )}
       </div>

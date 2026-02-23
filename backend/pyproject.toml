@@ -28,6 +28,7 @@ analysis = [
     "numpy>=1.26,<3",
     "scipy>=1.11,<2",
     "pyarrow>=14,<24",
+    "yfinance>=0.2.36,<1",
 ]
 ml = [
     "lightgbm>=4,<5",

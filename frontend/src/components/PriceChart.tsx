@@ -8,7 +8,7 @@ import {
   type CandlestickData,
   type UTCTimestamp,
 } from "lightweight-charts";
-import type { OHLCVData } from "../types";
+import type { AssetClass, OHLCVData } from "../types";
 
 const INDICATOR_COLORS: Record<string, string> = {
   sma_21: "#f59e0b",
@@ -32,6 +32,7 @@ interface PriceChartProps {
   indicatorData?: Record<string, number | null>[];
   overlayIndicators?: string[];
   paneIndicators?: string[];
+  assetClass?: AssetClass;
 }
 
 export function PriceChart({
@@ -40,6 +41,7 @@ export function PriceChart({
   indicatorData,
   overlayIndicators = [],
   paneIndicators = [],
+  assetClass = "crypto",
 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const paneContainerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +50,8 @@ export function PriceChart({
 
   useEffect(() => {
     if (!containerRef.current) return;
+
+    const priceDecimals = assetClass === "forex" ? 5 : 2;
 
     const chart = createChart(containerRef.current, {
       height,
@@ -58,6 +62,9 @@ export function PriceChart({
       grid: {
         vertLines: { color: "#334155" },
         horzLines: { color: "#334155" },
+      },
+      localization: {
+        priceFormatter: (price: number) => price.toFixed(priceDecimals),
       },
     });
 
@@ -159,7 +166,7 @@ export function PriceChart({
         paneChartRef.current = null;
       }
     };
-  }, [data, height, indicatorData, overlayIndicators, paneIndicators]);
+  }, [data, height, indicatorData, overlayIndicators, paneIndicators, assetClass]);
 
   return (
     <div>

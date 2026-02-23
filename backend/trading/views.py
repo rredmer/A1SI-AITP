@@ -28,9 +28,12 @@ class OrderListView(APIView):
     def get(self, request: Request) -> Response:
         limit = _safe_int(request.query_params.get("limit"), 50, max_val=200)
         mode = request.query_params.get("mode")
+        asset_class = request.query_params.get("asset_class")
         qs = Order.objects.prefetch_related("fill_events").all()
         if mode in ("paper", "live"):
             qs = qs.filter(mode=mode)
+        if asset_class in ("crypto", "equity", "forex"):
+            qs = qs.filter(asset_class=asset_class)
         orders = qs[:limit]
         return Response(OrderSerializer(orders, many=True).data)
 
@@ -46,10 +49,12 @@ class OrderListView(APIView):
 
         mode = data.pop("mode", "paper")
         stop_loss = data.pop("stop_loss_price", None)
+        asset_class = data.pop("asset_class", "crypto")
 
         order = Order.objects.create(
             **data,
             mode=mode,
+            asset_class=asset_class,
             stop_loss_price=stop_loss,
             status=OrderStatus.PENDING,
             timestamp=datetime.now(timezone.utc),

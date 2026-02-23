@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 
+from market.constants import AssetClass
+
 
 class OrderStatus(models.TextChoices):
     PENDING = "pending", "Pending"
@@ -57,6 +59,11 @@ class Order(models.Model):
     exchange_id = models.CharField(max_length=50)
     exchange_order_id = models.CharField(max_length=100, default="", blank=True)
     symbol = models.CharField(max_length=20)
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+    )
     side = models.CharField(max_length=10)  # buy / sell
     order_type = models.CharField(max_length=20)  # market / limit
     amount = models.FloatField()
@@ -98,6 +105,10 @@ class Order(models.Model):
             models.Index(
                 fields=["symbol", "status"],
                 name="idx_order_symbol_status",
+            ),
+            models.Index(
+                fields=["asset_class", "symbol"],
+                name="idx_order_asset_symbol",
             ),
         ]
 

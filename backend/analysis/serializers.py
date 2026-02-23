@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from analysis.models import BackgroundJob, BacktestResult, ScreenResult
+from market.constants import AssetClass
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -38,6 +39,9 @@ class BacktestRequestSerializer(serializers.Serializer):
     )
     timerange = serializers.CharField(default="", allow_blank=True)
     exchange = serializers.CharField(default="binance", min_length=1)
+    asset_class = serializers.ChoiceField(
+        choices=AssetClass.choices, default=AssetClass.CRYPTO,
+    )
 
 
 class StrategyInfoSerializer(serializers.Serializer):
@@ -55,6 +59,7 @@ class BacktestResultSerializer(serializers.ModelSerializer):
             "id",
             "job_id",
             "framework",
+            "asset_class",
             "strategy_name",
             "symbol",
             "timeframe",
@@ -81,6 +86,9 @@ class ScreenRequestSerializer(serializers.Serializer):
     )
     exchange = serializers.CharField(default="binance", min_length=1)
     fees = serializers.FloatField(default=0.001, min_value=0.0, max_value=0.1)
+    asset_class = serializers.ChoiceField(
+        choices=AssetClass.choices, default=AssetClass.CRYPTO,
+    )
 
 
 class ScreenResultSerializer(serializers.ModelSerializer):
@@ -92,6 +100,7 @@ class ScreenResultSerializer(serializers.ModelSerializer):
             "id",
             "job_id",
             "symbol",
+            "asset_class",
             "timeframe",
             "strategy_name",
             "top_results",
@@ -127,6 +136,9 @@ class DataDownloadRequestSerializer(serializers.Serializer):
     timeframes = serializers.ListField(child=serializers.CharField(), default=["1h"])
     exchange = serializers.CharField(default="binance", min_length=1)
     since_days = serializers.IntegerField(default=365, min_value=1, max_value=3650)
+    asset_class = serializers.ChoiceField(
+        choices=AssetClass.choices, default=AssetClass.CRYPTO,
+    )
 
 
 class DataGenerateSampleRequestSerializer(serializers.Serializer):

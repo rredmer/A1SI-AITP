@@ -1,5 +1,6 @@
 from django.db import models
 
+from market.constants import AssetClass
 from market.fields import EncryptedTextField
 
 EXCHANGE_CHOICES = [
@@ -8,12 +9,19 @@ EXCHANGE_CHOICES = [
     ("kraken", "Kraken"),
     ("kucoin", "KuCoin"),
     ("bybit", "Bybit"),
+    ("yfinance", "Yahoo Finance"),
 ]
 
 
 class MarketData(models.Model):
     symbol = models.CharField(max_length=20, db_index=True)
     exchange_id = models.CharField(max_length=50)
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+        db_index=True,
+    )
     price = models.FloatField()
     volume_24h = models.FloatField(default=0.0)
     change_24h = models.FloatField(default=0.0)
@@ -33,6 +41,11 @@ class MarketData(models.Model):
 class ExchangeConfig(models.Model):
     name = models.CharField(max_length=100)
     exchange_id = models.CharField(max_length=50, choices=EXCHANGE_CHOICES)
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+    )
     api_key = EncryptedTextField(blank=True, default="")
     api_secret = EncryptedTextField(blank=True, default="")
     passphrase = EncryptedTextField(blank=True, default="")
@@ -63,7 +76,13 @@ class ExchangeConfig(models.Model):
 
 class DataSourceConfig(models.Model):
     exchange_config = models.ForeignKey(
-        ExchangeConfig, on_delete=models.CASCADE, related_name="data_sources"
+        ExchangeConfig, on_delete=models.CASCADE, related_name="data_sources",
+        null=True, blank=True,
+    )
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
     )
     symbols = models.JSONField(default=list)
     timeframes = models.JSONField(default=list)

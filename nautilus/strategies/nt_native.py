@@ -183,10 +183,50 @@ if HAS_NAUTILUS_TRADER:
             self.pandas_strategy_cls = NautilusVolatilityBreakout
             super().__init__(config)
 
+    class NativeEquityMomentum(_NativeAdapterBase):
+        """Real NT Strategy wrapping EquityMomentum signal logic."""
+
+        def __init__(self, config: _NativeAdapterConfig) -> None:
+            from nautilus.strategies.equity_momentum import EquityMomentum
+
+            self.pandas_strategy_cls = EquityMomentum
+            super().__init__(config)
+
+    class NativeEquityMeanReversion(_NativeAdapterBase):
+        """Real NT Strategy wrapping EquityMeanReversion signal logic."""
+
+        def __init__(self, config: _NativeAdapterConfig) -> None:
+            from nautilus.strategies.equity_mean_reversion import EquityMeanReversion
+
+            self.pandas_strategy_cls = EquityMeanReversion
+            super().__init__(config)
+
+    class NativeForexTrend(_NativeAdapterBase):
+        """Real NT Strategy wrapping ForexTrend signal logic."""
+
+        def __init__(self, config: _NativeAdapterConfig) -> None:
+            from nautilus.strategies.forex_trend import ForexTrend
+
+            self.pandas_strategy_cls = ForexTrend
+            super().__init__(config)
+
+    class NativeForexRange(_NativeAdapterBase):
+        """Real NT Strategy wrapping ForexRange signal logic."""
+
+        def __init__(self, config: _NativeAdapterConfig) -> None:
+            from nautilus.strategies.forex_range import ForexRange
+
+            self.pandas_strategy_cls = ForexRange
+            super().__init__(config)
+
     NATIVE_STRATEGY_REGISTRY: dict[str, type] = {
         "NativeTrendFollowing": NativeTrendFollowing,
         "NativeMeanReversion": NativeMeanReversion,
         "NativeVolatilityBreakout": NativeVolatilityBreakout,
+        "NativeEquityMomentum": NativeEquityMomentum,
+        "NativeEquityMeanReversion": NativeEquityMeanReversion,
+        "NativeForexTrend": NativeForexTrend,
+        "NativeForexRange": NativeForexRange,
     }
 
 else:

@@ -69,6 +69,36 @@ data:
     - "4h"
     - "1d"
 
+  # Per-asset-class watchlists
+  equity_watchlist:
+    - "AAPL/USD"
+    - "MSFT/USD"
+    - "GOOGL/USD"
+    - "AMZN/USD"
+    - "NVDA/USD"
+    - "SPY/USD"
+    - "QQQ/USD"
+    - "IWM/USD"
+    - "GLD/USD"
+    - "TLT/USD"
+
+  forex_watchlist:
+    - "EUR/USD"
+    - "GBP/USD"
+    - "USD/JPY"
+    - "USD/CHF"
+    - "AUD/USD"
+    - "NZD/USD"
+    - "USD/CAD"
+    - "EUR/GBP"
+    - "EUR/JPY"
+    - "GBP/JPY"
+    - "AUD/JPY"
+    - "EUR/CHF"
+    - "EUR/AUD"
+    - "GBP/CHF"
+    - "NZD/JPY"
+
   # How many days of historical data to fetch
   history_days: 365
 
@@ -192,6 +222,32 @@ nautilus:
       sell_rsi_threshold: 85
       atr_multiplier: 1.5
       stoploss: -0.03
+    EquityMomentum:
+      sma_slow: 200
+      sma_fast: 50
+      buy_rsi_low: 30
+      buy_rsi_high: 50
+      sell_rsi_threshold: 75
+      volume_factor: 1.5
+      stoploss: -0.03
+    EquityMeanReversion:
+      buy_rsi_threshold: 30
+      sell_sma_period: 20
+      volume_factor: 1.5
+      stoploss: -0.04
+    ForexTrend:
+      ema_fast: 20
+      ema_slow: 50
+      adx_threshold: 25
+      buy_rsi_low: 40
+      buy_rsi_high: 70
+      sell_rsi_threshold: 70
+      stoploss: -0.02
+    ForexRange:
+      adx_ceiling: 20
+      buy_rsi_threshold: 30
+      sell_rsi_threshold: 70
+      stoploss: -0.015
 
 # ──────────────────────────────────────────────
 # VectorBT research configuration
@@ -218,6 +274,22 @@ risk_management:
   max_daily_loss: 0.05          # 5% daily loss limit
   max_correlation: 0.7          # Max correlation between concurrent positions
   min_paper_trade_days: 14      # Minimum paper trading before live
+
+# ──────────────────────────────────────────────
+# Per-asset-class risk overrides
+# ──────────────────────────────────────────────
+equity:
+  risk:
+    stoploss: -0.03
+    max_position_size_pct: 0.05
+    max_daily_loss: 0.03
+
+forex:
+  risk:
+    stoploss: -0.02
+    max_leverage: 1.0
+    max_position_size_pct: 0.10
+    max_daily_loss: 0.04
 
 # ──────────────────────────────────────────────
 # hftbacktest configuration (Tier 4 — HFT)

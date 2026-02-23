@@ -9,6 +9,7 @@ from market.views import (
     ExchangeListView,
     IndicatorComputeView,
     IndicatorListView,
+    MarketStatusView,
     OHLCVView,
     RegimeCurrentAllView,
     RegimeCurrentView,
@@ -36,6 +37,8 @@ urlpatterns = [
     # Data source config CRUD
     path("data-sources/", DataSourceConfigListView.as_view(), name="data-source-list"),
     path("data-sources/<int:pk>/", DataSourceConfigDetailView.as_view(), name="data-source-detail"),
+    # Market status
+    path("market/status/", MarketStatusView.as_view(), name="market-status"),
     # Existing routes
     path("exchanges/", ExchangeListView.as_view(), name="exchange-list"),
     path("market/ticker/<path:symbol>/", TickerView.as_view(), name="market-ticker"),

@@ -356,6 +356,77 @@ def screen_volatility_breakout(
     return results_df
 
 
+def screen_relative_strength(
+    df: pd.DataFrame,
+    benchmark_df: pd.DataFrame,
+    lookback_periods: list = None,
+    rs_thresholds: list = None,
+    fees: float = 0.0,
+) -> pd.DataFrame:
+    """
+    Screen relative strength strategies for equities (vs a benchmark like SPY).
+
+    Buy when asset's relative strength vs benchmark exceeds threshold.
+    Sell when relative strength drops below 1.0 (underperforming benchmark).
+    """
+    if lookback_periods is None:
+        lookback_periods = [20, 50, 100, 200]
+    if rs_thresholds is None:
+        rs_thresholds = [1.02, 1.05, 1.10, 1.15]
+
+    close = df["close"]
+    bench_close = benchmark_df["close"]
+
+    # Align to common index
+    common_idx = close.index.intersection(bench_close.index)
+    if len(common_idx) < 50:
+        logger.warning("Insufficient overlapping data for relative strength screen")
+        return pd.DataFrame()
+
+    close = close.loc[common_idx]
+    bench_close = bench_close.loc[common_idx]
+
+    results = []
+
+    for lookback in lookback_periods:
+        # Relative strength = (asset return over lookback) / (benchmark return over lookback)
+        asset_return = close / close.shift(lookback)
+        bench_return = bench_close / bench_close.shift(lookback)
+        relative_strength = asset_return / bench_return.replace(0, float("nan"))
+
+        for threshold in rs_thresholds:
+            entries = relative_strength > threshold
+            exits = relative_strength < 1.0
+
+            try:
+                pf = vbt.Portfolio.from_signals(
+                    close,
+                    entries=entries,
+                    exits=exits,
+                    fees=fees,
+                    freq="1d",
+                    init_cash=10000,
+                )
+                results.append({
+                    "lookback": lookback,
+                    "rs_threshold": threshold,
+                    "total_return": pf.total_return(),
+                    "sharpe_ratio": pf.sharpe_ratio(),
+                    "max_drawdown": pf.max_drawdown(),
+                    "win_rate": pf.trades.win_rate() if pf.trades.count() > 0 else 0,
+                    "profit_factor": pf.trades.profit_factor() if pf.trades.count() > 0 else 0,
+                    "num_trades": pf.trades.count(),
+                })
+            except Exception as e:
+                logger.debug(f"Skipping RS({lookback}, {threshold}): {e}")
+
+    results_df = pd.DataFrame(results)
+    if not results_df.empty:
+        results_df = results_df.sort_values("sharpe_ratio", ascending=False)
+    logger.info(f"Relative strength screening complete: {len(results_df)} combos tested")
+    return results_df
+
+
 # ──────────────────────────────────────────────
 # Walk-Forward Out-of-Sample Validation
 # ──────────────────────────────────────────────
@@ -513,18 +584,33 @@ def walk_forward_validate(
 # Composite Screener
 # ──────────────────────────────────────────────
 
+_ASSET_CLASS_FEES: dict[str, float] = {
+    "crypto": 0.001,   # 0.1%
+    "equity": 0.0,     # Commission-free
+    "forex": 0.0001,   # ~1 pip spread
+}
+
+
 def run_full_screen(
     symbol: str = "BTC/USDT",
     timeframe: str = "1h",
     exchange: str = "binance",
-    fees: float = 0.001,
+    fees: float | None = None,
+    asset_class: str = "crypto",
 ) -> dict:
     """
     Run all strategy screens for a given symbol and return ranked results.
-    """
-    logger.info(f"=== Full strategy screen: {symbol} {timeframe} on {exchange} ===")
 
-    df = load_ohlcv(symbol, timeframe, exchange)
+    When asset_class is "equity", also runs a relative strength screen
+    using SPY as benchmark (if data available).
+    """
+    if fees is None:
+        fees = _ASSET_CLASS_FEES.get(asset_class, 0.001)
+
+    source = "yfinance" if asset_class in ("equity", "forex") else exchange
+    logger.info(f"=== Full strategy screen: {symbol} {timeframe} on {source} ({asset_class}) ===")
+
+    df = load_ohlcv(symbol, timeframe, source)
     if df.empty:
         logger.error(f"No data available for {symbol} {timeframe}. Run data pipeline first.")
         return {}
@@ -566,6 +652,20 @@ def run_full_screen(
         results["volatility_breakout"] = screen_volatility_breakout(df, fees=fees)
     except Exception as e:
         logger.error(f"Volatility breakout screen failed: {e}")
+
+    # 6. Relative Strength (equities only, vs SPY benchmark)
+    if asset_class == "equity":
+        logger.info("Running Relative Strength screen (vs SPY)...")
+        try:
+            spy_df = load_ohlcv("SPY/USD", timeframe, "yfinance")
+            if not spy_df.empty:
+                results["relative_strength"] = screen_relative_strength(
+                    df, spy_df, fees=fees,
+                )
+            else:
+                logger.warning("SPY benchmark data not available, skipping relative strength")
+        except Exception as e:
+            logger.error(f"Relative strength screen failed: {e}")
 
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -627,7 +727,9 @@ if __name__ == "__main__":
     parser.add_argument("--symbol", default="BTC/USDT", help="Trading pair")
     parser.add_argument("--timeframe", default="1h", help="Candle timeframe")
     parser.add_argument("--exchange", default="binance", help="Exchange")
-    parser.add_argument("--fees", type=float, default=0.001, help="Trading fees (0.001 = 0.1%%)")
+    parser.add_argument("--fees", type=float, default=None, help="Trading fees (0.001 = 0.1%%)")
+    parser.add_argument("--asset-class", default="crypto", choices=["crypto", "equity", "forex"],
+                        dest="asset_class", help="Asset class")
     parser.add_argument(
         "--walk-forward-only",
         metavar="STRATEGY",
@@ -636,18 +738,20 @@ if __name__ == "__main__":
     parser.add_argument("--splits", type=int, default=3, help="Number of walk-forward splits")
 
     args = parser.parse_args()
+    fees = args.fees if args.fees is not None else _ASSET_CLASS_FEES.get(args.asset_class, 0.001)
 
     if args.walk_forward_only:
         from common.data_pipeline.pipeline import load_ohlcv as _load
 
-        _df = _load(args.symbol, args.timeframe, args.exchange)
+        source = "yfinance" if args.asset_class in ("equity", "forex") else args.exchange
+        _df = _load(args.symbol, args.timeframe, source)
         if _df.empty:
             logger.error(f"No data for {args.symbol} {args.timeframe}")
         else:
             wf = walk_forward_validate(
-                _df, args.walk_forward_only, n_splits=args.splits, fees=args.fees,
+                _df, args.walk_forward_only, n_splits=args.splits, fees=fees,
             )
             if not wf.empty:
                 print(wf.to_string(index=False))
     else:
-        run_full_screen(args.symbol, args.timeframe, args.exchange, args.fees)
+        run_full_screen(args.symbol, args.timeframe, args.exchange, fees, args.asset_class)

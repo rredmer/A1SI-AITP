@@ -1,5 +1,7 @@
 from django.db import models
 
+from market.constants import AssetClass
+
 
 class RiskState(models.Model):
     portfolio_id = models.IntegerField(unique=True, db_index=True)
@@ -63,6 +65,11 @@ class RiskMetricHistory(models.Model):
 class TradeCheckLog(models.Model):
     portfolio_id = models.IntegerField(db_index=True)
     symbol = models.CharField(max_length=20)
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+    )
     side = models.CharField(max_length=10)
     size = models.FloatField()
     entry_price = models.FloatField()

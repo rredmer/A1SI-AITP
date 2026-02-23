@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from market.constants import AssetClass
 from portfolio.models import Holding, Portfolio
 
 
@@ -10,6 +11,7 @@ class HoldingSerializer(serializers.ModelSerializer):
             "id",
             "portfolio_id",
             "symbol",
+            "asset_class",
             "amount",
             "avg_buy_price",
             "created_at",
@@ -22,6 +24,9 @@ class HoldingCreateSerializer(serializers.Serializer):
     symbol = serializers.CharField(max_length=20)
     amount = serializers.FloatField(default=0.0)
     avg_buy_price = serializers.FloatField(default=0.0)
+    asset_class = serializers.ChoiceField(
+        choices=AssetClass.choices, default=AssetClass.CRYPTO,
+    )
 
 
 class PortfolioSerializer(serializers.ModelSerializer):
@@ -33,6 +38,7 @@ class PortfolioSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "exchange_id",
+            "asset_class",
             "description",
             "holdings",
             "created_at",
@@ -45,6 +51,9 @@ class PortfolioCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=100)
     exchange_id = serializers.CharField(max_length=50, default="binance")
     description = serializers.CharField(max_length=500, default="", allow_blank=True)
+    asset_class = serializers.ChoiceField(
+        choices=AssetClass.choices, default=AssetClass.CRYPTO,
+    )
 
 
 class PortfolioUpdateSerializer(serializers.Serializer):

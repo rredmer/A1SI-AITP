@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { BacktestResult, StrategyInfo } from "../types";
+import type { AssetClass, BacktestResult, StrategyInfo } from "../types";
 
 export const backtestApi = {
   run: (params: {
@@ -9,6 +9,7 @@ export const backtestApi = {
     timeframe: string;
     timerange?: string;
     exchange?: string;
+    asset_class?: AssetClass;
   }) => api.post<{ job_id: string }>("/backtest/run/", params),
 
   results: (limit?: number) =>

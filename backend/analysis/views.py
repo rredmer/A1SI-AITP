@@ -95,7 +95,11 @@ class BacktestResultListView(APIView):
     @extend_schema(responses=BacktestResultSerializer(many=True), tags=["Backtest"])
     def get(self, request: Request) -> Response:
         limit = _safe_int(request.query_params.get("limit"), 20, max_val=100)
-        results = BacktestResult.objects.select_related("job").all()[:limit]
+        asset_class = request.query_params.get("asset_class")
+        qs = BacktestResult.objects.select_related("job").all()
+        if asset_class in ("crypto", "equity", "forex"):
+            qs = qs.filter(asset_class=asset_class)
+        results = qs[:limit]
         return Response(BacktestResultSerializer(results, many=True).data)
 
 
@@ -161,7 +165,11 @@ class ScreeningResultListView(APIView):
     @extend_schema(responses=ScreenResultSerializer(many=True), tags=["Screening"])
     def get(self, request: Request) -> Response:
         limit = _safe_int(request.query_params.get("limit"), 20, max_val=100)
-        results = ScreenResult.objects.select_related("job").all()[:limit]
+        asset_class = request.query_params.get("asset_class")
+        qs = ScreenResult.objects.select_related("job").all()
+        if asset_class in ("crypto", "equity", "forex"):
+            qs = qs.filter(asset_class=asset_class)
+        results = qs[:limit]
         return Response(ScreenResultSerializer(results, many=True).data)
 
 

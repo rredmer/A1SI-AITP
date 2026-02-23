@@ -3,15 +3,18 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { screeningApi } from "../api/screening";
 import { useJobPolling } from "../hooks/useJobPolling";
 import { useToast } from "../hooks/useToast";
+import { useAssetClass } from "../hooks/useAssetClass";
 import { ProgressBar } from "../components/ProgressBar";
+import { DEFAULT_SYMBOL, EXCHANGE_OPTIONS, TIMEFRAME_OPTIONS, DEFAULT_FEES } from "../constants/assetDefaults";
 
 export function Screening() {
   const { toast } = useToast();
+  const { assetClass } = useAssetClass();
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [symbol, setSymbol] = useState("BTC/USDT");
+  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL[assetClass]);
   const [timeframe, setTimeframe] = useState("1h");
-  const [exchange, setExchange] = useState("binance");
-  const [fees, setFees] = useState(0.001);
+  const [exchange, setExchange] = useState(EXCHANGE_OPTIONS[assetClass][0]?.value ?? "binance");
+  const [fees, setFees] = useState(DEFAULT_FEES[assetClass]);
 
   const { data: strategies } = useQuery({
     queryKey: ["screening-strategies"],
@@ -21,7 +24,7 @@ export function Screening() {
   const job = useJobPolling(activeJobId);
 
   const runMutation = useMutation({
-    mutationFn: () => screeningApi.run({ symbol, timeframe, exchange, fees }),
+    mutationFn: () => screeningApi.run({ symbol, timeframe, exchange, fees, asset_class: assetClass }),
     onSuccess: (data) => setActiveJobId(data.job_id),
     onError: (err) => toast((err as Error).message || "Failed to start screening", "error"),
   });
@@ -56,8 +59,8 @@ export function Screening() {
                 onChange={(e) => setTimeframe(e.target.value)}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
               >
-                {["1h", "4h", "1d"].map((tf) => (
-                  <option key={tf} value={tf}>{tf}</option>
+                {TIMEFRAME_OPTIONS[assetClass].map((tf) => (
+                  <option key={tf.value} value={tf.value}>{tf.label}</option>
                 ))}
               </select>
             </div>
@@ -69,8 +72,10 @@ export function Screening() {
                 onChange={(e) => setExchange(e.target.value)}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
               >
-                <option value="binance">Binance</option>
                 <option value="sample">Sample</option>
+                {EXCHANGE_OPTIONS[assetClass].map((ex) => (
+                  <option key={ex.value} value={ex.value}>{ex.label}</option>
+                ))}
               </select>
             </div>
             <div>

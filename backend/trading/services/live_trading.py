@@ -28,12 +28,26 @@ class LiveTradingService:
     async def submit_order(order: Order) -> Order:
         """Submit an order to the exchange.
 
-        1. Check risk limits
-        2. Check kill switch
-        3. Submit via ccxt
-        4. Transition pending -> submitted
-        5. Broadcast order_update
+        1. Gate non-crypto live trading
+        2. Check risk limits
+        3. Check kill switch
+        4. Submit via ccxt
+        5. Transition pending -> submitted
+        6. Broadcast order_update
         """
+        # Gate: live trading only supported for crypto via CCXT
+        asset_class = getattr(order, "asset_class", "crypto")
+        if asset_class in ("equity", "forex"):
+            await sync_to_async(order.transition_to)(
+                OrderStatus.REJECTED,
+                reject_reason=(
+                    f"Live trading not yet supported for {asset_class}. "
+                    "Use paper trading mode instead."
+                ),
+            )
+            await LiveTradingService._broadcast_order_update(order)
+            return order
+
         from risk.models import RiskState
 
         # Kill switch check

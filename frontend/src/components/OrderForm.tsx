@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tradingApi } from "../api/trading";
 import { portfoliosApi } from "../api/portfolios";
 import { useToast } from "../hooks/useToast";
+import { useAssetClass } from "../hooks/useAssetClass";
+import { DEFAULT_SYMBOL } from "../constants/assetDefaults";
 import type { Portfolio, TradingMode } from "../types";
 
 interface OrderFormProps {
@@ -12,7 +14,9 @@ interface OrderFormProps {
 export function OrderForm({ mode = "paper" }: OrderFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [symbol, setSymbol] = useState("BTC/USDT");
+  const { assetClass } = useAssetClass();
+  const amountLabel = assetClass === "equity" ? "Shares" : assetClass === "forex" ? "Lots" : "Amount";
+  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL[assetClass]);
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
   const [price, setPrice] = useState("");
@@ -117,7 +121,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
         </button>
       </div>
       <div>
-        <label htmlFor="order-amount" className="mb-1 block text-xs text-[var(--color-text-muted)]">Amount</label>
+        <label htmlFor="order-amount" className="mb-1 block text-xs text-[var(--color-text-muted)]">{amountLabel}</label>
         <input
           id="order-amount"
           type="number"

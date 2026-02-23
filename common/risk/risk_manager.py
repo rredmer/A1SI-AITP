@@ -309,6 +309,7 @@ class RiskManager:
         size: float,
         entry_price: float,
         stop_loss_price: Optional[float] = None,
+        asset_class: str = "crypto",
     ) -> tuple[bool, str]:
         """
         Gate function: check if a new trade passes all risk checks.
@@ -318,6 +319,21 @@ class RiskManager:
         # Check halt status
         if self.state.is_halted:
             return False, f"Trading halted: {self.state.halt_reason}"
+
+        # Check market hours for equity/forex
+        if asset_class in ("equity", "forex"):
+            try:
+                from common.market_hours.sessions import MarketHoursService
+
+                if not MarketHoursService.is_market_open(asset_class):
+                    session_info = MarketHoursService.get_session_info(asset_class)
+                    next_open = session_info.get("next_open", "unknown")
+                    return False, (
+                        f"Market closed for {asset_class}. "
+                        f"Next open: {next_open}"
+                    )
+            except ImportError:
+                logger.warning("market_hours module not available, skipping hours check")
 
         # Check max open positions
         if len(self.state.open_positions) >= self.limits.max_open_positions:

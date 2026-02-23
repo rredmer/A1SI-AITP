@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSystemEvents } from "../hooks/useSystemEvents";
 import { useToast } from "../hooks/useToast";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useAssetClass } from "../hooks/useAssetClass";
 import { tradingApi } from "../api/trading";
 import { OrderForm } from "../components/OrderForm";
 import { QueryResult } from "../components/QueryResult";
@@ -32,15 +33,18 @@ const CANCELLABLE: Set<OrderStatus> = new Set([
 export function Trading() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { assetClass } = useAssetClass();
   const [mode, setMode] = useLocalStorage<TradingMode>("ci:trading-mode", "paper");
   const [page, setPage] = useState(1);
   const { isConnected, isHalted } = useSystemEvents();
 
+  const amountLabel = assetClass === "equity" ? "Shares" : assetClass === "forex" ? "Lots" : "Amount";
+
   useEffect(() => { document.title = "Trading | A1SI-AITP"; }, []);
 
   const ordersQuery = useQuery<Order[]>({
-    queryKey: ["orders", mode],
-    queryFn: () => tradingApi.listOrders(50, mode),
+    queryKey: ["orders", mode, assetClass],
+    queryFn: () => tradingApi.listOrders(50, mode, assetClass),
   });
 
   const cancelMutation = useMutation({
@@ -133,7 +137,7 @@ export function Trading() {
                     <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
                       <th className="pb-2">Symbol</th>
                       <th className="pb-2">Side</th>
-                      <th className="pb-2">Amount</th>
+                      <th className="pb-2">{amountLabel}</th>
                       <th className="pb-2">Price</th>
                       <th className="pb-2">Filled</th>
                       <th className="pb-2">Status</th>

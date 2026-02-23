@@ -6,7 +6,9 @@ import { platformApi } from "../api/platform";
 import { jobsApi } from "../api/jobs";
 import { regimeApi } from "../api/regime";
 import { riskApi } from "../api/risk";
+import { useAssetClass } from "../hooks/useAssetClass";
 import { ProgressBar } from "../components/ProgressBar";
+import { MarketStatusBadge } from "../components/MarketStatusBadge";
 import type {
   BackgroundJob,
   ExchangeInfo,
@@ -19,6 +21,7 @@ import type {
 
 export function Dashboard() {
   const queryClient = useQueryClient();
+  const { assetClass } = useAssetClass();
 
   useEffect(() => { document.title = "Dashboard | A1SI-AITP"; }, []);
   const exchanges = useQuery<ExchangeInfo[]>({
@@ -67,7 +70,10 @@ export function Dashboard() {
 
   return (
     <div>
-      <h2 className="mb-6 text-2xl font-bold">Dashboard</h2>
+      <div className="mb-6 flex items-center gap-3">
+        <h2 className="text-2xl font-bold">Dashboard</h2>
+        <MarketStatusBadge assetClass={assetClass} />
+      </div>
 
       {(exchanges.isError || portfolios.isError) && (
         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">

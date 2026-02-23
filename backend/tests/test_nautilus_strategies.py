@@ -69,10 +69,10 @@ def _bars_from_df(df: pd.DataFrame) -> list[dict]:
 
 
 class TestNautilusRegistry:
-    def test_registry_has_three_strategies(self):
+    def test_registry_has_seven_strategies(self):
         from nautilus.strategies import STRATEGY_REGISTRY
 
-        assert len(STRATEGY_REGISTRY) == 3
+        assert len(STRATEGY_REGISTRY) == 7
 
     def test_registry_keys(self):
         from nautilus.strategies import STRATEGY_REGISTRY
@@ -81,6 +81,10 @@ class TestNautilusRegistry:
             "NautilusTrendFollowing",
             "NautilusMeanReversion",
             "NautilusVolatilityBreakout",
+            "EquityMomentum",
+            "EquityMeanReversion",
+            "ForexTrend",
+            "ForexRange",
         }
         assert set(STRATEGY_REGISTRY.keys()) == expected
 
@@ -94,8 +98,10 @@ class TestNautilusRegistry:
         from nautilus.nautilus_runner import list_nautilus_strategies
 
         names = list_nautilus_strategies()
-        assert len(names) == 3
+        assert len(names) == 7
         assert "NautilusTrendFollowing" in names
+        assert "EquityMomentum" in names
+        assert "ForexTrend" in names
 
 
 # ── Base Class Tests ─────────────────────────────────
@@ -527,7 +533,7 @@ class TestRunnerDualMode:
         from nautilus.nautilus_runner import HAS_NAUTILUS_TRADER, list_nautilus_strategies
 
         names = list_nautilus_strategies()
-        assert len(names) == 3
+        assert len(names) == 7
         # HAS_NAUTILUS_TRADER is accessible
         assert isinstance(HAS_NAUTILUS_TRADER, bool)
 
@@ -593,8 +599,10 @@ class TestNativeEngine:
     def test_native_strategy_registry(self):
         from nautilus.strategies.nt_native import NATIVE_STRATEGY_REGISTRY
 
-        assert len(NATIVE_STRATEGY_REGISTRY) == 3
+        assert len(NATIVE_STRATEGY_REGISTRY) == 7
         assert "NativeTrendFollowing" in NATIVE_STRATEGY_REGISTRY
+        assert "NativeEquityMomentum" in NATIVE_STRATEGY_REGISTRY
+        assert "NativeForexTrend" in NATIVE_STRATEGY_REGISTRY
 
     def test_engine_test_function(self):
         from nautilus.nautilus_runner import run_nautilus_engine_test
@@ -629,4 +637,4 @@ class TestBacktestServiceNautilus:
 
         strategies = BacktestService.list_strategies()
         nautilus_strategies = [s for s in strategies if s["framework"] == "nautilus"]
-        assert len(nautilus_strategies) == 3
+        assert len(nautilus_strategies) == 7

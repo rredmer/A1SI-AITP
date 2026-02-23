@@ -189,11 +189,13 @@ def cmd_data(args):
     if args.data_command == "download":
         symbols = args.symbols.split(",") if args.symbols else None
         timeframes = args.timeframes.split(",") if args.timeframes else None
+        asset_class = getattr(args, "asset_class", "crypto")
         results = download_watchlist(
             symbols=symbols,
             timeframes=timeframes,
             exchange_id=args.exchange,
             since_days=args.days,
+            asset_class=asset_class,
         )
         print(f"\nDownload complete: {len(results)} items processed")
         for k, v in results.items():
@@ -283,11 +285,13 @@ def cmd_research(args):
     """VectorBT research commands."""
     if args.research_command == "screen":
         from research.scripts.vbt_screener import run_full_screen
+        asset_class = getattr(args, "asset_class", "crypto")
         results = run_full_screen(
             symbol=args.symbol,
             timeframe=args.timeframe,
             exchange=args.exchange,
             fees=args.fees,
+            asset_class=asset_class,
         )
         if results:
             print("\n=== SCREENING SUMMARY ===")
@@ -380,8 +384,10 @@ def cmd_nautilus(args):
 
     elif args.nt_command == "backtest":
         from nautilus.nautilus_runner import run_nautilus_backtest
+        asset_class = getattr(args, "asset_class", "crypto")
         result = run_nautilus_backtest(
             args.strategy, args.symbol, args.timeframe, args.exchange, args.balance,
+            asset_class=asset_class,
         )
         print(json.dumps(result, indent=2, default=str))
 
@@ -582,6 +588,8 @@ Examples:
     dl.add_argument("--timeframes", default=None, help="Comma-separated timeframes")
     dl.add_argument("--exchange", default="binance")
     dl.add_argument("--days", type=int, default=365)
+    dl.add_argument("--asset-class", default="crypto", choices=["crypto", "equity", "forex"],
+                    dest="asset_class", help="Asset class")
     data_sub.add_parser("list", help="List available data")
     info = data_sub.add_parser("info", help="Show data file info")
     info.add_argument("symbol")
@@ -596,7 +604,9 @@ Examples:
     scr.add_argument("--symbol", default="BTC/USDT")
     scr.add_argument("--timeframe", default="1h")
     scr.add_argument("--exchange", default="binance")
-    scr.add_argument("--fees", type=float, default=0.001)
+    scr.add_argument("--fees", type=float, default=None)
+    scr.add_argument("--asset-class", default="crypto", choices=["crypto", "equity", "forex"],
+                    dest="asset_class", help="Asset class")
 
     # Freqtrade
     ft_parser = sub.add_parser("freqtrade", help="Freqtrade commands")
@@ -625,6 +635,8 @@ Examples:
     nt_bt.add_argument("--timeframe", default="1h")
     nt_bt.add_argument("--exchange", default="binance")
     nt_bt.add_argument("--balance", type=float, default=10000.0)
+    nt_bt.add_argument("--asset-class", default="crypto", choices=["crypto", "equity", "forex"],
+                       dest="asset_class", help="Asset class")
     nt_sub.add_parser("list-strategies", help="List registered strategies")
 
     # ML pipeline

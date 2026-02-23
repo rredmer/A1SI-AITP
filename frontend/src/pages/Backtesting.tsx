@@ -3,22 +3,30 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { backtestApi } from "../api/backtest";
 import { useJobPolling } from "../hooks/useJobPolling";
 import { useToast } from "../hooks/useToast";
+import { useAssetClass } from "../hooks/useAssetClass";
 import { ProgressBar } from "../components/ProgressBar";
 import { EquityCurve } from "../components/EquityCurve";
+import {
+  BACKTEST_FRAMEWORKS,
+  DEFAULT_SYMBOL,
+  EXCHANGE_OPTIONS,
+  TIMEFRAME_OPTIONS,
+} from "../constants/assetDefaults";
 import type { BacktestResult, StrategyInfo } from "../types";
 
 export function Backtesting() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { assetClass } = useAssetClass();
 
   useEffect(() => { document.title = "Backtesting | A1SI-AITP"; }, []);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [framework, setFramework] = useState("freqtrade");
+  const [framework, setFramework] = useState(BACKTEST_FRAMEWORKS[assetClass][0]?.value ?? "freqtrade");
   const [strategy, setStrategy] = useState("");
-  const [symbol, setSymbol] = useState("BTC/USDT");
+  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL[assetClass]);
   const [timeframe, setTimeframe] = useState("1h");
   const [timerange, setTimerange] = useState("");
-  const [exchange, setExchange] = useState("binance");
+  const [exchange, setExchange] = useState(EXCHANGE_OPTIONS[assetClass][0]?.value ?? "binance");
 
   const { data: strategies, isError: strategiesError } = useQuery<StrategyInfo[]>({
     queryKey: ["backtest-strategies"],
@@ -34,7 +42,7 @@ export function Backtesting() {
 
   const runMutation = useMutation({
     mutationFn: () =>
-      backtestApi.run({ framework, strategy, symbol, timeframe, timerange, exchange }),
+      backtestApi.run({ framework, strategy, symbol, timeframe, timerange, exchange, asset_class: assetClass }),
     onSuccess: (data) => setActiveJobId(data.job_id),
     onError: (err) => toast((err as Error).message || "Failed to start backtest", "error"),
   });
@@ -64,17 +72,17 @@ export function Backtesting() {
             <div>
               <label className="mb-1 block text-xs text-[var(--color-text-muted)]">Framework</label>
               <div className="flex gap-1">
-                {["freqtrade", "nautilus", "hftbacktest"].map((fw) => (
+                {BACKTEST_FRAMEWORKS[assetClass].map((fw) => (
                   <button
-                    key={fw}
-                    onClick={() => { setFramework(fw); setStrategy(""); }}
-                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium capitalize ${
-                      framework === fw
+                    key={fw.value}
+                    onClick={() => { setFramework(fw.value); setStrategy(""); }}
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium ${
+                      framework === fw.value
                         ? "bg-[var(--color-primary)] text-white"
                         : "bg-[var(--color-bg)] text-[var(--color-text-muted)]"
                     }`}
                   >
-                    {fw}
+                    {fw.label}
                   </button>
                 ))}
               </div>
@@ -120,8 +128,8 @@ export function Backtesting() {
                 onChange={(e) => setTimeframe(e.target.value)}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
               >
-                {["1m", "5m", "15m", "1h", "4h", "1d"].map((tf) => (
-                  <option key={tf} value={tf}>{tf}</option>
+                {TIMEFRAME_OPTIONS[assetClass].map((tf) => (
+                  <option key={tf.value} value={tf.value}>{tf.label}</option>
                 ))}
               </select>
             </div>
@@ -133,8 +141,10 @@ export function Backtesting() {
                 onChange={(e) => setExchange(e.target.value)}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
               >
-                <option value="binance">Binance</option>
                 <option value="sample">Sample</option>
+                {EXCHANGE_OPTIONS[assetClass].map((ex) => (
+                  <option key={ex.value} value={ex.value}>{ex.label}</option>
+                ))}
               </select>
             </div>
             <div>

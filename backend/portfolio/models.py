@@ -1,5 +1,7 @@
 from django.db import models
 
+from market.constants import AssetClass
+
 
 class Portfolio(models.Model):
     # Design: single-user platform (Jetson deployment). No user FK — all
@@ -8,6 +10,11 @@ class Portfolio(models.Model):
     # and filter querysets by request.user in views.
     name = models.CharField(max_length=100)
     exchange_id = models.CharField(max_length=50, default="binance")
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+    )
     description = models.CharField(max_length=500, default="", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -22,6 +29,11 @@ class Portfolio(models.Model):
 class Holding(models.Model):
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name="holdings")
     symbol = models.CharField(max_length=20, db_index=True)
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+    )
     amount = models.FloatField(default=0.0)
     avg_buy_price = models.FloatField(default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -163,6 +163,122 @@ def create_crypto_instrument(
     )
 
 
+def create_equity_instrument(
+    symbol: str = "AAPL/USD",
+    venue_name: str = "NYSE",
+) -> "CurrencyPair":
+    """Create an equity instrument for backtesting.
+
+    Uses CurrencyPair representation (e.g., AAPL/USD) for unified handling.
+    price_precision=2, size_precision=2 (fractional shares), fee=0.0 (commission-free era).
+    """
+    if not HAS_NAUTILUS_TRADER:
+        raise ImportError("nautilus_trader is not installed")
+
+    from decimal import Decimal
+
+    parts = symbol.split("/")
+    base_str = parts[0] if len(parts) == 2 else symbol
+    quote_str = parts[1] if len(parts) == 2 else "USD"
+    safe_symbol = symbol.replace("/", "")
+
+    instrument_id = InstrumentId(
+        symbol=Symbol(safe_symbol),
+        venue=Venue(venue_name),
+    )
+    return CurrencyPair(
+        instrument_id=instrument_id,
+        raw_symbol=Symbol(safe_symbol),
+        base_currency=Currency.from_str(base_str),
+        quote_currency=Currency.from_str(quote_str),
+        price_precision=2,
+        size_precision=2,
+        price_increment=Price.from_str("0.01"),
+        size_increment=Quantity.from_str("0.01"),
+        maker_fee=Decimal("0.0"),
+        taker_fee=Decimal("0.0"),
+        ts_event=0,
+        ts_init=0,
+    )
+
+
+def create_forex_instrument(
+    symbol: str = "EUR/USD",
+    venue_name: str = "FXCM",
+) -> "CurrencyPair":
+    """Create a forex instrument for backtesting.
+
+    price_precision=5 (pipettes), size_precision=2 (mini lots), fee=spread approx.
+    """
+    if not HAS_NAUTILUS_TRADER:
+        raise ImportError("nautilus_trader is not installed")
+
+    from decimal import Decimal
+
+    parts = symbol.split("/")
+    base_str = parts[0] if len(parts) == 2 else symbol[:3]
+    quote_str = parts[1] if len(parts) == 2 else symbol[3:]
+    safe_symbol = symbol.replace("/", "")
+
+    instrument_id = InstrumentId(
+        symbol=Symbol(safe_symbol),
+        venue=Venue(venue_name),
+    )
+    return CurrencyPair(
+        instrument_id=instrument_id,
+        raw_symbol=Symbol(safe_symbol),
+        base_currency=Currency.from_str(base_str),
+        quote_currency=Currency.from_str(quote_str),
+        price_precision=5,
+        size_precision=2,
+        price_increment=Price.from_str("0.00001"),
+        size_increment=Quantity.from_str("0.01"),
+        maker_fee=Decimal("0.00003"),
+        taker_fee=Decimal("0.00003"),
+        ts_event=0,
+        ts_init=0,
+    )
+
+
+def create_instrument_for_asset_class(
+    symbol: str,
+    asset_class: str = "crypto",
+    venue_name: str | None = None,
+) -> "CurrencyPair":
+    """Factory that routes to the correct instrument constructor by asset class."""
+    if asset_class == "equity":
+        return create_equity_instrument(symbol, venue_name or "NYSE")
+    if asset_class == "forex":
+        return create_forex_instrument(symbol, venue_name or "FXCM")
+    return create_crypto_instrument(symbol, venue_name or "BINANCE")
+
+
+def add_venue_for_asset_class(
+    engine: "BacktestEngine",
+    asset_class: str = "crypto",
+    starting_balance: float = 10000.0,
+) -> "Venue":
+    """Add a venue configured for the given asset class."""
+    venue_map = {
+        "crypto": ("BINANCE", "USDT"),
+        "equity": ("NYSE", "USD"),
+        "forex": ("FXCM", "USD"),
+    }
+    venue_name, currency_str = venue_map.get(asset_class, ("BINANCE", "USDT"))
+    venue = Venue(venue_name)
+
+    currency = Currency.from_str(currency_str)
+    engine.add_venue(
+        venue=venue,
+        oms_type=OmsType.NETTING,
+        account_type=AccountType.CASH,
+        base_currency=None,
+        starting_balances=[Money(starting_balance, currency)],
+    )
+    logger.info(f"Venue added: {venue_name}, balance={starting_balance} {currency_str}")
+    return venue
+
+
 def build_bar_type(
     instrument_id: "InstrumentId",
     timeframe: str = "1h",

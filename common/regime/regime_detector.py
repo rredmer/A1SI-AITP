@@ -67,11 +67,24 @@ class RegimeState:
     transition_probabilities: dict[str, float] = field(default_factory=dict)
 
 
+_ASSET_CLASS_CONFIG: dict[str, dict] = {
+    "crypto": {"adx_strong": 40.0, "adx_weak": 25.0, "bb_high_vol_pct": 80.0},
+    "equity": {"adx_strong": 35.0, "adx_weak": 20.0, "bb_high_vol_pct": 70.0},
+    "forex": {"adx_strong": 35.0, "adx_weak": 20.0, "bb_high_vol_pct": 65.0},
+}
+
+
+def config_for_asset_class(asset_class: str = "crypto") -> RegimeConfig:
+    """Return a RegimeConfig tuned for the given asset class."""
+    overrides = _ASSET_CLASS_CONFIG.get(asset_class, {})
+    return RegimeConfig(**overrides)
+
+
 class RegimeDetector:
     """Detects market regime from OHLCV data using composite sub-indicators."""
 
-    def __init__(self, config: RegimeConfig | None = None) -> None:
-        self.config = config or RegimeConfig()
+    def __init__(self, config: RegimeConfig | None = None, asset_class: str = "crypto") -> None:
+        self.config = config or config_for_asset_class(asset_class)
         # Hysteresis state for detect_series
         self._last_regime: Regime | None = None
         self._regime_hold_count: int = 0

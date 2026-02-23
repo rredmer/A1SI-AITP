@@ -39,10 +39,18 @@ class RoutingDecision:
     reasoning: str
 
 
-# Strategy name constants
+# Strategy name constants — crypto
 CIV1 = "CryptoInvestorV1"
 BMR = "BollingerMeanReversion"
 VB = "VolatilityBreakout"
+
+# Strategy name constants — equity
+EQ_MOM = "EquityMomentum"
+EQ_MR = "EquityMeanReversion"
+
+# Strategy name constants — forex
+FX_TREND = "ForexTrend"
+FX_RANGE = "ForexRange"
 
 # Default regime → strategy mappings
 DEFAULT_ROUTING: dict[Regime, dict] = {
@@ -97,6 +105,112 @@ DEFAULT_ROUTING: dict[Regime, dict] = {
 }
 
 
+EQUITY_ROUTING: dict[Regime, dict] = {
+    Regime.STRONG_TREND_UP: {
+        "primary": EQ_MOM,
+        "weights": [StrategyWeight(EQ_MOM, 1.0, 1.0)],
+        "position_modifier": 1.0,
+        "reasoning": "Strong uptrend favors equity momentum with full sizing",
+    },
+    Regime.WEAK_TREND_UP: {
+        "primary": EQ_MOM,
+        "weights": [
+            StrategyWeight(EQ_MOM, 0.7, 0.8),
+            StrategyWeight(EQ_MR, 0.3, 0.5),
+        ],
+        "position_modifier": 0.8,
+        "reasoning": "Weak uptrend: primary momentum, secondary mean-reversion",
+    },
+    Regime.RANGING: {
+        "primary": EQ_MR,
+        "weights": [StrategyWeight(EQ_MR, 1.0, 1.0)],
+        "position_modifier": 1.0,
+        "reasoning": "Ranging equity market ideal for mean-reversion",
+    },
+    Regime.WEAK_TREND_DOWN: {
+        "primary": EQ_MR,
+        "weights": [StrategyWeight(EQ_MR, 1.0, 0.5)],
+        "position_modifier": 0.5,
+        "reasoning": "Weak downtrend: defensive mean-reversion at 50% size",
+    },
+    Regime.STRONG_TREND_DOWN: {
+        "primary": EQ_MR,
+        "weights": [StrategyWeight(EQ_MR, 1.0, 0.2)],
+        "position_modifier": 0.2,
+        "reasoning": "Strong downtrend: minimal equity exposure at 20% size",
+    },
+    Regime.HIGH_VOLATILITY: {
+        "primary": EQ_MR,
+        "weights": [StrategyWeight(EQ_MR, 1.0, 0.5)],
+        "position_modifier": 0.5,
+        "reasoning": "High volatility: equity mean-reversion at 50%",
+    },
+    Regime.UNKNOWN: {
+        "primary": EQ_MR,
+        "weights": [StrategyWeight(EQ_MR, 1.0, 0.2)],
+        "position_modifier": 0.2,
+        "reasoning": "Unknown regime: conservative equity exposure at 20%",
+    },
+}
+
+FOREX_ROUTING: dict[Regime, dict] = {
+    Regime.STRONG_TREND_UP: {
+        "primary": FX_TREND,
+        "weights": [StrategyWeight(FX_TREND, 1.0, 1.0)],
+        "position_modifier": 1.0,
+        "reasoning": "Strong uptrend favors forex trend following",
+    },
+    Regime.WEAK_TREND_UP: {
+        "primary": FX_TREND,
+        "weights": [
+            StrategyWeight(FX_TREND, 0.6, 0.8),
+            StrategyWeight(FX_RANGE, 0.4, 0.6),
+        ],
+        "position_modifier": 0.8,
+        "reasoning": "Weak uptrend: primary trend, secondary range at reduced size",
+    },
+    Regime.RANGING: {
+        "primary": FX_RANGE,
+        "weights": [StrategyWeight(FX_RANGE, 1.0, 1.0)],
+        "position_modifier": 1.0,
+        "reasoning": "Ranging market is ideal for forex range trading",
+    },
+    Regime.WEAK_TREND_DOWN: {
+        "primary": FX_TREND,
+        "weights": [
+            StrategyWeight(FX_TREND, 0.5, 0.6),
+            StrategyWeight(FX_RANGE, 0.5, 0.5),
+        ],
+        "position_modifier": 0.6,
+        "reasoning": "Weak downtrend: split trend/range at reduced size",
+    },
+    Regime.STRONG_TREND_DOWN: {
+        "primary": FX_TREND,
+        "weights": [StrategyWeight(FX_TREND, 1.0, 0.4)],
+        "position_modifier": 0.4,
+        "reasoning": "Strong downtrend: trend following at 40% size (can short FX)",
+    },
+    Regime.HIGH_VOLATILITY: {
+        "primary": FX_RANGE,
+        "weights": [StrategyWeight(FX_RANGE, 1.0, 0.5)],
+        "position_modifier": 0.5,
+        "reasoning": "High volatility: range trading at 50% size",
+    },
+    Regime.UNKNOWN: {
+        "primary": FX_RANGE,
+        "weights": [StrategyWeight(FX_RANGE, 1.0, 0.3)],
+        "position_modifier": 0.3,
+        "reasoning": "Unknown regime: conservative range trading at 30%",
+    },
+}
+
+_ROUTING_BY_ASSET_CLASS: dict[str, dict[Regime, dict]] = {
+    "crypto": DEFAULT_ROUTING,
+    "equity": EQUITY_ROUTING,
+    "forex": FOREX_ROUTING,
+}
+
+
 class StrategyRouter:
     """Routes market regimes to optimal strategy combinations."""
 
@@ -105,8 +219,9 @@ class StrategyRouter:
         routing: dict[Regime, dict] | None = None,
         low_confidence_threshold: float = 0.4,
         low_confidence_penalty: float = 0.5,
+        asset_class: str = "crypto",
     ) -> None:
-        self.routing = routing or DEFAULT_ROUTING
+        self.routing = routing or _ROUTING_BY_ASSET_CLASS.get(asset_class, DEFAULT_ROUTING)
         self.low_confidence_threshold = low_confidence_threshold
         self.low_confidence_penalty = low_confidence_penalty
 

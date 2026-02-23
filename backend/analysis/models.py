@@ -2,6 +2,8 @@ import uuid
 
 from django.db import models
 
+from market.constants import AssetClass
+
 
 class BackgroundJob(models.Model):
     id = models.CharField(max_length=36, primary_key=True, default=uuid.uuid4, editable=False)
@@ -30,6 +32,11 @@ class BacktestResult(models.Model):
         related_name="backtest_results",
     )
     framework = models.CharField(max_length=20)
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+    )
     strategy_name = models.CharField(max_length=100)
     symbol = models.CharField(max_length=20)
     timeframe = models.CharField(max_length=10)
@@ -49,6 +56,11 @@ class BacktestResult(models.Model):
 class ScreenResult(models.Model):
     job = models.ForeignKey(BackgroundJob, on_delete=models.CASCADE, related_name="screen_results")
     symbol = models.CharField(max_length=20)
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+    )
     timeframe = models.CharField(max_length=10)
     strategy_name = models.CharField(max_length=50)
     top_results = models.JSONField(null=True, blank=True)
