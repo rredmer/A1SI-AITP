@@ -9,7 +9,7 @@ import { useToast } from "../hooks/useToast";
 import { useAssetClass } from "../hooks/useAssetClass";
 import { useTickerStream } from "../hooks/useTickerStream";
 import { EXCHANGE_OPTIONS } from "../constants/assetDefaults";
-import type { Portfolio, TickerData } from "../types";
+import type { Portfolio, PortfolioCreate, TickerData } from "../types";
 
 export function PortfolioPage() {
   const queryClient = useQueryClient();
@@ -33,7 +33,7 @@ export function PortfolioPage() {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      portfoliosApi.create({ name: newName, exchange_id: newExchange, description: newDescription, asset_class: assetClass }),
+      portfoliosApi.create({ name: newName, exchange_id: newExchange, description: newDescription, asset_class: assetClass } as unknown as PortfolioCreate),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolios"] });
       setShowCreateForm(false);
@@ -266,8 +266,8 @@ export function PortfolioPage() {
                         <div>
                           <div className="mb-1 flex items-center gap-2">
                             <h3 className="text-lg font-semibold">{p.name}</h3>
-                            {(p as Record<string, unknown>).asset_class && (
-                              <AssetClassBadge assetClass={(p as Record<string, unknown>).asset_class as "crypto" | "equity" | "forex"} />
+                            {String((p as Record<string, unknown>).asset_class || "") !== "" && (
+                              <AssetClassBadge assetClass={String((p as Record<string, unknown>).asset_class) as "crypto" | "equity" | "forex"} />
                             )}
                           </div>
                           <p className="text-sm text-[var(--color-text-muted)]">

@@ -28,8 +28,8 @@ export function DataManagement() {
   const [downloadDays, setDownloadDays] = useState(90);
 
   const { data: files, isLoading, isError: filesError } = useQuery<DataFileInfo[]>({
-    queryKey: ["data-files"],
-    queryFn: dataApi.list,
+    queryKey: ["data-files", assetClass],
+    queryFn: () => dataApi.list(assetClass),
   });
 
   const job = useJobPolling(activeJobId);
