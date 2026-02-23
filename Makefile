@@ -18,7 +18,7 @@ setup-backend:
 		python3 -m venv --without-pip $(VENV) && \
 		curl -sS https://bootstrap.pypa.io/get-pip.py | $(PYTHON); \
 	fi
-	$(PIP) install -e "$(BACKEND_DIR)[dev]" --quiet
+	$(PIP) install -e "$(BACKEND_DIR)[dev,trading]" --quiet
 	@mkdir -p $(BACKEND_DIR)/data
 	$(MANAGE) migrate --run-syncdb
 	@echo "→ Creating superuser (if needed) and ensuring Argon2 hash..."
