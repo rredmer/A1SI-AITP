@@ -5,8 +5,14 @@ WORKDIR /project
 
 # System deps for cryptography and argon2
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc libffi-dev curl && \
+    apt-get install -y --no-install-recommends gcc libc6-dev libffi-dev curl make && \
     rm -rf /var/lib/apt/lists/*
+
+# Build TA-Lib C library from vendored source
+COPY backend/ta-lib-0.4.0-src.tar.gz /tmp/
+RUN tar -xzf /tmp/ta-lib-0.4.0-src.tar.gz -C /tmp && \
+    cd /tmp/ta-lib && ./configure --prefix=/usr && make && make install && \
+    rm -rf /tmp/ta-lib /tmp/ta-lib-0.4.0-src.tar.gz
 
 # Copy platform modules needed by backend (common, configs)
 COPY common/ ./common/
@@ -22,7 +28,7 @@ COPY hftbacktest/ ./hftbacktest/
 # Copy backend and install deps (analysis extras add pandas/numpy/scipy/pyarrow)
 COPY backend/ ./backend/
 WORKDIR /project/backend
-RUN pip install --no-cache-dir -e ".[analysis]"
+RUN pip install --no-cache-dir -e ".[analysis]" ta-lib
 
 RUN mkdir -p /project/backend/data/logs /project/data/processed
 
