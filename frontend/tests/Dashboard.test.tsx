@@ -5,9 +5,13 @@ import { renderWithProviders, mockFetch } from "./helpers";
 
 const mockPlatformStatus = {
   frameworks: [
-    { name: "Freqtrade", installed: true, version: "2024.1" },
-    { name: "VectorBT", installed: true, version: "0.26.0" },
-    { name: "NautilusTrader", installed: false, version: null },
+    { name: "VectorBT", installed: true, version: "0.28.4" },
+    { name: "Freqtrade", installed: true, version: "2026.1" },
+    { name: "NautilusTrader", installed: true, version: "configured" },
+    { name: "HFT Backtest", installed: true, version: "configured" },
+    { name: "CCXT", installed: true, version: "4.5.40" },
+    { name: "Pandas", installed: true, version: "2.3.3" },
+    { name: "TA-Lib", installed: true, version: "0.6.4" },
   ],
   data_files: 12,
   active_jobs: 2,

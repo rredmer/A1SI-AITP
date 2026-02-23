@@ -132,43 +132,32 @@ class MetricsView(APIView):
 
 
 def _get_framework_status() -> list[dict]:
-    frameworks = []
+    from core.platform_bridge import PROJECT_ROOT
 
-    try:
-        import vectorbt as vbt
+    def _try_import(module_name: str) -> str | None:
+        """Try to import a module and return its version, or None on failure."""
+        try:
+            mod = __import__(module_name)
+            return getattr(mod, "__version__", "installed")
+        except Exception:
+            return None
 
-        frameworks.append({"name": "VectorBT", "installed": True, "version": vbt.__version__})
-    except ImportError:
-        frameworks.append({"name": "VectorBT", "installed": False, "version": None})
+    def _check(name: str, module: str, fallback_path: str | None = None) -> dict:
+        """Check framework availability via import, falling back to file presence."""
+        ver = _try_import(module)
+        if ver:
+            return {"name": name, "installed": True, "version": ver}
+        # Fallback: check if framework files are deployed on disk
+        if fallback_path and (PROJECT_ROOT / fallback_path).exists():
+            return {"name": name, "installed": True, "version": "configured"}
+        return {"name": name, "installed": False, "version": None}
 
-    try:
-        import freqtrade
-
-        ver = getattr(freqtrade, "__version__", "installed")
-        frameworks.append({"name": "Freqtrade", "installed": True, "version": ver})
-    except ImportError:
-        frameworks.append({"name": "Freqtrade", "installed": False, "version": None})
-
-    try:
-        import nautilus_trader
-
-        ver = getattr(nautilus_trader, "__version__", "installed")
-        frameworks.append({"name": "NautilusTrader", "installed": True, "version": ver})
-    except ImportError:
-        frameworks.append({"name": "NautilusTrader", "installed": False, "version": None})
-
-    try:
-        import ccxt
-
-        frameworks.append({"name": "CCXT", "installed": True, "version": ccxt.__version__})
-    except ImportError:
-        frameworks.append({"name": "CCXT", "installed": False, "version": None})
-
-    try:
-        import pandas as pd
-
-        frameworks.append({"name": "Pandas", "installed": True, "version": pd.__version__})
-    except ImportError:
-        frameworks.append({"name": "Pandas", "installed": False, "version": None})
-
-    return frameworks
+    return [
+        _check("VectorBT", "vectorbt", "research/scripts/vbt_screener.py"),
+        _check("Freqtrade", "freqtrade", "freqtrade/user_data/strategies"),
+        _check("NautilusTrader", "nautilus_trader", "nautilus/nautilus_runner.py"),
+        _check("HFT Backtest", "hftbacktest", "hftbacktest"),
+        _check("CCXT", "ccxt"),
+        _check("Pandas", "pandas"),
+        _check("TA-Lib", "talib"),
+    ]

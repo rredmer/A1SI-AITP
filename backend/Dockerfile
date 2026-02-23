@@ -17,11 +17,12 @@ COPY research/scripts/ ./research/scripts/
 COPY nautilus/ ./nautilus/
 COPY freqtrade/user_data/strategies/ ./freqtrade/user_data/strategies/
 COPY freqtrade/config.json.example ./freqtrade/config.json
+COPY hftbacktest/ ./hftbacktest/
 
-# Copy backend and install deps
+# Copy backend and install deps (analysis extras add pandas/numpy/scipy/pyarrow)
 COPY backend/ ./backend/
 WORKDIR /project/backend
-RUN pip install --no-cache-dir -e .
+RUN pip install --no-cache-dir -e ".[analysis]"
 
 RUN mkdir -p /project/backend/data/logs /project/data/processed
 
