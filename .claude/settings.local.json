@@ -134,7 +134,8 @@
       "Bash(gh run:*)",
       "Bash(DJANGO_DEBUG=true /home/rredmer/Dev/Portfolio/A1SI-AITP/backend/.venv/bin/python:*)",
       "Bash(gh repo:*)",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }
