@@ -132,7 +132,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build backend Docker image
-        run: docker build -t a1si-aitp-backend:ci backend/
+        run: docker build -f backend/Dockerfile -t a1si-aitp-backend:ci .
       - name: Build frontend Docker image
         run: docker build -t a1si-aitp-frontend:ci frontend/
 
