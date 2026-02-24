@@ -1,4 +1,4 @@
-.PHONY: setup dev test lint build clean harden audit certs backup test-security ci typecheck docker-build check-schema-freshness generate-types
+.PHONY: setup dev test lint build clean harden audit certs backup test-security ci typecheck docker-build check-schema-freshness generate-types docker-up docker-down docker-restart docker-deploy docker-logs docker-status docker-clean
 
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
@@ -103,14 +103,70 @@ check-schema-freshness:
 		|| (echo "✗ Schema is stale — run 'make generate-types' to update" && exit 1)
 	@rm -f /tmp/schema-check.yaml
 
-# ── Docker build validation ───────────────────────────────
+# ── Docker ────────────────────────────────────────────────
 
 docker-build:
-	@echo "→ Building backend Docker image..."
-	docker build -t a1si-aitp-backend:ci $(BACKEND_DIR)
-	@echo "→ Building frontend Docker image..."
-	docker build -t a1si-aitp-frontend:ci $(FRONTEND_DIR)
-	@echo "✓ Docker builds passed"
+	@echo "→ Building Docker images..."
+	docker compose build
+	@echo "✓ Docker images built"
+
+docker-build-clean:
+	@echo "→ Rebuilding Docker images (no cache)..."
+	docker compose build --no-cache
+	@echo "✓ Docker images rebuilt"
+
+docker-up:
+	@echo "→ Starting containers..."
+	docker compose up -d
+	@echo "→ Waiting for health checks..."
+	@timeout 60 sh -c 'until docker compose ps --format json | grep -q '"'"'"Health":"healthy"'"'"'; do sleep 2; done' 2>/dev/null \
+		&& echo "✓ Containers healthy" \
+		|| (echo "⚠ Health check timeout — check logs with 'make docker-logs'" && docker compose ps)
+
+docker-down:
+	@echo "→ Stopping containers..."
+	docker compose down
+	@echo "✓ Containers stopped"
+
+docker-restart:
+	@echo "→ Restarting containers..."
+	$(MAKE) docker-down
+	$(MAKE) docker-up
+
+docker-deploy:
+	@echo "→ Full deploy: build + restart + verify..."
+	$(MAKE) docker-build
+	$(MAKE) docker-down
+	$(MAKE) docker-up
+	@echo "✓ Deploy complete"
+
+docker-deploy-clean:
+	@echo "→ Full clean deploy: rebuild + restart + verify..."
+	$(MAKE) docker-build-clean
+	$(MAKE) docker-down
+	$(MAKE) docker-up
+	@echo "✓ Clean deploy complete"
+
+docker-logs:
+	docker compose logs -f --tail=50
+
+docker-logs-backend:
+	docker compose logs -f --tail=50 backend
+
+docker-logs-frontend:
+	docker compose logs -f --tail=50 frontend
+
+docker-status:
+	@echo "── Container Status ──"
+	@docker compose ps
+	@echo ""
+	@echo "── Health ──"
+	@docker inspect --format='{{.Name}}: {{if .State.Health}}{{.State.Health.Status}}{{else}}no healthcheck{{end}}' $$(docker compose ps -q 2>/dev/null) 2>/dev/null || echo "No containers running"
+
+docker-clean:
+	@echo "→ Removing containers, images, and volumes..."
+	docker compose down -v --rmi local
+	@echo "✓ Docker artifacts cleaned"
 
 # ── CI pipeline (lint + typecheck + test + audit) ─────────
 
