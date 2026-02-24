@@ -134,13 +134,12 @@ class ExchangeConfigTestView(APIView):
                 ccxt_config["secret"] = config.api_secret
             if config.passphrase:
                 ccxt_config["password"] = config.passphrase
-            if config.is_sandbox:
-                ccxt_config["sandbox"] = True
             if config.options:
                 ccxt_config["options"] = config.options
 
-            exchange = exchange_class(ccxt_config)
+            exchange = None
             try:
+                exchange = exchange_class(ccxt_config)
                 if config.is_sandbox:
                     exchange.set_sandbox_mode(True)
                 await exchange.load_markets()
@@ -148,7 +147,8 @@ class ExchangeConfigTestView(APIView):
             except Exception as e:
                 return False, 0, str(e)[:500]
             finally:
-                await exchange.close()
+                if exchange:
+                    await exchange.close()
 
         success, markets_count, error_msg = async_to_sync(_test_connection)()
 
