@@ -66,7 +66,7 @@ class GenericPaperTradingService:
         router = DataServiceRouter()
         try:
             ticker = await router.fetch_ticker(order.symbol, asset_class)
-            fill_price = ticker.get("last") or ticker.get("close", 0)
+            fill_price = ticker.get("last") or ticker.get("close") or ticker.get("price", 0)
         except Exception as e:
             logger.error(f"Failed to fetch price for {order.symbol}: {e}")
             await sync_to_async(order.transition_to)(

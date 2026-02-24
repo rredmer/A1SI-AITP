@@ -3,7 +3,7 @@
 import csv
 
 from django.http import HttpResponse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -103,7 +103,19 @@ class BacktestRunView(APIView):
 
 
 class BacktestResultListView(APIView):
-    @extend_schema(responses=BacktestResultSerializer(many=True), tags=["Backtest"])
+    @extend_schema(
+        responses=BacktestResultSerializer(many=True),
+        tags=["Backtest"],
+        parameters=[
+            OpenApiParameter("limit", int, description="Max results (default 20, max 100)"),
+            OpenApiParameter(
+                "asset_class",
+                str,
+                description="Filter by asset class",
+                enum=["crypto", "equity", "forex"],
+            ),
+        ],
+    )
     def get(self, request: Request) -> Response:
         limit = _safe_int(request.query_params.get("limit"), 20, max_val=100)
         asset_class = request.query_params.get("asset_class")
@@ -137,8 +149,12 @@ class BacktestStrategyListView(APIView):
 
 class BacktestCompareView(APIView):
     COMPARE_METRICS = [
-        "total_return", "sharpe_ratio", "max_drawdown", "win_rate",
-        "profit_factor", "total_trades",
+        "total_return",
+        "sharpe_ratio",
+        "max_drawdown",
+        "win_rate",
+        "profit_factor",
+        "total_trades",
     ]
     # Metrics where lower is better
     LOWER_IS_BETTER = {"max_drawdown"}
@@ -182,12 +198,14 @@ class BacktestCompareView(APIView):
 
             best = sorted_keys[0] if sorted_keys else None
 
-            metrics_table.append({
-                "metric": metric_name,
-                "values": values,
-                "best": best,
-                "rankings": rank_map,
-            })
+            metrics_table.append(
+                {
+                    "metric": metric_name,
+                    "values": values,
+                    "best": best,
+                    "rankings": rank_map,
+                }
+            )
             rankings[metric_name] = rank_map
             best_per_metric[metric_name] = best
 
@@ -205,10 +223,12 @@ class BacktestCompareView(APIView):
             "rankings": rankings,
         }
 
-        return Response({
-            "results": BacktestResultSerializer(results, many=True).data,
-            "comparison": comparison,
-        })
+        return Response(
+            {
+                "results": BacktestResultSerializer(results, many=True).data,
+                "comparison": comparison,
+            }
+        )
 
 
 class BacktestExportView(APIView):
@@ -234,31 +254,43 @@ class BacktestExportView(APIView):
 
         writer = csv.writer(response)
         headers = [
-            "id", "framework", "asset_class", "strategy_name", "symbol",
-            "timeframe", "timerange", "total_return", "sharpe_ratio",
-            "max_drawdown", "win_rate", "profit_factor", "total_trades",
+            "id",
+            "framework",
+            "asset_class",
+            "strategy_name",
+            "symbol",
+            "timeframe",
+            "timerange",
+            "total_return",
+            "sharpe_ratio",
+            "max_drawdown",
+            "win_rate",
+            "profit_factor",
+            "total_trades",
             "created_at",
         ]
         writer.writerow(headers)
 
         for r in qs:
             metrics = r.metrics or {}
-            writer.writerow([
-                r.id,
-                r.framework,
-                r.asset_class,
-                r.strategy_name,
-                r.symbol,
-                r.timeframe,
-                r.timerange,
-                metrics.get("total_return", ""),
-                metrics.get("sharpe_ratio", ""),
-                metrics.get("max_drawdown", ""),
-                metrics.get("win_rate", ""),
-                metrics.get("profit_factor", ""),
-                metrics.get("total_trades", ""),
-                r.created_at.isoformat() if r.created_at else "",
-            ])
+            writer.writerow(
+                [
+                    r.id,
+                    r.framework,
+                    r.asset_class,
+                    r.strategy_name,
+                    r.symbol,
+                    r.timeframe,
+                    r.timerange,
+                    metrics.get("total_return", ""),
+                    metrics.get("sharpe_ratio", ""),
+                    metrics.get("max_drawdown", ""),
+                    metrics.get("win_rate", ""),
+                    metrics.get("profit_factor", ""),
+                    metrics.get("total_trades", ""),
+                    r.created_at.isoformat() if r.created_at else "",
+                ]
+            )
 
         return response
 
@@ -468,6 +500,7 @@ class MLPredictView(APIView):
 
 # ── Data Quality views ─────────────────────────────────────
 
+
 class DataQualityListView(APIView):
     @extend_schema(responses=DataQualitySummarySerializer, tags=["Data"])
     def get(self, request: Request) -> Response:
@@ -480,12 +513,14 @@ class DataQualityListView(APIView):
             reports = validate_all_data()
             report_dicts = [_quality_report_to_dict(r) for r in reports]
             passed = sum(1 for r in reports if r.passed)
-            return Response({
-                "total": len(reports),
-                "passed": passed,
-                "failed": len(reports) - passed,
-                "reports": report_dicts,
-            })
+            return Response(
+                {
+                    "total": len(reports),
+                    "passed": passed,
+                    "failed": len(reports) - passed,
+                    "reports": report_dicts,
+                }
+            )
         except Exception as e:
             return Response(
                 {"error": f"Data quality check failed: {e}"},
@@ -669,11 +704,16 @@ class WorkflowRunDetailView(APIView):
     @extend_schema(responses=WorkflowRunDetailSerializer, tags=["Workflows"])
     def get(self, request: Request, run_id: str) -> Response:
         try:
-            run = WorkflowRun.objects.select_related(
-                "workflow", "job",
-            ).prefetch_related(
-                "step_runs__step",
-            ).get(id=run_id)
+            run = (
+                WorkflowRun.objects.select_related(
+                    "workflow",
+                    "job",
+                )
+                .prefetch_related(
+                    "step_runs__step",
+                )
+                .get(id=run_id)
+            )
         except WorkflowRun.DoesNotExist:
             return Response({"error": "Workflow run not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(WorkflowRunDetailSerializer(run).data)

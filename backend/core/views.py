@@ -4,7 +4,7 @@ import contextlib
 import logging
 
 from django.http import HttpResponse, JsonResponse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +22,24 @@ def csrf_failure(request, reason="") -> JsonResponse:
 
 
 class AuditLogListView(APIView):
-    @extend_schema(tags=["Core"])
+    @extend_schema(
+        tags=["Core"],
+        parameters=[
+            OpenApiParameter("user", str, description="Filter by username"),
+            OpenApiParameter(
+                "action", str, description="Filter by action (case-insensitive contains)"
+            ),
+            OpenApiParameter("status_code", int, description="Filter by HTTP status code"),
+            OpenApiParameter(
+                "created_after", str, description="Filter entries after this ISO datetime"
+            ),
+            OpenApiParameter(
+                "created_before", str, description="Filter entries before this ISO datetime"
+            ),
+            OpenApiParameter("limit", int, description="Max results (default 50, max 200)"),
+            OpenApiParameter("offset", int, description="Pagination offset (default 0)"),
+        ],
+    )
     def get(self, request: Request) -> Response:
         from core.models import AuditLog
         from core.serializers import AuditLogSerializer
@@ -59,10 +76,12 @@ class AuditLogListView(APIView):
         offset = safe_int(request.query_params.get("offset"), 0)
         entries = qs[offset : offset + limit]
 
-        return Response({
-            "results": AuditLogSerializer(entries, many=True).data,
-            "total": total,
-        })
+        return Response(
+            {
+                "results": AuditLogSerializer(entries, many=True).data,
+                "total": total,
+            }
+        )
 
 
 class HealthView(APIView):
@@ -129,7 +148,17 @@ class HealthView(APIView):
 
 
 class DashboardKPIView(APIView):
-    @extend_schema(tags=["Core"])
+    @extend_schema(
+        tags=["Core"],
+        parameters=[
+            OpenApiParameter(
+                "asset_class",
+                str,
+                description="Filter KPIs by asset class",
+                enum=["crypto", "equity", "forex"],
+            ),
+        ],
+    )
     def get(self, request: Request) -> Response:
         from core.services.dashboard import DashboardService
 
@@ -301,11 +330,13 @@ class ScheduledTaskTriggerView(APIView):
 
         job_id = get_scheduler().trigger_task(task_id)
         if job_id:
-            return Response({
-                "job_id": job_id,
-                "task_id": task_id,
-                "message": f"Task {task_id} triggered",
-            })
+            return Response(
+                {
+                    "job_id": job_id,
+                    "task_id": task_id,
+                    "message": f"Task {task_id} triggered",
+                }
+            )
         return Response({"error": "Task not found or no executor"}, status=404)
 
 

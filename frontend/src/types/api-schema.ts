@@ -2762,7 +2762,22 @@ export type $defs = Record<string, never>;
 export interface operations {
     audit_log_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filter by action (case-insensitive contains) */
+                action?: string;
+                /** @description Filter entries after this ISO datetime */
+                created_after?: string;
+                /** @description Filter entries before this ISO datetime */
+                created_before?: string;
+                /** @description Max results (default 50, max 200) */
+                limit?: number;
+                /** @description Pagination offset (default 0) */
+                offset?: number;
+                /** @description Filter by HTTP status code */
+                status_code?: number;
+                /** @description Filter by username */
+                user?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2853,7 +2868,12 @@ export interface operations {
     };
     backtest_results_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filter by asset class */
+                asset_class?: "crypto" | "equity" | "forex";
+                /** @description Max results (default 20, max 100) */
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2935,7 +2955,10 @@ export interface operations {
     };
     dashboard_kpis_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filter KPIs by asset class */
+                asset_class?: "crypto" | "equity" | "forex";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3585,7 +3608,14 @@ export interface operations {
     };
     market_ohlcv_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Asset class (default: crypto) */
+                asset_class?: "crypto" | "equity" | "forex";
+                /** @description Max candles (default 100, max 1000) */
+                limit?: number;
+                /** @description Candlestick timeframe (default: 1h) */
+                timeframe?: "15m" | "1d" | "1h" | "1m" | "4h" | "5m";
+            };
             header?: never;
             path: {
                 symbol: string;
@@ -3645,7 +3675,12 @@ export interface operations {
     };
     market_tickers_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Asset class (default: crypto) */
+                asset_class?: "crypto" | "equity" | "forex";
+                /** @description Comma-separated symbol list (max 50) */
+                symbols?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4359,7 +4394,18 @@ export interface operations {
     };
     risk_alerts_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filter alerts after this ISO datetime */
+                created_after?: string;
+                /** @description Filter alerts before this ISO datetime */
+                created_before?: string;
+                /** @description Filter by event type */
+                event_type?: string;
+                /** @description Max results (default 50, max 200) */
+                limit?: number;
+                /** @description Filter by severity level */
+                severity?: string;
+            };
             header?: never;
             path: {
                 portfolio_id: number;
@@ -4954,7 +5000,22 @@ export interface operations {
     };
     trading_orders_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filter by asset class */
+                asset_class?: "crypto" | "equity" | "forex";
+                /** @description Filter orders after this ISO datetime */
+                date_from?: string;
+                /** @description Filter orders before this ISO datetime */
+                date_to?: string;
+                /** @description Max results (default 50, max 200) */
+                limit?: number;
+                /** @description Filter by trading mode */
+                mode?: "live" | "paper";
+                /** @description Filter by order status */
+                status?: "cancelled" | "error" | "filled" | "open" | "partial_fill" | "pending" | "rejected" | "submitted";
+                /** @description Filter by symbol (case-insensitive contains) */
+                symbol?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;

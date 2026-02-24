@@ -149,3 +149,37 @@ class TestSecurityHardening:
     def test_csrf_failure_view_configured(self, settings):
         """CSRF_FAILURE_VIEW should point to our JSON view."""
         assert settings.CSRF_FAILURE_VIEW == "core.views.csrf_failure"
+
+
+@pytest.mark.django_db
+class TestCSPHardening:
+    """Tests for Content-Security-Policy and security header hardening."""
+
+    def test_csp_object_src_setting(self, settings):
+        assert settings.CSP_OBJECT_SRC == "'none'"
+
+    def test_csp_base_uri_setting(self, settings):
+        assert settings.CSP_BASE_URI == "'self'"
+
+    def test_csp_form_action_setting(self, settings):
+        assert settings.CSP_FORM_ACTION == "'self'"
+
+    def test_csp_frame_ancestors_setting(self, settings):
+        assert settings.CSP_FRAME_ANCESTORS == "'none'"
+
+    def test_referrer_policy_setting(self, settings):
+        assert settings.SECURE_REFERRER_POLICY == "strict-origin-when-cross-origin"
+
+    def test_permissions_policy_setting(self, settings):
+        assert settings.PERMISSIONS_POLICY
+        assert "camera=()" in settings.PERMISSIONS_POLICY
+
+    def test_csp_header_contains_object_src(self, api_client):
+        resp = api_client.get("/api/health/")
+        csp = resp.get("Content-Security-Policy", "")
+        assert "object-src 'none'" in csp
+
+    def test_permissions_policy_header(self, api_client):
+        resp = api_client.get("/api/health/")
+        assert "Permissions-Policy" in resp
+        assert "camera=()" in resp["Permissions-Policy"]

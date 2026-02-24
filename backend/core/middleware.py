@@ -74,6 +74,10 @@ class CSPMiddleware:
             ("style-src", "CSP_STYLE_SRC"),
             ("img-src", "CSP_IMG_SRC"),
             ("connect-src", "CSP_CONNECT_SRC"),
+            ("object-src", "CSP_OBJECT_SRC"),
+            ("base-uri", "CSP_BASE_URI"),
+            ("form-action", "CSP_FORM_ACTION"),
+            ("frame-ancestors", "CSP_FRAME_ANCESTORS"),
         ]:
             value = getattr(settings, setting, None)
             if value:
@@ -84,6 +88,9 @@ class CSPMiddleware:
         response = self.get_response(request)
         if self._header:
             response["Content-Security-Policy"] = self._header
+        perms_policy = getattr(settings, "PERMISSIONS_POLICY", None)
+        if perms_policy:
+            response["Permissions-Policy"] = perms_policy
         return response
 
 

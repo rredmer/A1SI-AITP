@@ -8,6 +8,42 @@ paths:
   /api/audit-log/:
     get:
       operationId: audit_log_retrieve
+      parameters:
+      - in: query
+        name: action
+        schema:
+          type: string
+        description: Filter by action (case-insensitive contains)
+      - in: query
+        name: created_after
+        schema:
+          type: string
+        description: Filter entries after this ISO datetime
+      - in: query
+        name: created_before
+        schema:
+          type: string
+        description: Filter entries before this ISO datetime
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Max results (default 50, max 200)
+      - in: query
+        name: offset
+        schema:
+          type: integer
+        description: Pagination offset (default 0)
+      - in: query
+        name: status_code
+        schema:
+          type: integer
+        description: Filter by HTTP status code
+      - in: query
+        name: user
+        schema:
+          type: string
+        description: Filter by username
       tags:
       - Core
       security:
@@ -64,6 +100,21 @@ paths:
   /api/backtest/results/:
     get:
       operationId: backtest_results_list
+      parameters:
+      - in: query
+        name: asset_class
+        schema:
+          type: string
+          enum:
+          - crypto
+          - equity
+          - forex
+        description: Filter by asset class
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Max results (default 20, max 100)
       tags:
       - Backtest
       security:
@@ -135,6 +186,16 @@ paths:
   /api/dashboard/kpis/:
     get:
       operationId: dashboard_kpis_retrieve
+      parameters:
+      - in: query
+        name: asset_class
+        schema:
+          type: string
+          enum:
+          - crypto
+          - equity
+          - forex
+        description: Filter KPIs by asset class
       tags:
       - Core
       security:
@@ -674,11 +735,37 @@ paths:
     get:
       operationId: market_ohlcv_list
       parameters:
+      - in: query
+        name: asset_class
+        schema:
+          type: string
+          enum:
+          - crypto
+          - equity
+          - forex
+        description: 'Asset class (default: crypto)'
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Max candles (default 100, max 1000)
       - in: path
         name: symbol
         schema:
           type: string
         required: true
+      - in: query
+        name: timeframe
+        schema:
+          type: string
+          enum:
+          - 15m
+          - 1d
+          - 1h
+          - 1m
+          - 4h
+          - 5m
+        description: 'Candlestick timeframe (default: 1h)'
       tags:
       - Market
       security:
@@ -725,6 +812,21 @@ paths:
   /api/market/tickers/:
     get:
       operationId: market_tickers_list
+      parameters:
+      - in: query
+        name: asset_class
+        schema:
+          type: string
+          enum:
+          - crypto
+          - equity
+          - forex
+        description: 'Asset class (default: crypto)'
+      - in: query
+        name: symbols
+        schema:
+          type: string
+        description: Comma-separated symbol list (max 50)
       tags:
       - Market
       security:
@@ -1307,11 +1409,36 @@ paths:
     get:
       operationId: risk_alerts_list
       parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+        description: Filter alerts after this ISO datetime
+      - in: query
+        name: created_before
+        schema:
+          type: string
+        description: Filter alerts before this ISO datetime
+      - in: query
+        name: event_type
+        schema:
+          type: string
+        description: Filter by event type
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Max results (default 50, max 200)
       - in: path
         name: portfolio_id
         schema:
           type: integer
         required: true
+      - in: query
+        name: severity
+        schema:
+          type: string
+        description: Filter by severity level
       tags:
       - Risk
       security:
@@ -1845,6 +1972,58 @@ paths:
   /api/trading/orders/:
     get:
       operationId: trading_orders_list
+      parameters:
+      - in: query
+        name: asset_class
+        schema:
+          type: string
+          enum:
+          - crypto
+          - equity
+          - forex
+        description: Filter by asset class
+      - in: query
+        name: date_from
+        schema:
+          type: string
+        description: Filter orders after this ISO datetime
+      - in: query
+        name: date_to
+        schema:
+          type: string
+        description: Filter orders before this ISO datetime
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Max results (default 50, max 200)
+      - in: query
+        name: mode
+        schema:
+          type: string
+          enum:
+          - live
+          - paper
+        description: Filter by trading mode
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - cancelled
+          - error
+          - filled
+          - open
+          - partial_fill
+          - pending
+          - rejected
+          - submitted
+        description: Filter by order status
+      - in: query
+        name: symbol
+        schema:
+          type: string
+        description: Filter by symbol (case-insensitive contains)
       tags:
       - Trading
       security:

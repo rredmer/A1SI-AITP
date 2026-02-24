@@ -12,6 +12,8 @@ import { MarketStatusBadge } from "../components/MarketStatusBadge";
 import { PriceChart } from "../components/PriceChart";
 import { AssetClassBadge } from "../components/AssetClassBadge";
 import { NewsFeed } from "../components/NewsFeed";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { WidgetErrorFallback } from "../components/WidgetErrorFallback";
 import {
   DEFAULT_SYMBOLS,
   DEFAULT_SYMBOL,
@@ -206,7 +208,9 @@ export function Dashboard() {
         {ohlcvLoading ? (
           <div className="h-[300px] animate-pulse rounded-lg bg-[var(--color-border)]" />
         ) : ohlcvData && ohlcvData.length > 0 ? (
-          <PriceChart data={ohlcvData} height={300} assetClass={assetClass} />
+          <ErrorBoundary fallback={<WidgetErrorFallback name="Price Chart" />}>
+            <PriceChart data={ohlcvData} height={300} assetClass={assetClass} />
+          </ErrorBoundary>
         ) : (
           <div className="flex h-[300px] items-center justify-center text-sm text-[var(--color-text-muted)]">
             No chart data available for {chartSymbol}
@@ -215,7 +219,9 @@ export function Dashboard() {
       </div>
 
       {/* News Feed */}
-      <NewsFeed />
+      <ErrorBoundary fallback={<WidgetErrorFallback name="News Feed" />}>
+        <NewsFeed />
+      </ErrorBoundary>
 
       {/* Regime Overview */}
       {assetClass === "crypto" ? (

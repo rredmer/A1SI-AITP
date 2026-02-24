@@ -1,6 +1,6 @@
 """Risk management views."""
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -175,7 +175,21 @@ class ResumeTradingView(APIView):
 
 
 class AlertListView(APIView):
-    @extend_schema(responses=AlertLogSerializer(many=True), tags=["Risk"])
+    @extend_schema(
+        responses=AlertLogSerializer(many=True),
+        tags=["Risk"],
+        parameters=[
+            OpenApiParameter("limit", int, description="Max results (default 50, max 200)"),
+            OpenApiParameter("severity", str, description="Filter by severity level"),
+            OpenApiParameter("event_type", str, description="Filter by event type"),
+            OpenApiParameter(
+                "created_after", str, description="Filter alerts after this ISO datetime"
+            ),
+            OpenApiParameter(
+                "created_before", str, description="Filter alerts before this ISO datetime"
+            ),
+        ],
+    )
     def get(self, request: Request, portfolio_id: int) -> Response:
         limit = _safe_int(request.query_params.get("limit"), 50, max_val=200)
         alerts = RiskManagementService.get_alerts(

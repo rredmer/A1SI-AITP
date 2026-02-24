@@ -7,6 +7,8 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useAssetClass } from "../hooks/useAssetClass";
 import { PriceChart } from "../components/PriceChart";
 import { MarketStatusBadge } from "../components/MarketStatusBadge";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { WidgetErrorFallback } from "../components/WidgetErrorFallback";
 import { DEFAULT_SYMBOL as DEFAULT_SYMBOL_MAP, EXCHANGE_OPTIONS, TIMEFRAME_OPTIONS } from "../constants/assetDefaults";
 import type { OHLCVData, RegimeState, RegimeType } from "../types";
 
@@ -156,13 +158,15 @@ export function MarketAnalysis() {
           </div>
         )}
         {ohlcv && (
-          <PriceChart
-            data={ohlcv}
-            indicatorData={indicatorData?.data}
-            overlayIndicators={selectedIndicators.filter((i) => OVERLAY_INDICATORS.includes(i))}
-            paneIndicators={selectedIndicators.filter((i) => PANE_INDICATORS.includes(i))}
-            assetClass={assetClass}
-          />
+          <ErrorBoundary fallback={<WidgetErrorFallback name="Price Chart" />}>
+            <PriceChart
+              data={ohlcv}
+              indicatorData={indicatorData?.data}
+              overlayIndicators={selectedIndicators.filter((i) => OVERLAY_INDICATORS.includes(i))}
+              paneIndicators={selectedIndicators.filter((i) => PANE_INDICATORS.includes(i))}
+              assetClass={assetClass}
+            />
+          </ErrorBoundary>
         )}
       </div>
       </section>

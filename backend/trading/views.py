@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timezone
 
 from asgiref.sync import async_to_sync
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,7 +33,42 @@ _exchange_check_lock = threading.Lock()
 
 
 class OrderListView(APIView):
-    @extend_schema(responses=OrderSerializer(many=True), tags=["Trading"])
+    @extend_schema(
+        responses=OrderSerializer(many=True),
+        tags=["Trading"],
+        parameters=[
+            OpenApiParameter("limit", int, description="Max results (default 50, max 200)"),
+            OpenApiParameter(
+                "mode", str, description="Filter by trading mode", enum=["paper", "live"]
+            ),
+            OpenApiParameter(
+                "asset_class",
+                str,
+                description="Filter by asset class",
+                enum=["crypto", "equity", "forex"],
+            ),
+            OpenApiParameter(
+                "symbol", str, description="Filter by symbol (case-insensitive contains)"
+            ),
+            OpenApiParameter(
+                "status",
+                str,
+                description="Filter by order status",
+                enum=[
+                    "pending",
+                    "submitted",
+                    "open",
+                    "partial_fill",
+                    "filled",
+                    "cancelled",
+                    "rejected",
+                    "error",
+                ],
+            ),
+            OpenApiParameter("date_from", str, description="Filter orders after this ISO datetime"),
+            OpenApiParameter("date_to", str, description="Filter orders before this ISO datetime"),
+        ],
+    )
     def get(self, request: Request) -> Response:
         limit = _safe_int(request.query_params.get("limit"), 50, max_val=200)
         mode = request.query_params.get("mode")
@@ -228,18 +263,43 @@ class OrderExportView(APIView):
 
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow([
-            "id", "symbol", "asset_class", "side", "order_type", "amount",
-            "price", "avg_fill_price", "filled", "fee", "status", "mode",
-            "timestamp", "filled_at",
-        ])
+        writer.writerow(
+            [
+                "id",
+                "symbol",
+                "asset_class",
+                "side",
+                "order_type",
+                "amount",
+                "price",
+                "avg_fill_price",
+                "filled",
+                "fee",
+                "status",
+                "mode",
+                "timestamp",
+                "filled_at",
+            ]
+        )
         for o in qs.iterator():
-            writer.writerow([
-                o.id, o.symbol, o.asset_class, o.side, o.order_type, o.amount,
-                o.price, o.avg_fill_price, o.filled, o.fee, o.status, o.mode,
-                o.timestamp.isoformat() if o.timestamp else "",
-                o.filled_at.isoformat() if o.filled_at else "",
-            ])
+            writer.writerow(
+                [
+                    o.id,
+                    o.symbol,
+                    o.asset_class,
+                    o.side,
+                    o.order_type,
+                    o.amount,
+                    o.price,
+                    o.avg_fill_price,
+                    o.filled,
+                    o.fee,
+                    o.status,
+                    o.mode,
+                    o.timestamp.isoformat() if o.timestamp else "",
+                    o.filled_at.isoformat() if o.filled_at else "",
+                ]
+            )
 
         response = DjangoHttpResponse(output.getvalue(), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="orders_export.csv"'
@@ -413,13 +473,15 @@ class ExchangeHealthView(APIView):
         connected, error = async_to_sync(_check)()
         latency_ms = (time.monotonic() - start) * 1000
 
-        return Response({
-            "exchange_id": exchange_id,
-            "connected": connected,
-            "latency_ms": round(latency_ms, 1),
-            "last_checked": datetime.now(timezone.utc).isoformat(),
-            "error": error if not connected else None,
-        })
+        return Response(
+            {
+                "exchange_id": exchange_id,
+                "connected": connected,
+                "latency_ms": round(latency_ms, 1),
+                "last_checked": datetime.now(timezone.utc).isoformat(),
+                "error": error if not connected else None,
+            }
+        )
 
 
 # Singleton paper trading service

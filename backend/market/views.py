@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 from ccxt.base.errors import ExchangeNotAvailable, NetworkError, RequestTimeout
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -99,11 +99,13 @@ class NewsFetchView(APIView):
 
         service = NewsService()
         count = service.fetch_and_store(asset_class)
-        return Response({
-            "asset_class": asset_class,
-            "articles_fetched": count,
-            "message": f"Fetched {count} new articles for {asset_class}",
-        })
+        return Response(
+            {
+                "asset_class": asset_class,
+                "articles_fetched": count,
+                "message": f"Fetched {count} new articles for {asset_class}",
+            }
+        )
 
 
 # ── Market Status ────────────────────────────────────────────
@@ -342,7 +344,19 @@ class TickerView(APIView):
 
 
 class TickerListView(APIView):
-    @extend_schema(responses=TickerDataSerializer(many=True), tags=["Market"])
+    @extend_schema(
+        responses=TickerDataSerializer(many=True),
+        tags=["Market"],
+        parameters=[
+            OpenApiParameter("symbols", str, description="Comma-separated symbol list (max 50)"),
+            OpenApiParameter(
+                "asset_class",
+                str,
+                description="Asset class (default: crypto)",
+                enum=["crypto", "equity", "forex"],
+            ),
+        ],
+    )
     def get(self, request: Request) -> Response:
         from asgiref.sync import async_to_sync
 
@@ -363,9 +377,12 @@ class TickerListView(APIView):
                 from market.services.data_router import DataServiceRouter
 
                 router = DataServiceRouter()
-                return Response(async_to_sync(router.fetch_tickers)(
-                    symbol_list, asset_class,
-                ))
+                return Response(
+                    async_to_sync(router.fetch_tickers)(
+                        symbol_list,
+                        asset_class,
+                    )
+                )
 
             async def _fetch():
                 service = ExchangeService()
@@ -387,7 +404,25 @@ class TickerListView(APIView):
 
 
 class OHLCVView(APIView):
-    @extend_schema(responses=OHLCVDataSerializer(many=True), tags=["Market"])
+    @extend_schema(
+        responses=OHLCVDataSerializer(many=True),
+        tags=["Market"],
+        parameters=[
+            OpenApiParameter(
+                "timeframe",
+                str,
+                description="Candlestick timeframe (default: 1h)",
+                enum=["1m", "5m", "15m", "1h", "4h", "1d"],
+            ),
+            OpenApiParameter("limit", int, description="Max candles (default 100, max 1000)"),
+            OpenApiParameter(
+                "asset_class",
+                str,
+                description="Asset class (default: crypto)",
+                enum=["crypto", "equity", "forex"],
+            ),
+        ],
+    )
     def get(self, request: Request, symbol: str) -> Response:
         from asgiref.sync import async_to_sync
 
@@ -399,9 +434,14 @@ class OHLCVView(APIView):
 
         router = DataServiceRouter()
         try:
-            return Response(async_to_sync(router.fetch_ohlcv)(
-                symbol, timeframe, limit, asset_class,
-            ))
+            return Response(
+                async_to_sync(router.fetch_ohlcv)(
+                    symbol,
+                    timeframe,
+                    limit,
+                    asset_class,
+                )
+            )
         except (RequestTimeout, asyncio.TimeoutError) as exc:
             logger.warning("OHLCV timeout for %s: %s", symbol, exc)
             return error_response(f"Request timed out fetching OHLCV for {symbol}", 408)

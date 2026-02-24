@@ -6,6 +6,8 @@ import { useToast } from "../hooks/useToast";
 import { useAssetClass } from "../hooks/useAssetClass";
 import { ProgressBar } from "../components/ProgressBar";
 import { EquityCurve } from "../components/EquityCurve";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { WidgetErrorFallback } from "../components/WidgetErrorFallback";
 import {
   BACKTEST_FRAMEWORKS,
   DEFAULT_SYMBOL,
@@ -235,7 +237,9 @@ export function Backtesting() {
           {/* Equity Curve */}
           {job.data?.status === "completed" && trades.length > 0 && (
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-              <EquityCurve trades={trades} />
+              <ErrorBoundary fallback={<WidgetErrorFallback name="Equity Curve" />}>
+                <EquityCurve trades={trades} />
+              </ErrorBoundary>
             </div>
           )}
 

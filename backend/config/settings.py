@@ -155,6 +155,13 @@ CSP_SCRIPT_SRC = "'self'"
 CSP_STYLE_SRC = "'self' 'unsafe-inline'"
 CSP_IMG_SRC = "'self' data:"
 CSP_CONNECT_SRC = "'self' ws: wss:"
+CSP_OBJECT_SRC = "'none'"
+CSP_BASE_URI = "'self'"
+CSP_FORM_ACTION = "'self'"
+CSP_FRAME_ANCESTORS = "'none'"
+
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 
 if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
