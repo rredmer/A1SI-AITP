@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "../src/components/Toast";
 import { AssetClassContext } from "../src/contexts/assetClass";
+import { ThemeWrapper } from "./ThemeWrapper";
 import type { AssetClass } from "../src/types";
 
 export function renderWithProviders(
@@ -19,9 +20,11 @@ export function renderWithProviders(
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>
-        <AssetClassContext.Provider value={{ assetClass, setAssetClass: () => {} }}>
-          <ToastProvider>{ui}</ToastProvider>
-        </AssetClassContext.Provider>
+        <ThemeWrapper>
+          <AssetClassContext.Provider value={{ assetClass, setAssetClass: () => {} }}>
+            <ToastProvider>{ui}</ToastProvider>
+          </AssetClassContext.Provider>
+        </ThemeWrapper>
       </MemoryRouter>
     </QueryClientProvider>,
   );

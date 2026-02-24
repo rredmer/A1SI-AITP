@@ -17,6 +17,9 @@ from trading.serializers import (
     ExchangeHealthSerializer,
     OrderCreateSerializer,
     OrderSerializer,
+    SymbolPerformanceSerializer,
+    TradingPerformanceFilterSerializer,
+    TradingPerformanceSummarySerializer,
 )
 
 # Cached exchange connectivity check for LiveTradingStatusView
@@ -40,6 +43,28 @@ class OrderListView(APIView):
             qs = qs.filter(mode=mode)
         if asset_class in ("crypto", "equity", "forex"):
             qs = qs.filter(asset_class=asset_class)
+
+        # Symbol filter
+        symbol = request.query_params.get("symbol")
+        if symbol:
+            qs = qs.filter(symbol__icontains=symbol)
+
+        # Status filter
+        status_filter = request.query_params.get("status")
+        if status_filter:
+            valid_statuses = {s.value for s in OrderStatus}
+            if status_filter in valid_statuses:
+                qs = qs.filter(status=status_filter)
+
+        # Date range filters
+        date_from = request.query_params.get("date_from")
+        if date_from:
+            qs = qs.filter(timestamp__gte=date_from)
+
+        date_to = request.query_params.get("date_to")
+        if date_to:
+            qs = qs.filter(timestamp__lte=date_to)
+
         orders = qs[:limit]
         return Response(OrderSerializer(orders, many=True).data)
 
@@ -177,6 +202,90 @@ def _get_cached_exchange_status() -> tuple[bool, str]:
         _exchange_check_cache["error"] = error
         _exchange_check_cache["checked_at"] = time.monotonic()
         return ok, error
+
+
+class OrderExportView(APIView):
+    @extend_schema(tags=["Trading"])
+    def get(self, request: Request) -> Response:
+        import csv
+        import io
+
+        from django.http import HttpResponse as DjangoHttpResponse
+
+        qs = Order.objects.all()
+        mode = request.query_params.get("mode")
+        if mode in ("paper", "live"):
+            qs = qs.filter(mode=mode)
+        asset_class = request.query_params.get("asset_class")
+        if asset_class in ("crypto", "equity", "forex"):
+            qs = qs.filter(asset_class=asset_class)
+        date_from = request.query_params.get("date_from")
+        if date_from:
+            qs = qs.filter(timestamp__gte=date_from)
+        date_to = request.query_params.get("date_to")
+        if date_to:
+            qs = qs.filter(timestamp__lte=date_to)
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "id", "symbol", "asset_class", "side", "order_type", "amount",
+            "price", "avg_fill_price", "filled", "fee", "status", "mode",
+            "timestamp", "filled_at",
+        ])
+        for o in qs.iterator():
+            writer.writerow([
+                o.id, o.symbol, o.asset_class, o.side, o.order_type, o.amount,
+                o.price, o.avg_fill_price, o.filled, o.fee, o.status, o.mode,
+                o.timestamp.isoformat() if o.timestamp else "",
+                o.filled_at.isoformat() if o.filled_at else "",
+            ])
+
+        response = DjangoHttpResponse(output.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="orders_export.csv"'
+        return response
+
+
+class TradingPerformanceSummaryView(APIView):
+    @extend_schema(
+        responses=TradingPerformanceSummarySerializer,
+        tags=["Trading"],
+    )
+    def get(self, request: Request) -> Response:
+        from trading.services.performance import TradingPerformanceService
+
+        ser = TradingPerformanceFilterSerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        result = TradingPerformanceService.get_summary(
+            portfolio_id=d.get("portfolio_id", 1),
+            mode=d.get("mode"),
+            asset_class=d.get("asset_class"),
+            date_from=d.get("date_from"),
+            date_to=d.get("date_to"),
+        )
+        return Response(result)
+
+
+class TradingPerformanceBySymbolView(APIView):
+    @extend_schema(
+        responses=SymbolPerformanceSerializer(many=True),
+        tags=["Trading"],
+    )
+    def get(self, request: Request) -> Response:
+        from trading.services.performance import TradingPerformanceService
+
+        ser = TradingPerformanceFilterSerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        results = TradingPerformanceService.get_by_symbol(
+            portfolio_id=d.get("portfolio_id", 1),
+            mode=d.get("mode"),
+            asset_class=d.get("asset_class"),
+            date_from=d.get("date_from"),
+            date_to=d.get("date_to"),
+        )
+        return Response(results)
 
 
 class PaperTradingStatusView(APIView):

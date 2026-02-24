@@ -21,6 +21,8 @@ export function RiskManagement() {
   const [varHistoryPage, setVarHistoryPage] = useState(1);
   const [tradeLogPage, setTradeLogPage] = useState(1);
   const [alertsPage, setAlertsPage] = useState(1);
+  const [alertSeverityFilter, setAlertSeverityFilter] = useState("");
+  const [alertEventFilter, setAlertEventFilter] = useState("");
 
   useEffect(() => { document.title = "Risk Management | A1SI-AITP"; }, []);
 
@@ -67,9 +69,13 @@ export function RiskManagement() {
   });
 
   // Alert log query
+  const alertFilters = {
+    ...(alertSeverityFilter && { severity: alertSeverityFilter }),
+    ...(alertEventFilter && { event_type: alertEventFilter }),
+  };
   const { data: alerts } = useQuery<AlertLogEntry[]>({
-    queryKey: ["risk-alerts", portfolioId],
-    queryFn: () => riskApi.getAlerts(portfolioId, 50),
+    queryKey: ["risk-alerts", portfolioId, alertFilters],
+    queryFn: () => riskApi.getAlerts(portfolioId, 50, alertFilters),
   });
 
   // Halt/resume mutations
@@ -761,6 +767,25 @@ export function RiskManagement() {
       {/* Alert History */}
       <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
         <h3 className="mb-4 text-lg font-semibold">Alert History</h3>
+        <div className="mb-4 flex gap-3">
+          <select
+            value={alertSeverityFilter}
+            onChange={(e) => { setAlertSeverityFilter(e.target.value); setAlertsPage(1); }}
+            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs"
+          >
+            <option value="">All Severities</option>
+            <option value="info">Info</option>
+            <option value="warning">Warning</option>
+            <option value="critical">Critical</option>
+          </select>
+          <input
+            type="text"
+            placeholder="Filter by event type"
+            value={alertEventFilter}
+            onChange={(e) => { setAlertEventFilter(e.target.value); setAlertsPage(1); }}
+            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs"
+          />
+        </div>
         {alerts && alerts.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">

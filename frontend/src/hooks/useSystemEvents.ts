@@ -18,7 +18,8 @@ import type {
 export function useSystemEvents() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { isConnected, lastMessage } = useWebSocket<SystemEvent>("/ws/system/");
+  const { isConnected, isReconnecting, reconnectAttempt, lastMessage, reconnect } =
+    useWebSocket<SystemEvent>("/ws/system/");
 
   const [isHalted, setIsHalted] = useState<boolean | null>(null);
   const [haltReason, setHaltReason] = useState("");
@@ -85,6 +86,9 @@ export function useSystemEvents() {
 
   return {
     isConnected,
+    isReconnecting,
+    reconnectAttempt,
+    reconnect,
     isHalted,
     haltReason,
     lastOrderUpdate,

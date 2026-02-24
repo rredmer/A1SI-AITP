@@ -195,6 +195,33 @@ def _run_workflow(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]
     return execute_workflow(params, progress_cb)
 
 
+def _run_risk_monitoring(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
+    """Run periodic risk monitoring across all portfolios."""
+    progress_cb(0.1, "Checking portfolio risk")
+    try:
+        from portfolio.models import Portfolio
+        from risk.services.risk import RiskManagementService
+
+        portfolios = list(Portfolio.objects.values_list("id", flat=True))
+        if not portfolios:
+            return {"status": "completed", "message": "No portfolios"}
+
+        results = []
+        for i, pid in enumerate(portfolios):
+            try:
+                result = RiskManagementService.periodic_risk_check(pid)
+                results.append(result)
+            except Exception as e:
+                logger.warning("Risk check failed for portfolio %s: %s", pid, e)
+                results.append({"portfolio_id": pid, "status": "error", "error": str(e)})
+            progress_cb(0.1 + 0.8 * (i + 1) / len(portfolios), f"Checked portfolio {pid}")
+
+        return {"status": "completed", "portfolios_checked": len(portfolios), "results": results}
+    except Exception as e:
+        logger.warning("Risk monitoring failed: %s", e)
+        return {"status": "error", "error": str(e)}
+
+
 TASK_REGISTRY: dict[str, TaskExecutor] = {
     "data_refresh": _run_data_refresh,
     "regime_detection": _run_regime_detection,
@@ -202,4 +229,5 @@ TASK_REGISTRY: dict[str, TaskExecutor] = {
     "data_quality": _run_data_quality,
     "news_fetch": _run_news_fetch,
     "workflow": _run_workflow,
+    "risk_monitoring": _run_risk_monitoring,
 }

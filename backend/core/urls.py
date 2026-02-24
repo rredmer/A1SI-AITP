@@ -2,6 +2,7 @@ from django.urls import path
 
 from core.auth import AuthStatusView, LoginView, LogoutView
 from core.views import (
+    AuditLogListView,
     HealthView,
     NotificationPreferencesView,
     PlatformConfigView,
@@ -15,6 +16,7 @@ from core.views import (
 )
 
 urlpatterns = [
+    path("audit-log/", AuditLogListView.as_view(), name="audit-log-list"),
     path("health/", HealthView.as_view(), name="health"),
     path("auth/login/", LoginView.as_view(), name="auth-login"),
     path("auth/logout/", LogoutView.as_view(), name="auth-logout"),

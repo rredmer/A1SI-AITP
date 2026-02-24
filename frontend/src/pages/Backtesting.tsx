@@ -258,6 +258,12 @@ export function Backtesting() {
                       {selectedIds.size} selected for comparison
                     </span>
                   )}
+                  <a
+                    href={`/api/backtest/export/?asset_class=${assetClass}`}
+                    className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+                  >
+                    Export CSV
+                  </a>
                   <button
                     onClick={() => queryClient.invalidateQueries({ queryKey: ["backtest-results"] })}
                     className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"

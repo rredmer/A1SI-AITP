@@ -85,11 +85,23 @@ class ExchangeService:
 
     async def fetch_ticker(self, symbol: str) -> dict:
         from core.services.metrics import timed
+        from market.services.circuit_breaker import CircuitBreakerOpenError, get_breaker
+
+        breaker = get_breaker(self._exchange_id)
+        if not breaker.can_execute():
+            raise CircuitBreakerOpenError(self._exchange_id, breaker.reset_timeout_seconds)
 
         exchange = await self._get_exchange()
         labels = {"method": "fetch_ticker", "exchange": self._exchange_id}
-        with timed("exchange_api_latency_seconds", labels):
-            ticker = await exchange.fetch_ticker(symbol)
+        try:
+            with timed("exchange_api_latency_seconds", labels):
+                ticker = await exchange.fetch_ticker(symbol)
+            breaker.record_success()
+        except CircuitBreakerOpenError:
+            raise
+        except Exception:
+            breaker.record_failure()
+            raise
         return {
             "symbol": ticker["symbol"],
             "price": ticker["last"] or 0.0,
@@ -104,11 +116,23 @@ class ExchangeService:
 
     async def fetch_tickers(self, symbols: list[str] | None = None) -> list[dict]:
         from core.services.metrics import timed
+        from market.services.circuit_breaker import CircuitBreakerOpenError, get_breaker
+
+        breaker = get_breaker(self._exchange_id)
+        if not breaker.can_execute():
+            raise CircuitBreakerOpenError(self._exchange_id, breaker.reset_timeout_seconds)
 
         exchange = await self._get_exchange()
         labels = {"method": "fetch_tickers", "exchange": self._exchange_id}
-        with timed("exchange_api_latency_seconds", labels):
-            tickers = await exchange.fetch_tickers(symbols)
+        try:
+            with timed("exchange_api_latency_seconds", labels):
+                tickers = await exchange.fetch_tickers(symbols)
+            breaker.record_success()
+        except CircuitBreakerOpenError:
+            raise
+        except Exception:
+            breaker.record_failure()
+            raise
         result = []
         for ticker in tickers.values():
             result.append(
@@ -128,11 +152,23 @@ class ExchangeService:
 
     async def fetch_ohlcv(self, symbol: str, timeframe: str = "1h", limit: int = 100) -> list[dict]:
         from core.services.metrics import timed
+        from market.services.circuit_breaker import CircuitBreakerOpenError, get_breaker
+
+        breaker = get_breaker(self._exchange_id)
+        if not breaker.can_execute():
+            raise CircuitBreakerOpenError(self._exchange_id, breaker.reset_timeout_seconds)
 
         exchange = await self._get_exchange()
         labels = {"method": "fetch_ohlcv", "exchange": self._exchange_id}
-        with timed("exchange_api_latency_seconds", labels):
-            data = await exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
+        try:
+            with timed("exchange_api_latency_seconds", labels):
+                data = await exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
+            breaker.record_success()
+        except CircuitBreakerOpenError:
+            raise
+        except Exception:
+            breaker.record_failure()
+            raise
         return [
             {
                 "timestamp": candle[0],

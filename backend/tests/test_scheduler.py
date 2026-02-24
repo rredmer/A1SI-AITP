@@ -71,7 +71,7 @@ class TestTaskSchedulerService:
         assert ScheduledTask.objects.filter(id="data_refresh_crypto").exists()
         assert ScheduledTask.objects.filter(id="regime_detection").exists()
         assert ScheduledTask.objects.filter(id="news_fetch").exists()
-        assert ScheduledTask.objects.count() == 7
+        assert ScheduledTask.objects.count() == 8
 
     def test_sync_updates_existing(self):
         ScheduledTask.objects.create(
@@ -97,7 +97,7 @@ class TestTaskSchedulerService:
         scheduler._sync_tasks_to_db()
         status = scheduler.get_status()
         assert status["running"] is False
-        assert status["total_tasks"] == 7
+        assert status["total_tasks"] == 8
 
     def test_pause_task(self):
         ScheduledTask.objects.create(
@@ -183,7 +183,7 @@ class TestTaskRegistry:
 
         expected = {
             "data_refresh", "regime_detection", "order_sync",
-            "data_quality", "news_fetch", "workflow",
+            "data_quality", "news_fetch", "workflow", "risk_monitoring",
         }
         assert expected == set(TASK_REGISTRY.keys())
 

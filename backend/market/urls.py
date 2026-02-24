@@ -1,6 +1,7 @@
 from django.urls import path
 
 from market.views import (
+    CircuitBreakerStatusView,
     DataSourceConfigDetailView,
     DataSourceConfigListView,
     ExchangeConfigDetailView,
@@ -73,4 +74,10 @@ urlpatterns = [
     path("market/news/sentiment/", NewsSentimentView.as_view(), name="news-sentiment"),
     path("market/news/signal/", SentimentSignalView.as_view(), name="news-signal"),
     path("market/news/fetch/", NewsFetchView.as_view(), name="news-fetch"),
+    # Circuit breaker
+    path(
+        "market/circuit-breaker/",
+        CircuitBreakerStatusView.as_view(),
+        name="circuit-breaker-status",
+    ),
 ]

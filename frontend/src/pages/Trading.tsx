@@ -8,7 +8,7 @@ import { tradingApi } from "../api/trading";
 import { OrderForm } from "../components/OrderForm";
 import { QueryResult } from "../components/QueryResult";
 import { Pagination } from "../components/Pagination";
-import type { Order, OrderStatus, TradingMode } from "../types";
+import type { Order, OrderStatus, TradingMode, TradingPerformanceSummary } from "../types";
 
 const PAGE_SIZE = 15;
 
@@ -36,15 +36,22 @@ export function Trading() {
   const { assetClass } = useAssetClass();
   const [mode, setMode] = useLocalStorage<TradingMode>("ci:trading-mode", "paper");
   const [page, setPage] = useState(1);
+  const [symbolFilter, setSymbolFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const { isConnected, isHalted } = useSystemEvents();
 
   const amountLabel = assetClass === "equity" ? "Shares" : assetClass === "forex" ? "Lots" : "Amount";
 
   useEffect(() => { document.title = "Trading | A1SI-AITP"; }, []);
 
+  const { data: perfSummary } = useQuery<TradingPerformanceSummary>({
+    queryKey: ["trading-performance", mode, assetClass],
+    queryFn: () => tradingApi.performanceSummary({ mode, asset_class: assetClass }),
+  });
+
   const ordersQuery = useQuery<Order[]>({
-    queryKey: ["orders", mode, assetClass],
-    queryFn: () => tradingApi.listOrders(50, mode, assetClass),
+    queryKey: ["orders", mode, assetClass, symbolFilter, statusFilter],
+    queryFn: () => tradingApi.listOrders(50, mode, assetClass, symbolFilter || undefined, statusFilter || undefined),
   });
 
   const cancelMutation = useMutation({
@@ -113,6 +120,30 @@ export function Trading() {
         </div>
       )}
 
+      {/* Performance Summary */}
+      {perfSummary && perfSummary.total_trades > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+            <p className="text-xs text-[var(--color-text-muted)]">Win Rate</p>
+            <p className="text-lg font-bold">{perfSummary.win_rate.toFixed(1)}%</p>
+          </div>
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+            <p className="text-xs text-[var(--color-text-muted)]">Profit Factor</p>
+            <p className="text-lg font-bold">{perfSummary.profit_factor != null ? perfSummary.profit_factor.toFixed(2) : "\u221E"}</p>
+          </div>
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+            <p className="text-xs text-[var(--color-text-muted)]">Total P&L</p>
+            <p className={`text-lg font-bold ${perfSummary.total_pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+              ${perfSummary.total_pnl.toFixed(2)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+            <p className="text-xs text-[var(--color-text-muted)]">Total Trades</p>
+            <p className="text-lg font-bold">{perfSummary.total_trades}</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Order form */}
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
@@ -122,9 +153,41 @@ export function Trading() {
 
         {/* Order history */}
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 lg:col-span-2">
-          <h3 className="mb-4 text-lg font-semibold">
-            {mode === "live" ? "Live" : "Paper"} Orders
-          </h3>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">
+              {mode === "live" ? "Live" : "Paper"} Orders
+            </h3>
+            <a
+              href={`/api/trading/orders/export/?mode=${mode}&asset_class=${assetClass}`}
+              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-bg)]"
+            >
+              Export CSV
+            </a>
+          </div>
+          <div className="mb-3 flex gap-2">
+            <input
+              type="text"
+              placeholder="Filter by symbol..."
+              value={symbolFilter}
+              onChange={(e) => { setSymbolFilter(e.target.value); setPage(1); }}
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs"
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs"
+            >
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="submitted">Submitted</option>
+              <option value="open">Open</option>
+              <option value="partial_fill">Partial Fill</option>
+              <option value="filled">Filled</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="rejected">Rejected</option>
+              <option value="error">Error</option>
+            </select>
+          </div>
           <QueryResult query={ordersQuery}>
             {(orders) => orders.length === 0 ? (
               <p className="text-sm text-[var(--color-text-muted)]">

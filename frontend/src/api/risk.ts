@@ -59,8 +59,18 @@ export const riskApi = {
   resumeTrading: (portfolioId: number) =>
     api.post<HaltResponse>(`/risk/${portfolioId}/resume/`),
 
-  getAlerts: (portfolioId: number, limit: number = 50) =>
-    api.get<AlertLogEntry[]>(`/risk/${portfolioId}/alerts/?limit=${limit}`),
+  getAlerts: (
+    portfolioId: number,
+    limit: number = 50,
+    filters?: { severity?: string; event_type?: string; created_after?: string; created_before?: string },
+  ) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (filters?.severity) params.set("severity", filters.severity);
+    if (filters?.event_type) params.set("event_type", filters.event_type);
+    if (filters?.created_after) params.set("created_after", filters.created_after);
+    if (filters?.created_before) params.set("created_before", filters.created_before);
+    return api.get<AlertLogEntry[]>(`/risk/${portfolioId}/alerts/?${params}`);
+  },
 
   recordMetrics: (portfolioId: number, method: string = "parametric") =>
     api.post<RiskMetricHistoryEntry>(`/risk/${portfolioId}/record-metrics/?method=${method}`),

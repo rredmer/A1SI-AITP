@@ -5,6 +5,16 @@ info:
   description: Full-stack crypto investment platform — portfolio, trading, market
     analysis, risk management, backtesting, and ML.
 paths:
+  /api/audit-log/:
+    get:
+      operationId: audit_log_retrieve
+      tags:
+      - Core
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/auth/login/:
     post:
       operationId: auth_login_create
@@ -586,6 +596,25 @@ paths:
       operationId: live_trading_status_retrieve
       tags:
       - Trading
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/market/circuit-breaker/:
+    get:
+      operationId: market_circuit_breaker_retrieve
+      tags:
+      - Market
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: market_circuit_breaker_create
+      tags:
+      - Market
       security:
       - cookieAuth: []
       responses:
@@ -1855,6 +1884,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
+          description: ''
+  /api/trading/orders/export/:
+    get:
+      operationId: trading_orders_export_retrieve
+      tags:
+      - Trading
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/trading/performance/by-symbol/:
+    get:
+      operationId: trading_performance_by_symbol_list
+      tags:
+      - Trading
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SymbolPerformance'
+          description: ''
+  /api/trading/performance/summary/:
+    get:
+      operationId: trading_performance_summary_retrieve
+      tags:
+      - Trading
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingPerformanceSummary'
           description: ''
   /api/workflow-runs/{run_id}/:
     get:
@@ -3624,6 +3693,51 @@ components:
       - file_path
       - framework
       - name
+    SymbolPerformance:
+      type: object
+      properties:
+        total_trades:
+          type: integer
+        win_count:
+          type: integer
+        loss_count:
+          type: integer
+        win_rate:
+          type: number
+          format: double
+        total_pnl:
+          type: number
+          format: double
+        avg_win:
+          type: number
+          format: double
+        avg_loss:
+          type: number
+          format: double
+        profit_factor:
+          type: number
+          format: double
+          nullable: true
+        best_trade:
+          type: number
+          format: double
+        worst_trade:
+          type: number
+          format: double
+        symbol:
+          type: string
+      required:
+      - avg_loss
+      - avg_win
+      - best_trade
+      - loss_count
+      - profit_factor
+      - symbol
+      - total_pnl
+      - total_trades
+      - win_count
+      - win_rate
+      - worst_trade
     TickerData:
       type: object
       properties:
@@ -3756,6 +3870,48 @@ components:
       required:
       - approved
       - reason
+    TradingPerformanceSummary:
+      type: object
+      properties:
+        total_trades:
+          type: integer
+        win_count:
+          type: integer
+        loss_count:
+          type: integer
+        win_rate:
+          type: number
+          format: double
+        total_pnl:
+          type: number
+          format: double
+        avg_win:
+          type: number
+          format: double
+        avg_loss:
+          type: number
+          format: double
+        profit_factor:
+          type: number
+          format: double
+          nullable: true
+        best_trade:
+          type: number
+          format: double
+        worst_trade:
+          type: number
+          format: double
+      required:
+      - avg_loss
+      - avg_win
+      - best_trade
+      - loss_count
+      - profit_factor
+      - total_pnl
+      - total_trades
+      - win_count
+      - win_rate
+      - worst_trade
     TriggerEnum:
       enum:
       - manual

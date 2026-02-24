@@ -1,5 +1,6 @@
 """Core views — health, platform status, platform config, metrics, CSRF failure."""
 
+import contextlib
 import logging
 
 from django.http import HttpResponse, JsonResponse
@@ -20,12 +21,111 @@ def csrf_failure(request, reason="") -> JsonResponse:
     )
 
 
+class AuditLogListView(APIView):
+    @extend_schema(tags=["Core"])
+    def get(self, request: Request) -> Response:
+        from core.models import AuditLog
+        from core.serializers import AuditLogSerializer
+        from core.utils import safe_int
+
+        qs = AuditLog.objects.all()
+
+        # Filters
+        user = request.query_params.get("user")
+        if user:
+            qs = qs.filter(user=user)
+
+        action = request.query_params.get("action")
+        if action:
+            qs = qs.filter(action__icontains=action)
+
+        status_code = request.query_params.get("status_code")
+        if status_code:
+            with contextlib.suppress(ValueError, TypeError):
+                qs = qs.filter(status_code=int(status_code))
+
+        created_after = request.query_params.get("created_after")
+        if created_after:
+            qs = qs.filter(created_at__gte=created_after)
+
+        created_before = request.query_params.get("created_before")
+        if created_before:
+            qs = qs.filter(created_at__lte=created_before)
+
+        total = qs.count()
+
+        # Pagination
+        limit = safe_int(request.query_params.get("limit"), 50, max_val=200)
+        offset = safe_int(request.query_params.get("offset"), 0)
+        entries = qs[offset : offset + limit]
+
+        return Response({
+            "results": AuditLogSerializer(entries, many=True).data,
+            "total": total,
+        })
+
+
 class HealthView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(tags=["Core"])
     def get(self, request: Request) -> Response:
-        return Response({"status": "ok"})
+        if request.query_params.get("detailed") != "true":
+            return Response({"status": "ok"})
+
+        checks = {}
+
+        # Database check
+        try:
+            from django.db import connection
+
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            checks["database"] = {"status": "ok"}
+        except Exception as e:
+            checks["database"] = {"status": "error", "detail": str(e)}
+
+        # Disk check
+        try:
+            import os
+            import shutil
+
+            from core.platform_bridge import get_processed_dir
+
+            data_dir = get_processed_dir()
+            data_dir.mkdir(parents=True, exist_ok=True)
+            usage = shutil.disk_usage(str(data_dir))
+            writable = os.access(str(data_dir), os.W_OK)
+            checks["disk"] = {
+                "status": "ok" if writable else "error",
+                "total_gb": round(usage.total / (1024**3), 2),
+                "free_gb": round(usage.free / (1024**3), 2),
+                "used_pct": round(usage.used / usage.total * 100, 1),
+                "writable": writable,
+            }
+        except Exception as e:
+            checks["disk"] = {"status": "error", "detail": str(e)}
+
+        # Memory check
+        try:
+            import platform
+            import resource
+
+            usage_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            # On Linux, ru_maxrss is in KB; on macOS it's in bytes
+            if platform.system() == "Darwin":
+                usage_mb = usage_kb / (1024 * 1024)
+            else:
+                usage_mb = usage_kb / 1024
+            checks["memory"] = {
+                "status": "ok",
+                "rss_mb": round(usage_mb, 1),
+            }
+        except Exception as e:
+            checks["memory"] = {"status": "error", "detail": str(e)}
+
+        overall = "ok" if all(c["status"] == "ok" for c in checks.values()) else "degraded"
+        return Response({"status": overall, "checks": checks})
 
 
 class PlatformStatusView(APIView):

@@ -1,21 +1,32 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { Login } from "./pages/Login";
-import { Dashboard } from "./pages/Dashboard";
-import { PortfolioPage } from "./pages/Portfolio";
-import { MarketAnalysis } from "./pages/MarketAnalysis";
-import { Trading } from "./pages/Trading";
-import { DataManagement } from "./pages/DataManagement";
-import { Screening } from "./pages/Screening";
-import { RiskManagement } from "./pages/RiskManagement";
-import { Backtesting } from "./pages/Backtesting";
-import { RegimeDashboard } from "./pages/RegimeDashboard";
-import { PaperTrading } from "./pages/PaperTrading";
-import { Settings } from "./pages/Settings";
-import { MLModels } from "./pages/MLModels";
-import { Scheduler } from "./pages/Scheduler";
-import { Workflows } from "./pages/Workflows";
 import { useAuth } from "./hooks/useAuth";
+
+// Lazy-loaded pages — Vite creates separate chunks automatically
+const Dashboard = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.Dashboard })));
+const PortfolioPage = lazy(() => import("./pages/Portfolio").then(m => ({ default: m.PortfolioPage })));
+const MarketAnalysis = lazy(() => import("./pages/MarketAnalysis").then(m => ({ default: m.MarketAnalysis })));
+const Trading = lazy(() => import("./pages/Trading").then(m => ({ default: m.Trading })));
+const DataManagement = lazy(() => import("./pages/DataManagement").then(m => ({ default: m.DataManagement })));
+const Screening = lazy(() => import("./pages/Screening").then(m => ({ default: m.Screening })));
+const RiskManagement = lazy(() => import("./pages/RiskManagement").then(m => ({ default: m.RiskManagement })));
+const Backtesting = lazy(() => import("./pages/Backtesting").then(m => ({ default: m.Backtesting })));
+const RegimeDashboard = lazy(() => import("./pages/RegimeDashboard").then(m => ({ default: m.RegimeDashboard })));
+const PaperTrading = lazy(() => import("./pages/PaperTrading").then(m => ({ default: m.PaperTrading })));
+const Settings = lazy(() => import("./pages/Settings").then(m => ({ default: m.Settings })));
+const MLModels = lazy(() => import("./pages/MLModels").then(m => ({ default: m.MLModels })));
+const Scheduler = lazy(() => import("./pages/Scheduler").then(m => ({ default: m.Scheduler })));
+const Workflows = lazy(() => import("./pages/Workflows").then(m => ({ default: m.Workflows })));
+
+function PageLoader() {
+  return (
+    <div className="flex h-64 items-center justify-center">
+      <div className="text-[var(--color-text-muted)]">Loading...</div>
+    </div>
+  );
+}
 
 export default function App() {
   const { isAuthenticated, isLoading, login, logout, username } = useAuth();
@@ -49,20 +60,20 @@ export default function App() {
           )
         }
       >
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/portfolio" element={<PortfolioPage />} />
-        <Route path="/market" element={<MarketAnalysis />} />
-        <Route path="/trading" element={<Trading />} />
-        <Route path="/data" element={<DataManagement />} />
-        <Route path="/screening" element={<Screening />} />
-        <Route path="/risk" element={<RiskManagement />} />
-        <Route path="/regime" element={<RegimeDashboard />} />
-        <Route path="/backtest" element={<Backtesting />} />
-        <Route path="/paper-trading" element={<PaperTrading />} />
-        <Route path="/ml" element={<MLModels />} />
-        <Route path="/scheduler" element={<Scheduler />} />
-        <Route path="/workflows" element={<Workflows />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+        <Route path="/portfolio" element={<Suspense fallback={<PageLoader />}><PortfolioPage /></Suspense>} />
+        <Route path="/market" element={<Suspense fallback={<PageLoader />}><MarketAnalysis /></Suspense>} />
+        <Route path="/trading" element={<Suspense fallback={<PageLoader />}><Trading /></Suspense>} />
+        <Route path="/data" element={<Suspense fallback={<PageLoader />}><DataManagement /></Suspense>} />
+        <Route path="/screening" element={<Suspense fallback={<PageLoader />}><Screening /></Suspense>} />
+        <Route path="/risk" element={<Suspense fallback={<PageLoader />}><RiskManagement /></Suspense>} />
+        <Route path="/regime" element={<Suspense fallback={<PageLoader />}><RegimeDashboard /></Suspense>} />
+        <Route path="/backtest" element={<Suspense fallback={<PageLoader />}><Backtesting /></Suspense>} />
+        <Route path="/paper-trading" element={<Suspense fallback={<PageLoader />}><PaperTrading /></Suspense>} />
+        <Route path="/ml" element={<Suspense fallback={<PageLoader />}><MLModels /></Suspense>} />
+        <Route path="/scheduler" element={<Suspense fallback={<PageLoader />}><Scheduler /></Suspense>} />
+        <Route path="/workflows" element={<Suspense fallback={<PageLoader />}><Workflows /></Suspense>} />
+        <Route path="/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
       </Route>
     </Routes>
   );

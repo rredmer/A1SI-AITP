@@ -320,6 +320,13 @@ SCHEDULED_TASKS = {
         "interval_seconds": 1800,
         "params": {},
     },
+    "risk_monitoring": {
+        "name": "Risk Monitoring",
+        "description": "Periodic risk check across portfolios",
+        "task_type": "risk_monitoring",
+        "interval_seconds": 300,
+        "params": {},
+    },
 }
 
 # ── Workflow templates ────────────────────────────────────────

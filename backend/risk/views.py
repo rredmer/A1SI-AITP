@@ -172,7 +172,14 @@ class AlertListView(APIView):
     @extend_schema(responses=AlertLogSerializer(many=True), tags=["Risk"])
     def get(self, request: Request, portfolio_id: int) -> Response:
         limit = _safe_int(request.query_params.get("limit"), 50, max_val=200)
-        alerts = RiskManagementService.get_alerts(portfolio_id, limit)
+        alerts = RiskManagementService.get_alerts(
+            portfolio_id,
+            limit,
+            severity=request.query_params.get("severity"),
+            event_type=request.query_params.get("event_type"),
+            created_after=request.query_params.get("created_after"),
+            created_before=request.query_params.get("created_before"),
+        )
         return Response(AlertLogSerializer(alerts, many=True).data)
 
 

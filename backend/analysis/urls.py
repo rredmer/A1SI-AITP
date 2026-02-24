@@ -2,6 +2,7 @@ from django.urls import path
 
 from analysis.views import (
     BacktestCompareView,
+    BacktestExportView,
     BacktestResultDetailView,
     BacktestResultListView,
     BacktestRunView,
@@ -49,6 +50,7 @@ urlpatterns = [
     ),
     path("backtest/strategies/", BacktestStrategyListView.as_view(), name="backtest-strategies"),
     path("backtest/compare/", BacktestCompareView.as_view(), name="backtest-compare"),
+    path("backtest/export/", BacktestExportView.as_view(), name="backtest-export"),
     # Screening
     path("screening/run/", ScreeningRunView.as_view(), name="screening-run"),
     path("screening/results/", ScreeningResultListView.as_view(), name="screening-results"),

@@ -6,6 +6,7 @@ from trading.views import (
     LiveTradingStatusView,
     OrderCancelView,
     OrderDetailView,
+    OrderExportView,
     OrderListView,
     PaperTradingBalanceView,
     PaperTradingHistoryView,
@@ -16,6 +17,8 @@ from trading.views import (
     PaperTradingStatusView,
     PaperTradingStopView,
     PaperTradingTradesView,
+    TradingPerformanceBySymbolView,
+    TradingPerformanceSummaryView,
 )
 
 urlpatterns = [
@@ -23,7 +26,18 @@ urlpatterns = [
     path("trading/orders/<int:order_id>/", OrderDetailView.as_view(), name="order-detail"),
     path("trading/orders/<int:order_id>/cancel/", OrderCancelView.as_view(), name="order-cancel"),
     path("trading/cancel-all/", CancelAllOrdersView.as_view(), name="cancel-all-orders"),
+    path("trading/orders/export/", OrderExportView.as_view(), name="order-export"),
     path("trading/exchange-health/", ExchangeHealthView.as_view(), name="exchange-health"),
+    path(
+        "trading/performance/summary/",
+        TradingPerformanceSummaryView.as_view(),
+        name="trading-performance-summary",
+    ),
+    path(
+        "trading/performance/by-symbol/",
+        TradingPerformanceBySymbolView.as_view(),
+        name="trading-performance-by-symbol",
+    ),
     path("live-trading/status/", LiveTradingStatusView.as_view(), name="live-trading-status"),
     path("paper-trading/status/", PaperTradingStatusView.as_view(), name="paper-trading-status"),
     path("paper-trading/start/", PaperTradingStartView.as_view(), name="paper-trading-start"),

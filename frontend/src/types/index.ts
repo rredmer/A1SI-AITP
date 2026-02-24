@@ -620,6 +620,39 @@ export interface BacktestComparison {
   };
 }
 
+// Audit Log types
+export interface AuditLogEntry {
+  id: number;
+  user: string;
+  action: string;
+  ip_address: string | null;
+  status_code: number;
+  created_at: string;
+}
+
+export interface AuditLogResponse {
+  results: AuditLogEntry[];
+  total: number;
+}
+
+// Trading Performance types
+export interface TradingPerformanceSummary {
+  total_trades: number;
+  win_count: number;
+  loss_count: number;
+  win_rate: number;
+  total_pnl: number;
+  avg_win: number;
+  avg_loss: number;
+  profit_factor: number | null;
+  best_trade: number;
+  worst_trade: number;
+}
+
+export interface SymbolPerformance extends TradingPerformanceSummary {
+  symbol: string;
+}
+
 // Platform types
 export interface FrameworkStatus {
   name: string;

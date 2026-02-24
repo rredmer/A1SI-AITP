@@ -230,6 +230,81 @@ class RiskManagementService:
         )
 
     @staticmethod
+    def periodic_risk_check(portfolio_id: int) -> dict:
+        """Periodic risk check — record metrics, auto-halt on limit breach, warn at 80%."""
+        state = RiskManagementService._get_or_create_state(portfolio_id)
+        limits_config = RiskManagementService._get_or_create_limits(portfolio_id)
+
+        # Record metrics snapshot
+        try:
+            RiskManagementService.record_metrics(portfolio_id)
+        except Exception as e:
+            logger.warning("Failed to record metrics for portfolio %s: %s", portfolio_id, e)
+
+        # Skip checks if already halted
+        if state.is_halted:
+            return {"status": "halted", "portfolio_id": portfolio_id}
+
+        peak = state.peak_equity if state.peak_equity > 0 else 1
+        drawdown = 1.0 - (state.total_equity / peak)
+        daily_loss_pct = (
+            abs(state.daily_pnl / state.total_equity) if state.total_equity > 0 else 0.0
+        )
+
+        result = {"status": "ok", "portfolio_id": portfolio_id, "drawdown": round(drawdown, 4)}
+
+        # Check drawdown limit
+        if drawdown >= limits_config.max_portfolio_drawdown:
+            reason = (
+                f"Drawdown {drawdown:.1%} exceeded limit "
+                f"{limits_config.max_portfolio_drawdown:.1%}"
+            )
+            RiskManagementService.halt_trading(portfolio_id, reason)
+            try:
+                RiskManagementService.send_notification(
+                    portfolio_id, "risk_auto_halt", "critical", reason,
+                )
+            except Exception as e:
+                logger.error("Failed to send auto-halt notification: %s", e)
+            result["status"] = "auto_halted"
+            result["reason"] = reason
+            return result
+
+        # Check daily loss limit
+        if daily_loss_pct >= limits_config.max_daily_loss:
+            reason = (
+                f"Daily loss {daily_loss_pct:.1%} exceeded limit "
+                f"{limits_config.max_daily_loss:.1%}"
+            )
+            RiskManagementService.halt_trading(portfolio_id, reason)
+            try:
+                RiskManagementService.send_notification(
+                    portfolio_id, "risk_auto_halt", "critical", reason,
+                )
+            except Exception as e:
+                logger.error("Failed to send auto-halt notification: %s", e)
+            result["status"] = "auto_halted"
+            result["reason"] = reason
+            return result
+
+        # Warning at 80% of limits
+        if drawdown >= limits_config.max_portfolio_drawdown * 0.8:
+            msg = (
+                f"Drawdown warning: {drawdown:.1%} is at "
+                f"{drawdown / limits_config.max_portfolio_drawdown:.0%} of limit"
+            )
+            try:
+                RiskManagementService.send_notification(
+                    portfolio_id, "risk_warning", "warning", msg,
+                )
+            except Exception as e:
+                logger.error("Failed to send risk warning: %s", e)
+            result["status"] = "warning"
+            result["warning"] = msg
+
+        return result
+
+    @staticmethod
     def get_metric_history(portfolio_id: int, hours: int = 168) -> list:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         return list(
@@ -386,10 +461,24 @@ class RiskManagementService:
         )
 
     @staticmethod
-    def get_alerts(portfolio_id: int, limit: int = 50) -> list:
-        return list(
-            AlertLog.objects.filter(portfolio_id=portfolio_id).order_by("-created_at")[:limit]
-        )
+    def get_alerts(
+        portfolio_id: int,
+        limit: int = 50,
+        severity: str | None = None,
+        event_type: str | None = None,
+        created_after: str | None = None,
+        created_before: str | None = None,
+    ) -> list:
+        qs = AlertLog.objects.filter(portfolio_id=portfolio_id)
+        if severity:
+            qs = qs.filter(severity=severity)
+        if event_type:
+            qs = qs.filter(event_type__icontains=event_type)
+        if created_after:
+            qs = qs.filter(created_at__gte=created_after)
+        if created_before:
+            qs = qs.filter(created_at__lte=created_before)
+        return list(qs.order_by("-created_at")[:limit])
 
     @staticmethod
     def get_trade_log(portfolio_id: int, limit: int = 50) -> list:

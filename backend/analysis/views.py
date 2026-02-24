@@ -1,5 +1,8 @@
 """Analysis views — jobs, backtest, screening, data pipeline, ML, workflows."""
 
+import csv
+
+from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -206,6 +209,58 @@ class BacktestCompareView(APIView):
             "results": BacktestResultSerializer(results, many=True).data,
             "comparison": comparison,
         })
+
+
+class BacktestExportView(APIView):
+    @extend_schema(tags=["Backtest"], exclude=True)
+    def get(self, request: Request) -> HttpResponse:
+        qs = BacktestResult.objects.select_related("job").all()
+
+        # Filters
+        asset_class = request.query_params.get("asset_class")
+        if asset_class in ("crypto", "equity", "forex"):
+            qs = qs.filter(asset_class=asset_class)
+
+        framework = request.query_params.get("framework")
+        if framework:
+            qs = qs.filter(framework__icontains=framework)
+
+        strategy = request.query_params.get("strategy")
+        if strategy:
+            qs = qs.filter(strategy_name__icontains=strategy)
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="backtest_results.csv"'
+
+        writer = csv.writer(response)
+        headers = [
+            "id", "framework", "asset_class", "strategy_name", "symbol",
+            "timeframe", "timerange", "total_return", "sharpe_ratio",
+            "max_drawdown", "win_rate", "profit_factor", "total_trades",
+            "created_at",
+        ]
+        writer.writerow(headers)
+
+        for r in qs:
+            metrics = r.metrics or {}
+            writer.writerow([
+                r.id,
+                r.framework,
+                r.asset_class,
+                r.strategy_name,
+                r.symbol,
+                r.timeframe,
+                r.timerange,
+                metrics.get("total_return", ""),
+                metrics.get("sharpe_ratio", ""),
+                metrics.get("max_drawdown", ""),
+                metrics.get("win_rate", ""),
+                metrics.get("profit_factor", ""),
+                metrics.get("total_trades", ""),
+                r.created_at.isoformat() if r.created_at else "",
+            ])
+
+        return response
 
 
 class ScreeningRunView(APIView):

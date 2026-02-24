@@ -130,9 +130,14 @@ class TestSecurityHardening:
 
     def test_rate_limit_returns_retry_after(self, api_client):
         """429 rate limit response should include Retry-After header."""
+        import time
         from unittest.mock import patch
 
-        with patch("core.middleware.RateLimitMiddleware._allow", return_value=False):
+        reset = time.time() + 60
+        with patch(
+            "core.middleware.RateLimitMiddleware._allow",
+            return_value=(False, 0, reset),
+        ):
             resp = api_client.get("/api/health/")
             assert resp.status_code == 429
             assert resp["Retry-After"] == "60"

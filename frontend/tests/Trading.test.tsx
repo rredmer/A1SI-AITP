@@ -239,3 +239,22 @@ describe("Trading - Order Display Details", () => {
     expect(await screen.findByText("No paper orders yet.")).toBeInTheDocument();
   });
 });
+
+describe("Trading - Order Filters", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ "/api/trading/orders": mockOrders }),
+    );
+  });
+
+  it("renders symbol filter input", () => {
+    renderWithProviders(<Trading />);
+    expect(screen.getByPlaceholderText("Filter by symbol...")).toBeInTheDocument();
+  });
+
+  it("renders status filter dropdown", () => {
+    renderWithProviders(<Trading />);
+    expect(screen.getByText("All statuses")).toBeInTheDocument();
+  });
+});

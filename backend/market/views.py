@@ -542,6 +542,35 @@ class RegimePositionSizeView(APIView):
         return Response(result)
 
 
+# ── Circuit Breaker ──────────────────────────────────────────
+
+
+class CircuitBreakerStatusView(APIView):
+    @extend_schema(tags=["Market"])
+    def get(self, request: Request) -> Response:
+        from market.services.circuit_breaker import get_all_breakers
+
+        return Response({"breakers": get_all_breakers()})
+
+    @extend_schema(tags=["Market"])
+    def post(self, request: Request) -> Response:
+        from market.services.circuit_breaker import reset_breaker
+
+        exchange_id = request.data.get("exchange_id")
+        action = request.data.get("action")
+        if not exchange_id or action != "reset":
+            return Response(
+                {"error": "Provide exchange_id and action='reset'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if reset_breaker(exchange_id):
+            return Response({"message": f"Circuit breaker for {exchange_id} reset"})
+        return Response(
+            {"error": f"No breaker found for {exchange_id}"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+
 # Singleton regime service
 _regime_service = None
 _regime_service_lock = __import__("threading").Lock()

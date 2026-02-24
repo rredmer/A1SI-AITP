@@ -46,6 +46,22 @@ describe("App", () => {
     const links = nav.querySelectorAll("a");
     expect(links.length).toBe(14);
   });
+
+  it("renders with lazy loading suspense fallback", async () => {
+    renderWithProviders(<App />);
+    // The app should eventually render — lazy loading resolves
+    await waitFor(() => {
+      expect(screen.getByText("A1SI-AITP")).toBeInTheDocument();
+    });
+  });
+
+  it("lazy-loaded dashboard page renders", async () => {
+    renderWithProviders(<App />);
+    // Dashboard is the default route — should load via lazy import
+    await waitFor(() => {
+      expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    });
+  });
 });
 
 describe("Layout", () => {

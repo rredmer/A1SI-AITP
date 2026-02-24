@@ -17,10 +17,14 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { ConnectionStatus } from "./ConnectionStatus";
 import { EmergencyStopButton } from "./EmergencyStopButton";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { AssetClassSelector } from "./AssetClassSelector";
+import { ThemeToggle } from "./ThemeToggle";
 import { AssetClassContext } from "../contexts/assetClass";
+import { ThemeContext } from "../contexts/theme";
+import type { Theme } from "../contexts/theme";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useSystemEvents } from "../hooks/useSystemEvents";
 import { useToast } from "../hooks/useToast";
@@ -50,7 +54,8 @@ interface LayoutProps {
 
 export function Layout({ onLogout, username }: LayoutProps) {
   const [assetClass, setAssetClass] = useLocalStorage<AssetClass>("ci:asset-class", "crypto");
-  const { isConnected, isHalted, haltReason, lastOrderUpdate, lastRiskAlert } = useSystemEvents();
+  const [theme, setTheme] = useLocalStorage<Theme>("ci:theme", "dark");
+  const { isConnected, isReconnecting, reconnectAttempt, reconnect, isHalted, haltReason, lastOrderUpdate, lastRiskAlert } = useSystemEvents();
   const { toast } = useToast();
   const prevOrderRef = useRef(lastOrderUpdate);
   const prevAlertRef = useRef(lastRiskAlert);
@@ -72,7 +77,12 @@ export function Layout({ onLogout, username }: LayoutProps) {
     prevAlertRef.current = lastRiskAlert;
   }, [lastRiskAlert, toast]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
   return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
     <AssetClassContext.Provider value={{ assetClass, setAssetClass }}>
     <div className="flex h-screen">
       <nav aria-label="Main navigation" className="flex w-56 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4">
@@ -104,17 +114,15 @@ export function Layout({ onLogout, username }: LayoutProps) {
         </ul>
         <EmergencyStopButton isHalted={isHalted} />
         <div className="mt-auto border-t border-[var(--color-border)] pt-4">
-          <div className="mb-2 flex items-center gap-2 px-3">
-            <span
-              role="status"
-              aria-label={isConnected ? "WebSocket connected" : "WebSocket disconnected"}
-              className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-400" : "bg-red-400"}`}
-              title={isConnected ? "WebSocket connected" : "WebSocket disconnected"}
+          <div className="mb-2">
+            <ConnectionStatus
+              isConnected={isConnected}
+              isReconnecting={isReconnecting}
+              reconnectAttempt={reconnectAttempt}
+              onReconnect={reconnect}
             />
-            <span className="text-xs text-[var(--color-text-muted)]">
-              {isConnected ? "Connected" : "Disconnected"}
-            </span>
           </div>
+          <ThemeToggle />
           {username && (
             <p className="mb-2 truncate px-3 text-xs text-[var(--color-text-muted)]">
               {username}
@@ -137,6 +145,12 @@ export function Layout({ onLogout, username }: LayoutProps) {
             TRADING HALTED{haltReason ? `: ${haltReason}` : ""}
           </div>
         )}
+        {/* Reconnecting banner */}
+        {isReconnecting && (
+          <div role="status" className="border-b border-amber-500/50 bg-amber-500/10 px-6 py-2 text-center text-sm text-amber-400">
+            WebSocket reconnecting... (attempt {reconnectAttempt})
+          </div>
+        )}
         <div className="p-6">
           <ErrorBoundary>
             <Outlet key={assetClass} />
@@ -145,5 +159,6 @@ export function Layout({ onLogout, username }: LayoutProps) {
       </main>
     </div>
     </AssetClassContext.Provider>
+    </ThemeContext.Provider>
   );
 }

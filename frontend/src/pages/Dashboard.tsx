@@ -6,6 +6,7 @@ import { platformApi } from "../api/platform";
 import { jobsApi } from "../api/jobs";
 import { regimeApi } from "../api/regime";
 import { riskApi } from "../api/risk";
+import { tradingApi } from "../api/trading";
 import { useAssetClass } from "../hooks/useAssetClass";
 import { ProgressBar } from "../components/ProgressBar";
 import { MarketStatusBadge } from "../components/MarketStatusBadge";
@@ -29,6 +30,7 @@ import type {
   RegimeType,
   RiskStatus,
   TickerData,
+  TradingPerformanceSummary,
 } from "../types";
 
 const ALWAYS_SHOW_FRAMEWORKS = ["VectorBT", "CCXT", "Pandas", "TA-Lib"];
@@ -93,6 +95,12 @@ export function Dashboard() {
     queryKey: ["dashboard-ohlcv", chartSymbol, assetClass],
     queryFn: () => marketApi.ohlcv(chartSymbol, "1d", 30, assetClass),
     retry: 1,
+  });
+
+  // Trading performance
+  const { data: tradingPerf } = useQuery<TradingPerformanceSummary>({
+    queryKey: ["trading-performance-dashboard"],
+    queryFn: () => tradingApi.performanceSummary(),
   });
 
   // Compute aggregate portfolio value from holdings
@@ -272,6 +280,33 @@ export function Dashboard() {
           <p className="text-sm text-[var(--color-text-muted)]">
             Regime detection for {ASSET_CLASS_LABELS[assetClass].toLowerCase()} is not yet available.
           </p>
+        </div>
+      )}
+
+      {/* Trading Performance Card */}
+      {tradingPerf && tradingPerf.total_trades > 0 && (
+        <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <h3 className="mb-4 text-lg font-semibold">Trading Performance</h3>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div>
+              <p className="text-xs text-[var(--color-text-muted)]">Win Rate</p>
+              <p className="text-xl font-bold">{tradingPerf.win_rate.toFixed(1)}%</p>
+            </div>
+            <div>
+              <p className="text-xs text-[var(--color-text-muted)]">Total P&L</p>
+              <p className={`text-xl font-bold ${tradingPerf.total_pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                ${tradingPerf.total_pnl.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-[var(--color-text-muted)]">Profit Factor</p>
+              <p className="text-xl font-bold">{tradingPerf.profit_factor != null ? tradingPerf.profit_factor.toFixed(2) : "\u221E"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-[var(--color-text-muted)]">Trades</p>
+              <p className="text-xl font-bold">{tradingPerf.total_trades}</p>
+            </div>
+          </div>
         </div>
       )}
 

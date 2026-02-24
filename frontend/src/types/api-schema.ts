@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/audit-log/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["audit_log_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login/": {
         parameters: {
             query?: never;
@@ -430,6 +446,22 @@ export interface paths {
         get: operations["live_trading_status_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/market/circuit-breaker/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_circuit_breaker_retrieve"];
+        put?: never;
+        post: operations["market_circuit_breaker_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1476,6 +1508,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trading/orders/export/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["trading_orders_export_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trading/performance/by-symbol/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["trading_performance_by_symbol_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trading/performance/summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["trading_performance_summary_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow-runs/{run_id}/": {
         parameters: {
             query?: never;
@@ -2354,6 +2434,26 @@ export interface components {
             framework: string;
             file_path: string;
         };
+        SymbolPerformance: {
+            total_trades: number;
+            win_count: number;
+            loss_count: number;
+            /** Format: double */
+            win_rate: number;
+            /** Format: double */
+            total_pnl: number;
+            /** Format: double */
+            avg_win: number;
+            /** Format: double */
+            avg_loss: number;
+            /** Format: double */
+            profit_factor: number | null;
+            /** Format: double */
+            best_trade: number;
+            /** Format: double */
+            worst_trade: number;
+            symbol: string;
+        };
         TickerData: {
             symbol: string;
             /** Format: double */
@@ -2421,6 +2521,25 @@ export interface components {
         TradeCheckResponse: {
             approved: boolean;
             reason: string;
+        };
+        TradingPerformanceSummary: {
+            total_trades: number;
+            win_count: number;
+            loss_count: number;
+            /** Format: double */
+            win_rate: number;
+            /** Format: double */
+            total_pnl: number;
+            /** Format: double */
+            avg_win: number;
+            /** Format: double */
+            avg_loss: number;
+            /** Format: double */
+            profit_factor: number | null;
+            /** Format: double */
+            best_trade: number;
+            /** Format: double */
+            worst_trade: number;
         };
         /**
          * @description * `manual` - Manual
@@ -2595,6 +2714,24 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    audit_log_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     auth_login_create: {
         parameters: {
             query?: never;
@@ -3257,6 +3394,42 @@ export interface operations {
         };
     };
     live_trading_status_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    market_circuit_breaker_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    market_circuit_breaker_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4774,6 +4947,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Order"];
+                };
+            };
+        };
+    };
+    trading_orders_export_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    trading_performance_by_symbol_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SymbolPerformance"][];
+                };
+            };
+        };
+    };
+    trading_performance_summary_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradingPerformanceSummary"];
                 };
             };
         };

@@ -87,6 +87,33 @@ class ExchangeHealthSerializer(serializers.Serializer):
     last_checked = serializers.CharField()
 
 
+class TradingPerformanceFilterSerializer(serializers.Serializer):
+    portfolio_id = serializers.IntegerField(default=1, min_value=1)
+    mode = serializers.ChoiceField(choices=["paper", "live"], required=False)
+    asset_class = serializers.ChoiceField(
+        choices=AssetClass.choices, required=False,
+    )
+    date_from = serializers.DateTimeField(required=False)
+    date_to = serializers.DateTimeField(required=False)
+
+
+class TradingPerformanceSummarySerializer(serializers.Serializer):
+    total_trades = serializers.IntegerField()
+    win_count = serializers.IntegerField()
+    loss_count = serializers.IntegerField()
+    win_rate = serializers.FloatField()
+    total_pnl = serializers.FloatField()
+    avg_win = serializers.FloatField()
+    avg_loss = serializers.FloatField()
+    profit_factor = serializers.FloatField(allow_null=True)
+    best_trade = serializers.FloatField()
+    worst_trade = serializers.FloatField()
+
+
+class SymbolPerformanceSerializer(TradingPerformanceSummarySerializer):
+    symbol = serializers.CharField()
+
+
 class OrderCreateSerializer(serializers.Serializer):
     symbol = serializers.RegexField(
         regex=r"^[A-Z0-9]{2,10}/[A-Z0-9]{2,10}$",

@@ -105,16 +105,25 @@ class RateLimitMiddleware:
         else:
             limit = getattr(settings, "RATE_LIMIT_GENERAL", 60)
 
-        if not self._allow(ip, limit):
+        allowed, remaining, reset_time = self._allow(ip, limit)
+
+        if not allowed:
             logger.warning(f"Rate limit exceeded: ip={ip} path={path}")
             response = JsonResponse(
                 {"error": "Rate limit exceeded. Try again later."},
                 status=429,
             )
             response["Retry-After"] = "60"
+            response["X-RateLimit-Limit"] = str(limit)
+            response["X-RateLimit-Remaining"] = "0"
+            response["X-RateLimit-Reset"] = str(int(reset_time))
             return response
 
-        return self.get_response(request)
+        response = self.get_response(request)
+        response["X-RateLimit-Limit"] = str(limit)
+        response["X-RateLimit-Remaining"] = str(remaining)
+        response["X-RateLimit-Reset"] = str(int(reset_time))
+        return response
 
     _TRUSTED_PROXIES = {"127.0.0.1", "::1", "172.17.0.1"}
 
@@ -125,16 +134,27 @@ class RateLimitMiddleware:
             return xff.split(",")[0].strip()
         return remote_addr
 
-    def _allow(self, key: str, limit: int) -> bool:
+    def _allow(self, key: str, limit: int) -> tuple[bool, int, float]:
+        """Check if request is allowed under rate limit.
+
+        Returns:
+            Tuple of (allowed, remaining, reset_time) where reset_time is a
+            Unix timestamp when the oldest request in the window expires.
+        """
         now = time.time()
         with self._lock:
             timestamps = self._requests[key]
             # Remove entries older than 60 seconds
             self._requests[key] = [t for t in timestamps if now - t < 60]
             if len(self._requests[key]) >= limit:
-                return False
+                oldest = min(self._requests[key]) if self._requests[key] else now
+                reset_time = oldest + 60.0
+                return False, 0, reset_time
             self._requests[key].append(now)
-            return True
+            remaining = max(0, limit - len(self._requests[key]))
+            oldest = min(self._requests[key]) if self._requests[key] else now
+            reset_time = oldest + 60.0
+            return True, remaining, reset_time
 
 
 class MetricsMiddleware:
