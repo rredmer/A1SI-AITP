@@ -20,6 +20,7 @@ from market.views import (
     RegimePositionSizeView,
     RegimeRecommendationAllView,
     RegimeRecommendationView,
+    SentimentSignalView,
     TickerListView,
     TickerView,
 )
@@ -70,5 +71,6 @@ urlpatterns = [
     # News
     path("market/news/", NewsListView.as_view(), name="news-list"),
     path("market/news/sentiment/", NewsSentimentView.as_view(), name="news-sentiment"),
+    path("market/news/signal/", SentimentSignalView.as_view(), name="news-signal"),
     path("market/news/fetch/", NewsFetchView.as_view(), name="news-fetch"),
 ]

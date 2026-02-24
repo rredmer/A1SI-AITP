@@ -117,3 +117,97 @@ class TestSystemEventsConsumer:
         assert response["type"] == "halt_status"
         assert response["data"]["is_halted"] is True
         await comm.disconnect()
+
+    async def test_news_update_relayed(self):
+        user = await _create_user()
+        comm = _make_communicator(SystemEventsConsumer, "/ws/system/", user=user)
+        connected, _ = await comm.connect()
+        assert connected
+
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(
+            "system_events",
+            {
+                "type": "news_update",
+                "data": {"asset_class": "crypto", "articles_fetched": 5},
+            },
+        )
+
+        response = await comm.receive_json_from(timeout=5)
+        assert response["type"] == "news_update"
+        assert response["data"]["articles_fetched"] == 5
+        await comm.disconnect()
+
+    async def test_sentiment_update_relayed(self):
+        user = await _create_user()
+        comm = _make_communicator(SystemEventsConsumer, "/ws/system/", user=user)
+        connected, _ = await comm.connect()
+        assert connected
+
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(
+            "system_events",
+            {
+                "type": "sentiment_update",
+                "data": {"asset_class": "crypto", "avg_score": 0.3, "overall_label": "positive"},
+            },
+        )
+
+        response = await comm.receive_json_from(timeout=5)
+        assert response["type"] == "sentiment_update"
+        assert response["data"]["avg_score"] == 0.3
+        await comm.disconnect()
+
+    async def test_scheduler_event_relayed(self):
+        user = await _create_user()
+        comm = _make_communicator(SystemEventsConsumer, "/ws/system/", user=user)
+        connected, _ = await comm.connect()
+        assert connected
+
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(
+            "system_events",
+            {
+                "type": "scheduler_event",
+                "data": {"task_id": "t1", "task_name": "Test", "status": "submitted"},
+            },
+        )
+
+        response = await comm.receive_json_from(timeout=5)
+        assert response["type"] == "scheduler_event"
+        assert response["data"]["status"] == "submitted"
+        await comm.disconnect()
+
+    async def test_regime_change_relayed(self):
+        user = await _create_user()
+        comm = _make_communicator(SystemEventsConsumer, "/ws/system/", user=user)
+        connected, _ = await comm.connect()
+        assert connected
+
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(
+            "system_events",
+            {
+                "type": "regime_change",
+                "data": {
+                    "symbol": "BTC/USDT",
+                    "previous_regime": "ranging",
+                    "new_regime": "strong_trend_up",
+                    "confidence": 0.85,
+                },
+            },
+        )
+
+        response = await comm.receive_json_from(timeout=5)
+        assert response["type"] == "regime_change"
+        assert response["data"]["symbol"] == "BTC/USDT"
+        assert response["data"]["new_regime"] == "strong_trend_up"
+        await comm.disconnect()

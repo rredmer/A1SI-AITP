@@ -76,7 +76,11 @@ class RegimeService:
             for state, ts in entries
         ]
 
-    def get_recommendation(self, symbol: str) -> dict | None:
+    def get_recommendation(
+        self,
+        symbol: str,
+        include_sentiment: bool = True,
+    ) -> dict | None:
         df = self._load_data(symbol)
         if df is None or df.empty:
             if symbol in self._cache:
@@ -86,7 +90,21 @@ class RegimeService:
         else:
             state = self.detector.detect(df)
 
-        decision = self.router.route(state)
+        # Fetch sentiment modifier if enabled
+        sentiment_modifier = None
+        if include_sentiment:
+            try:
+                from market.services.news import NewsService
+
+                service = NewsService()
+                # Determine asset class from symbol pattern
+                asset_class = self._guess_asset_class(symbol)
+                sig = service.get_sentiment_signal(asset_class)
+                sentiment_modifier = sig.get("position_modifier")
+            except Exception as e:
+                logger.debug("Sentiment signal unavailable for %s: %s", symbol, e)
+
+        decision = self.router.route(state, sentiment_modifier=sentiment_modifier)
         return self._decision_to_dict(symbol, decision)
 
     def get_all_recommendations(self) -> list[dict]:
@@ -130,6 +148,24 @@ class RegimeService:
             "primary_strategy": decision.primary_strategy,
         }
 
+    @staticmethod
+    def _guess_asset_class(symbol: str) -> str:
+        """Guess asset class from symbol format."""
+        s = symbol.upper()
+        # Forex pairs: EUR/USD, GBP/JPY etc.
+        forex_currencies = {"EUR", "USD", "GBP", "JPY", "CHF", "AUD", "NZD", "CAD"}
+        parts = s.split("/")
+        if len(parts) == 2 and parts[0] in forex_currencies and parts[1] in forex_currencies:
+            return "forex"
+        # Common crypto quote currencies
+        crypto_quotes = {"USDT", "USDC", "BTC", "ETH", "BUSD", "BNB"}
+        if len(parts) == 2 and parts[1] in crypto_quotes:
+            return "crypto"
+        # Default: equity for stock-like symbols, crypto otherwise
+        if "/" not in symbol:
+            return "equity"
+        return "crypto"
+
     def _load_data(self, symbol: str) -> pd.DataFrame | None:
         try:
             from common.data_pipeline.pipeline import load_ohlcv
@@ -158,7 +194,7 @@ class RegimeService:
 
     @staticmethod
     def _decision_to_dict(symbol: str, decision: RoutingDecision) -> dict:
-        return {
+        result = {
             "symbol": symbol,
             "regime": decision.regime.value,
             "confidence": round(decision.confidence, 3),
@@ -174,3 +210,6 @@ class RegimeService:
             "position_size_modifier": decision.position_size_modifier,
             "reasoning": decision.reasoning,
         }
+        if decision.sentiment_modifier is not None:
+            result["sentiment_modifier"] = decision.sentiment_modifier
+        return result

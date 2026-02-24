@@ -51,6 +51,10 @@ def _run_data_refresh(params: dict, progress_cb: ProgressCallback) -> dict[str, 
     return {"status": "completed", "symbols": len(symbols), "saved": saved}
 
 
+# Track last known regimes for transition detection
+_last_known_regimes: dict[str, str] = {}
+
+
 def _run_regime_detection(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
     """Run regime detection for all crypto watchlist symbols."""
     progress_cb(0.1, "Detecting regimes")
@@ -59,6 +63,26 @@ def _run_regime_detection(params: dict, progress_cb: ProgressCallback) -> dict[s
 
         service = RegimeService()
         regimes = service.get_all_current_regimes()
+
+        # Detect regime transitions and broadcast changes
+        try:
+            from core.services.ws_broadcast import broadcast_regime_change
+
+            for regime_data in regimes:
+                symbol = regime_data.get("symbol", "")
+                new_regime = regime_data.get("regime", "unknown")
+                prev_regime = _last_known_regimes.get(symbol)
+                if prev_regime is not None and prev_regime != new_regime:
+                    broadcast_regime_change(
+                        symbol=symbol,
+                        previous_regime=prev_regime,
+                        new_regime=new_regime,
+                        confidence=regime_data.get("confidence", 0.0),
+                    )
+                _last_known_regimes[symbol] = new_regime
+        except Exception:
+            logger.debug("Regime broadcast failed", exc_info=True)
+
         return {"status": "completed", "regimes_detected": len(regimes)}
     except Exception as e:
         logger.warning("Regime detection failed: %s", e)
@@ -128,10 +152,36 @@ def _run_news_fetch(params: dict, progress_cb: ProgressCallback) -> dict[str, An
         for ac in ("crypto", "equity", "forex"):
             count = service.fetch_and_store(ac)
             total += count
+
+            # Broadcast news + sentiment updates per asset class
+            try:
+                from core.services.ws_broadcast import (
+                    broadcast_news_update,
+                    broadcast_sentiment_update,
+                )
+
+                summary = service.get_sentiment_summary(ac)
+                broadcast_news_update(ac, count, summary)
+                broadcast_sentiment_update(
+                    asset_class=ac,
+                    avg_score=summary.get("avg_score", 0.0),
+                    overall_label=summary.get("overall_label", "neutral"),
+                    total_articles=summary.get("total_articles", 0),
+                )
+            except Exception:
+                logger.debug("News broadcast failed for %s", ac, exc_info=True)
+
         return {"status": "completed", "articles_fetched": total}
     except Exception as e:
         logger.warning("News fetch failed: %s", e)
         return {"status": "error", "error": str(e)}
+
+
+def _run_workflow(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
+    """Execute a workflow pipeline."""
+    from analysis.services.workflow_engine import execute_workflow
+
+    return execute_workflow(params, progress_cb)
 
 
 TASK_REGISTRY: dict[str, TaskExecutor] = {
@@ -140,4 +190,5 @@ TASK_REGISTRY: dict[str, TaskExecutor] = {
     "order_sync": _run_order_sync,
     "data_quality": _run_data_quality,
     "news_fetch": _run_news_fetch,
+    "workflow": _run_workflow,
 }

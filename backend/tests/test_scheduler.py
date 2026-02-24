@@ -181,7 +181,10 @@ class TestTaskRegistry:
     def test_registry_has_all_types(self):
         from core.services.task_registry import TASK_REGISTRY
 
-        expected = {"data_refresh", "regime_detection", "order_sync", "data_quality", "news_fetch"}
+        expected = {
+            "data_refresh", "regime_detection", "order_sync",
+            "data_quality", "news_fetch", "workflow",
+        }
         assert expected == set(TASK_REGISTRY.keys())
 
     def test_executors_are_callable(self):

@@ -331,3 +331,71 @@ class TestNewsAPI:
             format="json",
         )
         assert resp.status_code == 400
+
+    def test_signal_requires_auth(self, api_client):
+        resp = api_client.get("/api/market/news/signal/")
+        assert resp.status_code == 403
+
+    def test_signal_empty(self, authenticated_client):
+        resp = authenticated_client.get("/api/market/news/signal/?asset_class=crypto")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["signal"] == 0.0
+        assert data["conviction"] == 0.0
+        assert data["signal_label"] == "neutral"
+        assert data["position_modifier"] == 1.0
+        assert data["article_count"] == 0
+        assert "thresholds" in data
+
+    def test_signal_with_articles(self, authenticated_client):
+        now = datetime.now(tz=timezone.utc)
+        for i in range(5):
+            NewsArticle.objects.create(
+                article_id=f"signal_{i}",
+                title="Bullish rally surge gains momentum",
+                url=f"https://example.com/s{i}",
+                source="Test",
+                published_at=now - timedelta(hours=i),
+                asset_class="crypto",
+                sentiment_score=0.5,
+                sentiment_label="positive",
+            )
+        resp = authenticated_client.get("/api/market/news/signal/?asset_class=crypto")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["signal"] > 0
+        assert data["article_count"] == 5
+        assert data["asset_class"] == "crypto"
+
+    def test_signal_invalid_asset_class(self, authenticated_client):
+        resp = authenticated_client.get("/api/market/news/signal/?asset_class=invalid")
+        assert resp.status_code == 400
+
+    def test_signal_with_hours_param(self, authenticated_client):
+        now = datetime.now(tz=timezone.utc)
+        # Recent article
+        NewsArticle.objects.create(
+            article_id="recent_sig",
+            title="Recent",
+            url="https://example.com/recent",
+            source="Test",
+            published_at=now - timedelta(hours=1),
+            asset_class="crypto",
+            sentiment_score=0.5,
+            sentiment_label="positive",
+        )
+        # Old article (outside 2-hour window)
+        NewsArticle.objects.create(
+            article_id="old_sig",
+            title="Old",
+            url="https://example.com/old",
+            source="Test",
+            published_at=now - timedelta(hours=3),
+            asset_class="crypto",
+            sentiment_score=-0.5,
+            sentiment_label="negative",
+        )
+        resp = authenticated_client.get("/api/market/news/signal/?asset_class=crypto&hours=2")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["article_count"] == 1  # Only the recent one

@@ -86,6 +86,42 @@ class SystemEventsConsumer(AsyncJsonWebsocketConsumer):
             }
         )
 
+    async def news_update(self, event):
+        """Handle news_update messages."""
+        await self.send_json(
+            {
+                "type": "news_update",
+                "data": event["data"],
+            }
+        )
+
+    async def sentiment_update(self, event):
+        """Handle sentiment_update messages."""
+        await self.send_json(
+            {
+                "type": "sentiment_update",
+                "data": event["data"],
+            }
+        )
+
+    async def scheduler_event(self, event):
+        """Handle scheduler_event messages."""
+        await self.send_json(
+            {
+                "type": "scheduler_event",
+                "data": event["data"],
+            }
+        )
+
+    async def regime_change(self, event):
+        """Handle regime_change messages."""
+        await self.send_json(
+            {
+                "type": "regime_change",
+                "data": event["data"],
+            }
+        )
+
     @database_sync_to_async
     def _is_authenticated(self) -> bool:
         user = self.scope.get("user")

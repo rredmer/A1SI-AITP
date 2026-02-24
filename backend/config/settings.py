@@ -322,6 +322,52 @@ SCHEDULED_TASKS = {
     },
 }
 
+# ── Workflow templates ────────────────────────────────────────
+WORKFLOW_TEMPLATES: dict = {
+    "research_pipeline": {
+        "name": "Research Pipeline",
+        "description": "Screen for opportunities after data refresh",
+        "asset_class": "crypto",
+        "steps": [
+            {"order": 1, "name": "Refresh Data", "step_type": "data_refresh"},
+            {"order": 2, "name": "VBT Screen", "step_type": "vbt_screen"},
+            {"order": 3, "name": "Evaluate Alerts", "step_type": "alert_evaluate"},
+        ],
+    },
+    "signal_pipeline": {
+        "name": "Signal Pipeline",
+        "description": "Alert on extreme sentiment signals",
+        "asset_class": "crypto",
+        "steps": [
+            {"order": 1, "name": "Fetch News", "step_type": "news_fetch"},
+            {"order": 2, "name": "Aggregate Sentiment", "step_type": "sentiment_aggregate"},
+            {"order": 3, "name": "Evaluate Alerts", "step_type": "alert_evaluate"},
+        ],
+    },
+    "risk_pipeline": {
+        "name": "Risk Pipeline",
+        "description": "Alert on regime changes",
+        "asset_class": "crypto",
+        "steps": [
+            {"order": 1, "name": "Detect Regimes", "step_type": "regime_detection"},
+            {"order": 2, "name": "Strategy Recommend", "step_type": "strategy_recommend"},
+            {"order": 3, "name": "Evaluate Alerts", "step_type": "alert_evaluate"},
+        ],
+    },
+    "full_analysis_pipeline": {
+        "name": "Full Analysis Pipeline",
+        "description": "Complete analysis chain: data, regime, sentiment, composite, alerts",
+        "asset_class": "crypto",
+        "steps": [
+            {"order": 1, "name": "Refresh Data", "step_type": "data_refresh"},
+            {"order": 2, "name": "Detect Regimes", "step_type": "regime_detection"},
+            {"order": 3, "name": "Aggregate Sentiment", "step_type": "sentiment_aggregate"},
+            {"order": 4, "name": "Composite Score", "step_type": "composite_score"},
+            {"order": 5, "name": "Evaluate Alerts", "step_type": "alert_evaluate"},
+        ],
+    },
+}
+
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 NOTIFICATION_WEBHOOK_URL = os.environ.get("NOTIFICATION_WEBHOOK_URL", "")

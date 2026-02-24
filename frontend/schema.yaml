@@ -584,6 +584,16 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/market/news/signal/:
+    get:
+      operationId: market_news_signal_retrieve
+      tags:
+      - Market
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/market/ohlcv/{symbol}/:
     get:
       operationId: market_ohlcv_list
@@ -1733,6 +1743,192 @@ paths:
               schema:
                 $ref: '#/components/schemas/Order'
           description: ''
+  /api/workflow-runs/{run_id}/:
+    get:
+      operationId: workflow_runs_retrieve
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRunDetail'
+          description: ''
+  /api/workflow-runs/{run_id}/cancel/:
+    post:
+      operationId: workflow_runs_cancel_create
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/workflow-steps/:
+    get:
+      operationId: workflow_steps_retrieve
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/workflows/:
+    get:
+      operationId: workflows_list
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkflowList'
+          description: ''
+    post:
+      operationId: workflows_create
+      tags:
+      - Workflows
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowCreate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDetail'
+          description: ''
+  /api/workflows/{workflow_id}/:
+    get:
+      operationId: workflows_retrieve
+      parameters:
+      - in: path
+        name: workflow_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowDetail'
+          description: ''
+    delete:
+      operationId: workflows_destroy
+      parameters:
+      - in: path
+        name: workflow_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/workflows/{workflow_id}/disable/:
+    post:
+      operationId: workflows_disable_create
+      parameters:
+      - in: path
+        name: workflow_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/workflows/{workflow_id}/enable/:
+    post:
+      operationId: workflows_enable_create
+      parameters:
+      - in: path
+        name: workflow_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/workflows/{workflow_id}/runs/:
+    get:
+      operationId: workflows_runs_list
+      parameters:
+      - in: path
+        name: workflow_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkflowRunList'
+          description: ''
+  /api/workflows/{workflow_id}/trigger/:
+    post:
+      operationId: workflows_trigger_create
+      parameters:
+      - in: path
+        name: workflow_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Workflows
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
 components:
   schemas:
     AlertLog:
@@ -2411,7 +2607,7 @@ components:
           readOnly: true
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/OrderStatusEnum'
           readOnly: true
         mode:
           $ref: '#/components/schemas/OrderModeEnum'
@@ -2587,6 +2783,26 @@ components:
       description: |-
         * `paper` - Paper
         * `live` - Live
+    OrderStatusEnum:
+      enum:
+      - pending
+      - submitted
+      - open
+      - partial_fill
+      - filled
+      - cancelled
+      - rejected
+      - error
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `submitted` - Submitted
+        * `open` - Open
+        * `partial_fill` - Partially Filled
+        * `filled` - Filled
+        * `cancelled` - Cancelled
+        * `rejected` - Rejected
+        * `error` - Error
     OrderTypeEnum:
       enum:
       - market
@@ -2989,6 +3205,10 @@ components:
           format: double
         reasoning:
           type: string
+        sentiment_modifier:
+          type: number
+          format: double
+          nullable: true
       required:
       - confidence
       - position_size_modifier
@@ -3074,26 +3294,20 @@ components:
       description: |-
         * `buy` - buy
         * `sell` - sell
-    StatusEnum:
+    Status1b7Enum:
       enum:
       - pending
-      - submitted
-      - open
-      - partial_fill
-      - filled
+      - running
+      - completed
+      - failed
       - cancelled
-      - rejected
-      - error
       type: string
       description: |-
         * `pending` - Pending
-        * `submitted` - Submitted
-        * `open` - Open
-        * `partial_fill` - Partially Filled
-        * `filled` - Filled
+        * `running` - Running
+        * `completed` - Completed
+        * `failed` - Failed
         * `cancelled` - Cancelled
-        * `rejected` - Rejected
-        * `error` - Error
     StrategyInfo:
       type: object
       properties:
@@ -3239,6 +3453,16 @@ components:
       required:
       - approved
       - reason
+    TriggerEnum:
+      enum:
+      - manual
+      - scheduled
+      - api
+      type: string
+      description: |-
+        * `manual` - Manual
+        * `scheduled` - Scheduled
+        * `api` - API
     VaRResponse:
       type: object
       properties:
@@ -3265,6 +3489,363 @@ components:
       - var_95
       - var_99
       - window_days
+    WorkflowCreate:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Workflow ID (lowercase alphanumeric + underscore)
+          maxLength: 50
+          pattern: ^[a-z0-9_]+$
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          default: ''
+        asset_class:
+          allOf:
+          - $ref: '#/components/schemas/AssetClassEnum'
+          default: crypto
+        params:
+          type: object
+          additionalProperties: {}
+        schedule_interval_seconds:
+          type: integer
+          minimum: 60
+          nullable: true
+        schedule_enabled:
+          type: boolean
+          default: false
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowCreateStep'
+      required:
+      - id
+      - name
+      - steps
+    WorkflowCreateStep:
+      type: object
+      properties:
+        order:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          maxLength: 100
+        step_type:
+          type: string
+          maxLength: 50
+        params:
+          type: object
+          additionalProperties: {}
+        condition:
+          type: string
+          default: ''
+          maxLength: 200
+        timeout_seconds:
+          type: integer
+          maximum: 3600
+          minimum: 1
+          default: 300
+      required:
+      - name
+      - order
+      - step_type
+    WorkflowDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 50
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        asset_class:
+          $ref: '#/components/schemas/AssetClassEnum'
+        is_template:
+          type: boolean
+        is_active:
+          type: boolean
+        schedule_interval_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        schedule_enabled:
+          type: boolean
+        params: {}
+        last_run_at:
+          type: string
+          format: date-time
+          nullable: true
+        run_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - steps
+      - updated_at
+    WorkflowList:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 50
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        asset_class:
+          $ref: '#/components/schemas/AssetClassEnum'
+        is_template:
+          type: boolean
+        is_active:
+          type: boolean
+        schedule_interval_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        schedule_enabled:
+          type: boolean
+        last_run_at:
+          type: string
+          format: date-time
+          nullable: true
+        run_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        step_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - step_count
+      - updated_at
+    WorkflowRunDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        workflow_name:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Status1b7Enum'
+        trigger:
+          $ref: '#/components/schemas/TriggerEnum'
+        params: {}
+        current_step:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        total_steps:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        result:
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        job_id:
+          type: string
+          readOnly: true
+        step_runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStepRun'
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - job_id
+      - step_runs
+      - workflow_name
+    WorkflowRunList:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        workflow_name:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Status1b7Enum'
+        trigger:
+          $ref: '#/components/schemas/TriggerEnum'
+        current_step:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        total_steps:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        job_id:
+          type: string
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - job_id
+      - workflow_name
+    WorkflowStep:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        name:
+          type: string
+          maxLength: 100
+        step_type:
+          type: string
+          maxLength: 50
+        params: {}
+        condition:
+          type: string
+          maxLength: 200
+        timeout_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+      required:
+      - id
+      - name
+      - order
+      - step_type
+    WorkflowStepRun:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        step_name:
+          type: string
+          readOnly: true
+        step_type:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/WorkflowStepRunStatusEnum'
+        input_data:
+          nullable: true
+        result:
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        condition_met:
+          type: boolean
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        duration_seconds:
+          type: number
+          format: double
+          nullable: true
+      required:
+      - id
+      - order
+      - step_name
+      - step_type
+    WorkflowStepRunStatusEnum:
+      enum:
+      - pending
+      - running
+      - completed
+      - failed
+      - skipped
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `running` - Running
+        * `completed` - Completed
+        * `failed` - Failed
+        * `skipped` - Skipped
   securitySchemes:
     cookieAuth:
       type: apiKey

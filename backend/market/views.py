@@ -64,6 +64,24 @@ class NewsSentimentView(APIView):
         return Response(summary)
 
 
+class SentimentSignalView(APIView):
+    @extend_schema(tags=["Market"])
+    def get(self, request: Request) -> Response:
+        from market.services.news import NewsService
+
+        asset_class = request.query_params.get("asset_class", "crypto")
+        if asset_class not in ("crypto", "equity", "forex"):
+            return Response(
+                {"error": "Invalid asset_class"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        hours = _safe_int(request.query_params.get("hours"), 24, max_val=168)
+
+        service = NewsService()
+        signal = service.get_sentiment_signal(asset_class, hours)
+        return Response(signal)
+
+
 class NewsFetchView(APIView):
     @extend_schema(tags=["Market"])
     def post(self, request: Request) -> Response:

@@ -66,7 +66,7 @@ export function Dashboard() {
   const { data: recentJobs } = useQuery<BackgroundJob[]>({
     queryKey: ["recent-jobs"],
     queryFn: () => jobsApi.list(undefined, 5),
-    refetchInterval: 5000,
+    refetchInterval: 30000, // 30s fallback (WebSocket handles real-time)
   });
 
   const activeJobs = recentJobs?.filter(
@@ -76,7 +76,7 @@ export function Dashboard() {
   const { data: regimeStates } = useQuery<RegimeState[]>({
     queryKey: ["regime-overview"],
     queryFn: regimeApi.getCurrentAll,
-    refetchInterval: 30000,
+    refetchInterval: 120000, // 2min fallback (WebSocket handles regime changes)
     enabled: assetClass === "crypto",
   });
 

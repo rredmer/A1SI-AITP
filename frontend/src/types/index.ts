@@ -365,7 +365,59 @@ export interface RiskAlertEvent {
   };
 }
 
-export type SystemEvent = HaltStatusEvent | OrderUpdateEvent | RiskAlertEvent;
+export interface NewsUpdateEvent {
+  type: "news_update";
+  data: {
+    asset_class: AssetClass;
+    articles_fetched: number;
+    sentiment_summary: Record<string, unknown>;
+    timestamp: string;
+  };
+}
+
+export interface SentimentUpdateEvent {
+  type: "sentiment_update";
+  data: {
+    asset_class: AssetClass;
+    avg_score: number;
+    overall_label: "positive" | "negative" | "neutral";
+    total_articles: number;
+    timestamp: string;
+  };
+}
+
+export interface SchedulerEventData {
+  type: "scheduler_event";
+  data: {
+    task_id: string;
+    task_name: string;
+    task_type: string;
+    status: string;
+    job_id: string;
+    message: string;
+    timestamp: string;
+  };
+}
+
+export interface RegimeChangeEvent {
+  type: "regime_change";
+  data: {
+    symbol: string;
+    previous_regime: RegimeType;
+    new_regime: RegimeType;
+    confidence: number;
+    timestamp: string;
+  };
+}
+
+export type SystemEvent =
+  | HaltStatusEvent
+  | OrderUpdateEvent
+  | RiskAlertEvent
+  | NewsUpdateEvent
+  | SentimentUpdateEvent
+  | SchedulerEventData
+  | RegimeChangeEvent;
 
 // News types
 export interface NewsArticle {
@@ -380,6 +432,20 @@ export interface NewsArticle {
   sentiment_score: number;
   sentiment_label: "positive" | "negative" | "neutral";
   created_at: string;
+}
+
+export interface SentimentSignal {
+  signal: number;
+  conviction: number;
+  signal_label: "bullish" | "bearish" | "neutral";
+  position_modifier: number;
+  article_count: number;
+  avg_age_hours: number;
+  asset_class: string;
+  thresholds: {
+    bullish: number;
+    bearish: number;
+  };
 }
 
 export interface SentimentSummary {

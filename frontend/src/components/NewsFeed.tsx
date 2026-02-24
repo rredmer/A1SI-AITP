@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { newsApi } from "../api/news";
 import { useAssetClass } from "../hooks/useAssetClass";
-import type { NewsArticle, SentimentSummary } from "../types";
+import type { NewsArticle, SentimentSignal, SentimentSummary } from "../types";
 
 const SENTIMENT_COLORS = {
   positive: "bg-green-400",
@@ -12,6 +12,12 @@ const SENTIMENT_COLORS = {
 const SENTIMENT_BG = {
   positive: "bg-green-500/10 text-green-400",
   negative: "bg-red-500/10 text-red-400",
+  neutral: "bg-gray-500/10 text-gray-400",
+} as const;
+
+const SIGNAL_LABEL_STYLES = {
+  bullish: "bg-green-500/10 text-green-400",
+  bearish: "bg-red-500/10 text-red-400",
   neutral: "bg-gray-500/10 text-gray-400",
 } as const;
 
@@ -26,6 +32,58 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
+function SentimentGauge({ signal }: { signal: SentimentSignal }) {
+  // Map signal [-1, 1] to position [0, 100]
+  const markerPos = ((signal.signal + 1) / 2) * 100;
+
+  return (
+    <div className="mb-4 rounded-lg border border-[var(--color-border)] p-3" data-testid="sentiment-gauge">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-[var(--color-text-muted)]">Signal</span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${SIGNAL_LABEL_STYLES[signal.signal_label]}`}
+          >
+            {signal.signal_label}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[var(--color-text-muted)]">
+            {signal.signal.toFixed(3)}
+          </span>
+          <span
+            className="rounded bg-[var(--color-bg)] px-1.5 py-0.5 text-xs text-[var(--color-text-muted)]"
+            title="Conviction based on article volume"
+          >
+            {Math.round(signal.conviction * 100)}% conv.
+          </span>
+        </div>
+      </div>
+      {/* Gradient gauge bar */}
+      <div className="relative h-2 w-full overflow-hidden rounded-full">
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: "linear-gradient(to right, #ef4444, #6b7280, #22c55e)",
+          }}
+        />
+        {/* Marker */}
+        <div
+          className="absolute top-1/2 h-3.5 w-1.5 -translate-y-1/2 rounded-sm bg-white shadow"
+          style={{ left: `${Math.max(2, Math.min(98, markerPos))}%` }}
+        />
+      </div>
+      <div className="mt-1.5 flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+        <span>Bearish</span>
+        <span>
+          Position: {signal.position_modifier.toFixed(2)}x
+        </span>
+        <span>Bullish</span>
+      </div>
+    </div>
+  );
+}
+
 export function NewsFeed() {
   const queryClient = useQueryClient();
   const { assetClass } = useAssetClass();
@@ -33,19 +91,26 @@ export function NewsFeed() {
   const { data: articles, isLoading: articlesLoading } = useQuery<NewsArticle[]>({
     queryKey: ["news-articles", assetClass],
     queryFn: () => newsApi.list(assetClass, undefined, 10),
-    refetchInterval: 60000,
+    refetchInterval: 300000, // 5min fallback (WebSocket handles real-time)
   });
 
   const { data: sentiment } = useQuery<SentimentSummary>({
     queryKey: ["news-sentiment", assetClass],
     queryFn: () => newsApi.sentiment(assetClass),
-    refetchInterval: 60000,
+    refetchInterval: 300000,
+  });
+
+  const { data: signal } = useQuery<SentimentSignal>({
+    queryKey: ["sentiment-signal", assetClass],
+    queryFn: () => newsApi.signal(assetClass),
+    refetchInterval: 300000,
   });
 
   const handleRefresh = async () => {
     await newsApi.fetch(assetClass);
     queryClient.invalidateQueries({ queryKey: ["news-articles", assetClass] });
     queryClient.invalidateQueries({ queryKey: ["news-sentiment", assetClass] });
+    queryClient.invalidateQueries({ queryKey: ["sentiment-signal", assetClass] });
   };
 
   return (
@@ -60,6 +125,9 @@ export function NewsFeed() {
           &#8635; Refresh
         </button>
       </div>
+
+      {/* Sentiment Signal Gauge */}
+      {signal && signal.article_count > 0 && <SentimentGauge signal={signal} />}
 
       {/* Sentiment Summary Bar */}
       {sentiment && sentiment.total_articles > 0 && (

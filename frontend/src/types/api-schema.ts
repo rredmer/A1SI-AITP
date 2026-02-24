@@ -452,6 +452,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/market/news/signal/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_news_signal_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/market/ohlcv/{symbol}/": {
         parameters: {
             query?: never;
@@ -1364,6 +1380,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow-runs/{run_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["workflow_runs_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow-runs/{run_id}/cancel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["workflow_runs_cancel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow-steps/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["workflow_steps_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["workflows_list"];
+        put?: never;
+        post: operations["workflows_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{workflow_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["workflows_retrieve"];
+        put?: never;
+        post?: never;
+        delete: operations["workflows_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{workflow_id}/disable/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["workflows_disable_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{workflow_id}/enable/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["workflows_enable_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{workflow_id}/runs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["workflows_runs_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{workflow_id}/trigger/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["workflows_trigger_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1686,7 +1846,7 @@ export interface components {
             price?: number;
             /** Format: double */
             readonly filled: number;
-            readonly status: components["schemas"]["StatusEnum"];
+            readonly status: components["schemas"]["OrderStatusEnum"];
             mode?: components["schemas"]["OrderModeEnum"];
             /** Format: int64 */
             portfolio_id?: number;
@@ -1762,6 +1922,18 @@ export interface components {
          * @enum {string}
          */
         OrderModeEnum: "paper" | "live";
+        /**
+         * @description * `pending` - Pending
+         *     * `submitted` - Submitted
+         *     * `open` - Open
+         *     * `partial_fill` - Partially Filled
+         *     * `filled` - Filled
+         *     * `cancelled` - Cancelled
+         *     * `rejected` - Rejected
+         *     * `error` - Error
+         * @enum {string}
+         */
+        OrderStatusEnum: "pending" | "submitted" | "open" | "partial_fill" | "filled" | "cancelled" | "rejected" | "error";
         /**
          * @description * `market` - market
          *     * `limit` - limit
@@ -1948,6 +2120,8 @@ export interface components {
             /** Format: double */
             position_size_modifier: number;
             reasoning: string;
+            /** Format: double */
+            sentiment_modifier?: number | null;
         };
         ScreenRequest: {
             /**
@@ -1992,16 +2166,13 @@ export interface components {
         SideEnum: "buy" | "sell";
         /**
          * @description * `pending` - Pending
-         *     * `submitted` - Submitted
-         *     * `open` - Open
-         *     * `partial_fill` - Partially Filled
-         *     * `filled` - Filled
+         *     * `running` - Running
+         *     * `completed` - Completed
+         *     * `failed` - Failed
          *     * `cancelled` - Cancelled
-         *     * `rejected` - Rejected
-         *     * `error` - Error
          * @enum {string}
          */
-        StatusEnum: "pending" | "submitted" | "open" | "partial_fill" | "filled" | "cancelled" | "rejected" | "error";
+        Status1b7Enum: "pending" | "running" | "completed" | "failed" | "cancelled";
         StrategyInfo: {
             name: string;
             framework: string;
@@ -2075,6 +2246,13 @@ export interface components {
             approved: boolean;
             reason: string;
         };
+        /**
+         * @description * `manual` - Manual
+         *     * `scheduled` - Scheduled
+         *     * `api` - API
+         * @enum {string}
+         */
+        TriggerEnum: "manual" | "scheduled" | "api";
         VaRResponse: {
             /** Format: double */
             var_95: number;
@@ -2087,6 +2265,151 @@ export interface components {
             method: string;
             window_days: number;
         };
+        WorkflowCreate: {
+            /** @description Workflow ID (lowercase alphanumeric + underscore) */
+            id: string;
+            name: string;
+            /** @default  */
+            description: string;
+            /** @default crypto */
+            asset_class: components["schemas"]["AssetClassEnum"];
+            params?: {
+                [key: string]: unknown;
+            };
+            schedule_interval_seconds?: number | null;
+            /** @default false */
+            schedule_enabled: boolean;
+            steps: components["schemas"]["WorkflowCreateStep"][];
+        };
+        WorkflowCreateStep: {
+            order: number;
+            name: string;
+            step_type: string;
+            params?: {
+                [key: string]: unknown;
+            };
+            /** @default  */
+            condition: string;
+            /** @default 300 */
+            timeout_seconds: number;
+        };
+        WorkflowDetail: {
+            id: string;
+            name: string;
+            description?: string;
+            asset_class?: components["schemas"]["AssetClassEnum"];
+            is_template?: boolean;
+            is_active?: boolean;
+            /** Format: int64 */
+            schedule_interval_seconds?: number | null;
+            schedule_enabled?: boolean;
+            params?: unknown;
+            /** Format: date-time */
+            last_run_at?: string | null;
+            /** Format: int64 */
+            run_count?: number;
+            readonly steps: components["schemas"]["WorkflowStep"][];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        WorkflowList: {
+            id: string;
+            name: string;
+            description?: string;
+            asset_class?: components["schemas"]["AssetClassEnum"];
+            is_template?: boolean;
+            is_active?: boolean;
+            /** Format: int64 */
+            schedule_interval_seconds?: number | null;
+            schedule_enabled?: boolean;
+            /** Format: date-time */
+            last_run_at?: string | null;
+            /** Format: int64 */
+            run_count?: number;
+            readonly step_count: number;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        WorkflowRunDetail: {
+            readonly id: string;
+            readonly workflow_name: string;
+            status?: components["schemas"]["Status1b7Enum"];
+            trigger?: components["schemas"]["TriggerEnum"];
+            params?: unknown;
+            /** Format: int64 */
+            current_step?: number;
+            /** Format: int64 */
+            total_steps?: number;
+            result?: unknown;
+            error?: string | null;
+            readonly job_id: string;
+            readonly step_runs: components["schemas"]["WorkflowStepRun"][];
+            /** Format: date-time */
+            started_at?: string | null;
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        WorkflowRunList: {
+            readonly id: string;
+            readonly workflow_name: string;
+            status?: components["schemas"]["Status1b7Enum"];
+            trigger?: components["schemas"]["TriggerEnum"];
+            /** Format: int64 */
+            current_step?: number;
+            /** Format: int64 */
+            total_steps?: number;
+            readonly job_id: string;
+            /** Format: date-time */
+            started_at?: string | null;
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        WorkflowStep: {
+            readonly id: number;
+            /** Format: int64 */
+            order: number;
+            name: string;
+            step_type: string;
+            params?: unknown;
+            condition?: string;
+            /** Format: int64 */
+            timeout_seconds?: number;
+        };
+        WorkflowStepRun: {
+            readonly id: number;
+            /** Format: int64 */
+            order: number;
+            readonly step_name: string;
+            readonly step_type: string;
+            status?: components["schemas"]["WorkflowStepRunStatusEnum"];
+            input_data?: unknown;
+            result?: unknown;
+            error?: string | null;
+            condition_met?: boolean;
+            /** Format: date-time */
+            started_at?: string | null;
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: double */
+            duration_seconds?: number | null;
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `running` - Running
+         *     * `completed` - Completed
+         *     * `failed` - Failed
+         *     * `skipped` - Skipped
+         * @enum {string}
+         */
+        WorkflowStepRunStatusEnum: "pending" | "running" | "completed" | "failed" | "skipped";
     };
     responses: never;
     parameters: never;
@@ -2771,6 +3094,24 @@ export interface operations {
         };
     };
     market_news_sentiment_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    market_news_signal_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -4133,6 +4474,229 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Order"];
                 };
+            };
+        };
+    };
+    workflow_runs_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunDetail"];
+                };
+            };
+        };
+    };
+    workflow_runs_cancel_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    workflow_steps_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    workflows_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowList"][];
+                };
+            };
+        };
+    };
+    workflows_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDetail"];
+                };
+            };
+        };
+    };
+    workflows_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDetail"];
+                };
+            };
+        };
+    };
+    workflows_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    workflows_disable_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    workflows_enable_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    workflows_runs_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunList"][];
+                };
+            };
+        };
+    };
+    workflows_trigger_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

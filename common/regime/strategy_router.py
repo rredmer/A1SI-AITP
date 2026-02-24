@@ -37,6 +37,7 @@ class RoutingDecision:
     weights: list[StrategyWeight]
     position_size_modifier: float  # Overall position sizing modifier (0-1)
     reasoning: str
+    sentiment_modifier: float | None = None  # Sentiment-based position adjustment
 
 
 # Strategy name constants — crypto
@@ -225,8 +226,18 @@ class StrategyRouter:
         self.low_confidence_threshold = low_confidence_threshold
         self.low_confidence_penalty = low_confidence_penalty
 
-    def route(self, state: RegimeState) -> RoutingDecision:
-        """Get strategy routing decision for a detected regime state."""
+    def route(
+        self,
+        state: RegimeState,
+        sentiment_modifier: float | None = None,
+    ) -> RoutingDecision:
+        """Get strategy routing decision for a detected regime state.
+
+        Args:
+            state: Detected regime state from RegimeDetector.
+            sentiment_modifier: Optional position size multiplier from sentiment signal.
+                Clamped to [0.5, 1.5]. None preserves existing behavior.
+        """
         mapping = self.routing.get(state.regime)
         if mapping is None:
             # Fallback to RANGING if unknown
@@ -247,6 +258,11 @@ class StrategyRouter:
         if state.confidence < self.low_confidence_threshold:
             position_modifier *= self.low_confidence_penalty
 
+        # Apply sentiment modifier if provided
+        if sentiment_modifier is not None:
+            clamped = max(0.5, min(1.5, sentiment_modifier))
+            position_modifier *= clamped
+
         return RoutingDecision(
             regime=state.regime,
             confidence=state.confidence,
@@ -254,6 +270,7 @@ class StrategyRouter:
             weights=list(mapping["weights"]),
             position_size_modifier=round(position_modifier, 3),
             reasoning=mapping["reasoning"],
+            sentiment_modifier=sentiment_modifier,
         )
 
     def suggest_strategy_switch(

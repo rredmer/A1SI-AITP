@@ -5,7 +5,7 @@ import {
 } from "react";
 import { ToastContext } from "../contexts/toast";
 
-type ToastType = "success" | "error" | "info";
+type ToastType = "success" | "error" | "info" | "warning";
 
 interface Toast {
   id: number;
@@ -66,10 +66,13 @@ const TOAST_STYLES: Record<ToastType, string> = {
     "border-red-500/30 bg-red-500/10 text-red-400",
   info:
     "border-blue-500/30 bg-blue-500/10 text-blue-400",
+  warning:
+    "border-yellow-500/30 bg-yellow-500/10 text-yellow-400",
 };
 
 const TOAST_ICONS: Record<ToastType, string> = {
   success: "\u2713",
   error: "\u2717",
   info: "\u2139",
+  warning: "\u26A0",
 };

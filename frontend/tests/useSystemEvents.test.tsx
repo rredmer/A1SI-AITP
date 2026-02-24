@@ -3,6 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useSystemEvents } from "../src/hooks/useSystemEvents";
+import { ToastProvider } from "../src/components/Toast";
 
 // Track the most recent useWebSocket callback
 let lastWebSocketResult = {
@@ -30,7 +31,9 @@ function createWrapper() {
     Wrapper({ children }: { children: ReactNode }) {
       return (
         <QueryClientProvider client={queryClient}>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </QueryClientProvider>
       );
     },

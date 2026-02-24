@@ -29,6 +29,9 @@ def auto_tag_endpoints(endpoints, **kwargs):
         "/api/data/": "Analysis",
         "/api/ml/": "ML",
         "/api/scheduler/": "Scheduler",
+        "/api/workflows/": "Workflows",
+        "/api/workflow-runs/": "Workflows",
+        "/api/workflow-steps/": "Workflows",
         "/metrics/": "Platform",
     }
 

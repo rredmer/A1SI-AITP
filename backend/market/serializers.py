@@ -156,6 +156,7 @@ class RoutingDecisionSerializer(serializers.Serializer):
     weights = serializers.ListField()
     position_size_modifier = serializers.FloatField()
     reasoning = serializers.CharField()
+    sentiment_modifier = serializers.FloatField(required=False, allow_null=True)
 
 
 class RegimeHistoryEntrySerializer(serializers.Serializer):
@@ -222,3 +223,19 @@ class NewsSentimentSummarySerializer(serializers.Serializer):
     positive_count = serializers.IntegerField()
     negative_count = serializers.IntegerField()
     neutral_count = serializers.IntegerField()
+
+
+class SentimentSignalThresholdsSerializer(serializers.Serializer):
+    bullish = serializers.FloatField()
+    bearish = serializers.FloatField()
+
+
+class SentimentSignalSerializer(serializers.Serializer):
+    signal = serializers.FloatField()
+    conviction = serializers.FloatField()
+    signal_label = serializers.CharField()
+    position_modifier = serializers.FloatField()
+    article_count = serializers.IntegerField()
+    avg_age_hours = serializers.FloatField()
+    asset_class = serializers.CharField()
+    thresholds = SentimentSignalThresholdsSerializer()

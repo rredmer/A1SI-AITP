@@ -91,6 +91,54 @@ class NewsService:
             )[:limit]
         )
 
+    def get_sentiment_signal(
+        self,
+        asset_class: str = "crypto",
+        hours: int = 24,
+    ) -> dict[str, Any]:
+        """Compute aggregate sentiment signal with temporal decay and volume weighting."""
+        from core.platform_bridge import ensure_platform_imports
+
+        ensure_platform_imports()
+        from common.sentiment.signal import (
+            BEARISH_THRESHOLD,
+            BULLISH_THRESHOLD,
+            compute_signal,
+        )
+
+        from market.models import NewsArticle
+
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=hours)
+        qs = NewsArticle.objects.filter(published_at__gte=cutoff)
+        if asset_class:
+            qs = qs.filter(asset_class=asset_class)
+
+        now = datetime.now(tz=timezone.utc)
+        articles = []
+        for art in qs.values("sentiment_score", "published_at", "title", "summary"):
+            age = (now - art["published_at"]).total_seconds() / 3600.0
+            articles.append({
+                "sentiment_score": art["sentiment_score"],
+                "age_hours": age,
+                "title": art["title"],
+                "summary": art["summary"] or "",
+            })
+
+        sig = compute_signal(articles, asset_class)
+        return {
+            "signal": sig.signal,
+            "conviction": sig.conviction,
+            "signal_label": sig.signal_label,
+            "position_modifier": sig.position_modifier,
+            "article_count": sig.article_count,
+            "avg_age_hours": sig.avg_age_hours,
+            "asset_class": sig.asset_class,
+            "thresholds": {
+                "bullish": BULLISH_THRESHOLD,
+                "bearish": BEARISH_THRESHOLD,
+            },
+        }
+
     def get_sentiment_summary(
         self,
         asset_class: str | None = None,

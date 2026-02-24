@@ -43,12 +43,24 @@ const mockSentiment = {
   neutral_count: 3,
 };
 
+const mockSignal = {
+  signal: 0.35,
+  conviction: 0.75,
+  signal_label: "bullish",
+  position_modifier: 1.05,
+  article_count: 15,
+  avg_age_hours: 4.5,
+  asset_class: "crypto",
+  thresholds: { bullish: 0.15, bearish: -0.15 },
+};
+
 describe("NewsFeed", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
       mockFetch({
         "/api/market/news/sentiment": mockSentiment,
+        "/api/market/news/signal": mockSignal,
         "/api/market/news": mockArticles,
       }),
     );
@@ -109,5 +121,20 @@ describe("NewsFeed", () => {
     // First article is 1h ago, second is 2h ago
     expect(await screen.findByText("1h ago")).toBeInTheDocument();
     expect(screen.getByText("2h ago")).toBeInTheDocument();
+  });
+
+  it("renders sentiment gauge when signal data is available", async () => {
+    renderWithProviders(<NewsFeed />);
+    expect(await screen.findByTestId("sentiment-gauge")).toBeInTheDocument();
+  });
+
+  it("shows signal label in gauge", async () => {
+    renderWithProviders(<NewsFeed />);
+    expect(await screen.findByText("bullish")).toBeInTheDocument();
+  });
+
+  it("shows conviction percentage in gauge", async () => {
+    renderWithProviders(<NewsFeed />);
+    expect(await screen.findByText("75% conv.")).toBeInTheDocument();
   });
 });

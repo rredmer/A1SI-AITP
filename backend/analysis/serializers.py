@@ -1,6 +1,14 @@
 from rest_framework import serializers
 
-from analysis.models import BackgroundJob, BacktestResult, ScreenResult
+from analysis.models import (
+    BackgroundJob,
+    BacktestResult,
+    ScreenResult,
+    Workflow,
+    WorkflowRun,
+    WorkflowStep,
+    WorkflowStepRun,
+)
 from market.constants import AssetClass
 
 
@@ -186,3 +194,107 @@ class MLPredictRequestSerializer(serializers.Serializer):
 class JobAcceptedSerializer(serializers.Serializer):
     job_id = serializers.CharField()
     status = serializers.CharField()
+
+
+# ── Workflow serializers ─────────────────────────────────────
+
+
+class WorkflowStepSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkflowStep
+        fields = ["id", "order", "name", "step_type", "params", "condition", "timeout_seconds"]
+
+
+class WorkflowListSerializer(serializers.ModelSerializer):
+    step_count = serializers.IntegerField(source="steps.count", read_only=True)
+
+    class Meta:
+        model = Workflow
+        fields = [
+            "id", "name", "description", "asset_class",
+            "is_template", "is_active",
+            "schedule_interval_seconds", "schedule_enabled",
+            "last_run_at", "run_count", "step_count",
+            "created_at", "updated_at",
+        ]
+
+
+class WorkflowDetailSerializer(serializers.ModelSerializer):
+    steps = WorkflowStepSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Workflow
+        fields = [
+            "id", "name", "description", "asset_class",
+            "is_template", "is_active",
+            "schedule_interval_seconds", "schedule_enabled",
+            "params", "last_run_at", "run_count", "steps",
+            "created_at", "updated_at",
+        ]
+
+
+class WorkflowCreateStepSerializer(serializers.Serializer):
+    order = serializers.IntegerField(min_value=1)
+    name = serializers.CharField(max_length=100)
+    step_type = serializers.CharField(max_length=50)
+    params = serializers.DictField(default=dict)
+    condition = serializers.CharField(default="", allow_blank=True, max_length=200)
+    timeout_seconds = serializers.IntegerField(default=300, min_value=1, max_value=3600)
+
+
+class WorkflowCreateSerializer(serializers.Serializer):
+    id = serializers.RegexField(
+        regex=r"^[a-z0-9_]+$",
+        max_length=50,
+        help_text="Workflow ID (lowercase alphanumeric + underscore)",
+    )
+    name = serializers.CharField(max_length=100)
+    description = serializers.CharField(default="", allow_blank=True)
+    asset_class = serializers.ChoiceField(choices=AssetClass.choices, default=AssetClass.CRYPTO)
+    params = serializers.DictField(default=dict)
+    schedule_interval_seconds = serializers.IntegerField(
+        required=False, allow_null=True, min_value=60,
+    )
+    schedule_enabled = serializers.BooleanField(default=False)
+    steps = WorkflowCreateStepSerializer(many=True)
+
+
+class WorkflowStepRunSerializer(serializers.ModelSerializer):
+    step_name = serializers.CharField(source="step.name", read_only=True)
+    step_type = serializers.CharField(source="step.step_type", read_only=True)
+
+    class Meta:
+        model = WorkflowStepRun
+        fields = [
+            "id", "order", "step_name", "step_type", "status",
+            "input_data", "result", "error", "condition_met",
+            "started_at", "completed_at", "duration_seconds",
+        ]
+
+
+class WorkflowRunListSerializer(serializers.ModelSerializer):
+    workflow_name = serializers.CharField(source="workflow.name", read_only=True)
+    job_id = serializers.CharField(source="job.id", read_only=True, default=None)
+
+    class Meta:
+        model = WorkflowRun
+        fields = [
+            "id", "workflow_name", "status", "trigger",
+            "current_step", "total_steps", "job_id",
+            "started_at", "completed_at", "created_at",
+        ]
+
+
+class WorkflowRunDetailSerializer(serializers.ModelSerializer):
+    workflow_name = serializers.CharField(source="workflow.name", read_only=True)
+    job_id = serializers.CharField(source="job.id", read_only=True, default=None)
+    step_runs = WorkflowStepRunSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = WorkflowRun
+        fields = [
+            "id", "workflow_name", "status", "trigger", "params",
+            "current_step", "total_steps", "result", "error",
+            "job_id", "step_runs",
+            "started_at", "completed_at", "created_at",
+        ]

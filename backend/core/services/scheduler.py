@@ -52,6 +52,7 @@ class TaskScheduler:
         )
 
         self._sync_tasks_to_db()
+        self._sync_workflows_to_db()
         self._schedule_active_tasks()
         self._scheduler.start()
         self._running = True
@@ -81,6 +82,25 @@ class TaskScheduler:
                     "params": cfg.get("params", {}),
                 },
             )
+
+    def _sync_workflows_to_db(self) -> None:
+        """Ensure WORKFLOW_TEMPLATES from settings are reflected in DB."""
+        from analysis.models import Workflow, WorkflowStep
+
+        templates: dict[str, dict[str, Any]] = getattr(settings, "WORKFLOW_TEMPLATES", {})
+        for wf_id, cfg in templates.items():
+            wf, created = Workflow.objects.update_or_create(
+                id=wf_id,
+                defaults={
+                    "name": cfg["name"],
+                    "description": cfg.get("description", ""),
+                    "asset_class": cfg.get("asset_class", "crypto"),
+                    "is_template": True,
+                },
+            )
+            if created:
+                for step_data in cfg.get("steps", []):
+                    WorkflowStep.objects.create(workflow=wf, **step_data)
 
     def _schedule_active_tasks(self) -> None:
         """Add APScheduler jobs for all active tasks."""
@@ -150,6 +170,21 @@ class TaskScheduler:
         ScheduledTask.objects.filter(id=task_id).update(**update_fields)
         logger.info("Task %s submitted as job %s", task_id, job_id)
 
+        # Broadcast scheduler event
+        try:
+            from core.services.ws_broadcast import broadcast_scheduler_event
+
+            broadcast_scheduler_event(
+                task_id=task_id,
+                task_name=task.name,
+                task_type=task.task_type,
+                status="submitted",
+                job_id=job_id,
+                message=f"Task {task.name} submitted",
+            )
+        except Exception:
+            pass
+
     def pause_task(self, task_id: str) -> bool:
         """Pause a scheduled task."""
         from core.models import ScheduledTask
@@ -170,6 +205,20 @@ class TaskScheduler:
                 self._scheduler.remove_job(task_id)
 
         logger.info("Task %s paused", task_id)
+
+        try:
+            from core.services.ws_broadcast import broadcast_scheduler_event
+
+            broadcast_scheduler_event(
+                task_id=task_id,
+                task_name=task.name,
+                task_type=task.task_type,
+                status="paused",
+                message=f"Task {task.name} paused",
+            )
+        except Exception:
+            pass
+
         return True
 
     def resume_task(self, task_id: str) -> bool:
@@ -200,6 +249,20 @@ class TaskScheduler:
                 )
 
         logger.info("Task %s resumed", task_id)
+
+        try:
+            from core.services.ws_broadcast import broadcast_scheduler_event
+
+            broadcast_scheduler_event(
+                task_id=task_id,
+                task_name=task.name,
+                task_type=task.task_type,
+                status="resumed",
+                message=f"Task {task.name} resumed",
+            )
+        except Exception:
+            pass
+
         return True
 
     def trigger_task(self, task_id: str) -> str | None:
@@ -230,6 +293,21 @@ class TaskScheduler:
         )
 
         logger.info("Task %s manually triggered as job %s", task_id, job_id)
+
+        try:
+            from core.services.ws_broadcast import broadcast_scheduler_event
+
+            broadcast_scheduler_event(
+                task_id=task_id,
+                task_name=task.name,
+                task_type=task.task_type,
+                status="triggered",
+                job_id=job_id,
+                message=f"Task {task.name} manually triggered",
+            )
+        except Exception:
+            pass
+
         return job_id
 
     def get_status(self) -> dict[str, Any]:

@@ -21,6 +21,15 @@ from analysis.views import (
     ScreeningResultListView,
     ScreeningRunView,
     ScreeningStrategyListView,
+    WorkflowDetailView,
+    WorkflowDisableView,
+    WorkflowEnableView,
+    WorkflowListView,
+    WorkflowRunCancelView,
+    WorkflowRunDetailView,
+    WorkflowRunListView,
+    WorkflowStepTypesView,
+    WorkflowTriggerView,
 )
 
 urlpatterns = [
@@ -61,4 +70,32 @@ urlpatterns = [
     path("ml/models/", MLModelListView.as_view(), name="ml-model-list"),
     path("ml/models/<str:model_id>/", MLModelDetailView.as_view(), name="ml-model-detail"),
     path("ml/predict/", MLPredictView.as_view(), name="ml-predict"),
+    # Workflows
+    path("workflows/", WorkflowListView.as_view(), name="workflow-list"),
+    path("workflows/<str:workflow_id>/", WorkflowDetailView.as_view(), name="workflow-detail"),
+    path(
+        "workflows/<str:workflow_id>/trigger/",
+        WorkflowTriggerView.as_view(), name="workflow-trigger",
+    ),
+    path(
+        "workflows/<str:workflow_id>/enable/",
+        WorkflowEnableView.as_view(), name="workflow-enable",
+    ),
+    path(
+        "workflows/<str:workflow_id>/disable/",
+        WorkflowDisableView.as_view(), name="workflow-disable",
+    ),
+    path(
+        "workflows/<str:workflow_id>/runs/",
+        WorkflowRunListView.as_view(), name="workflow-runs",
+    ),
+    path(
+        "workflow-runs/<str:run_id>/",
+        WorkflowRunDetailView.as_view(), name="workflow-run-detail",
+    ),
+    path(
+        "workflow-runs/<str:run_id>/cancel/",
+        WorkflowRunCancelView.as_view(), name="workflow-run-cancel",
+    ),
+    path("workflow-steps/", WorkflowStepTypesView.as_view(), name="workflow-step-types"),
 ]

@@ -62,11 +62,27 @@ class JobRunner:
         from analysis.models import BackgroundJob
 
         try:
+            job_obj = BackgroundJob.objects.get(id=job_id)
             BackgroundJob.objects.filter(id=job_id).update(
                 status="running",
                 started_at=datetime.now(timezone.utc),
             )
             _job_progress[job_id] = {"progress": 0.0, "progress_message": "Running"}
+
+            # Broadcast job start
+            try:
+                from core.services.ws_broadcast import broadcast_scheduler_event
+
+                broadcast_scheduler_event(
+                    task_id="",
+                    task_name=job_obj.job_type,
+                    task_type=job_obj.job_type,
+                    status="running",
+                    job_id=job_id,
+                    message=f"Job {job_id[:8]} started",
+                )
+            except Exception:
+                pass
 
             def progress_callback(progress: float, message: str = "") -> None:
                 _job_progress[job_id] = {
@@ -83,6 +99,21 @@ class JobRunner:
             job.result = result
             job.completed_at = datetime.now(timezone.utc)
             job.save()
+
+            # Broadcast job completion
+            try:
+                from core.services.ws_broadcast import broadcast_scheduler_event
+
+                broadcast_scheduler_event(
+                    task_id="",
+                    task_name=job.job_type,
+                    task_type=job.job_type,
+                    status="completed",
+                    job_id=job_id,
+                    message=f"Job {job_id[:8]} completed",
+                )
+            except Exception:
+                pass
 
             # Persist structured result for backtest jobs
             if job.job_type == "backtest" and isinstance(result, dict) and "error" not in result:
@@ -107,6 +138,20 @@ class JobRunner:
                 error=str(e),
                 completed_at=datetime.now(timezone.utc),
             )
+            # Broadcast job failure
+            try:
+                from core.services.ws_broadcast import broadcast_scheduler_event
+
+                broadcast_scheduler_event(
+                    task_id="",
+                    task_name=params.get("job_type", "unknown"),
+                    task_type=params.get("job_type", "unknown"),
+                    status="failed",
+                    job_id=job_id,
+                    message=f"Job {job_id[:8]} failed: {e}",
+                )
+            except Exception:
+                pass
 
     @staticmethod
     def get_live_progress(job_id: str) -> dict[str, Any] | None:

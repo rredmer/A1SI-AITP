@@ -1,4 +1,4 @@
-"""Analysis views — jobs, backtest, screening, data pipeline, ML."""
+"""Analysis views — jobs, backtest, screening, data pipeline, ML, workflows."""
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from analysis.models import BackgroundJob, BacktestResult, ScreenResult
+from analysis.models import BackgroundJob, BacktestResult, ScreenResult, Workflow, WorkflowRun
 from analysis.serializers import (
     BacktestRequestSerializer,
     BacktestResultSerializer,
@@ -18,6 +18,11 @@ from analysis.serializers import (
     ScreenRequestSerializer,
     ScreenResultSerializer,
     StrategyInfoSerializer,
+    WorkflowCreateSerializer,
+    WorkflowDetailSerializer,
+    WorkflowListSerializer,
+    WorkflowRunDetailSerializer,
+    WorkflowRunListSerializer,
 )
 from core.utils import safe_int as _safe_int
 
@@ -338,3 +343,167 @@ class MLPredictView(APIView):
         if "error" in result:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
         return Response(result)
+
+
+# ── Workflow views ───────────────────────────────────────────
+
+
+class WorkflowListView(APIView):
+    @extend_schema(responses=WorkflowListSerializer(many=True), tags=["Workflows"])
+    def get(self, request: Request) -> Response:
+        qs = Workflow.objects.prefetch_related("steps").all()
+        asset_class = request.query_params.get("asset_class")
+        if asset_class in ("crypto", "equity", "forex"):
+            qs = qs.filter(asset_class=asset_class)
+        return Response(WorkflowListSerializer(qs, many=True).data)
+
+    @extend_schema(
+        request=WorkflowCreateSerializer,
+        responses=WorkflowDetailSerializer,
+        tags=["Workflows"],
+    )
+    def post(self, request: Request) -> Response:
+        from analysis.models import WorkflowStep
+
+        ser = WorkflowCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        if Workflow.objects.filter(id=data["id"]).exists():
+            return Response(
+                {"error": f"Workflow '{data['id']}' already exists"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        wf = Workflow.objects.create(
+            id=data["id"],
+            name=data["name"],
+            description=data.get("description", ""),
+            asset_class=data.get("asset_class", "crypto"),
+            params=data.get("params", {}),
+            schedule_interval_seconds=data.get("schedule_interval_seconds"),
+            schedule_enabled=data.get("schedule_enabled", False),
+        )
+        for step_data in data["steps"]:
+            WorkflowStep.objects.create(workflow=wf, **step_data)
+
+        return Response(
+            WorkflowDetailSerializer(wf).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class WorkflowDetailView(APIView):
+    @extend_schema(responses=WorkflowDetailSerializer, tags=["Workflows"])
+    def get(self, request: Request, workflow_id: str) -> Response:
+        try:
+            wf = Workflow.objects.prefetch_related("steps").get(id=workflow_id)
+        except Workflow.DoesNotExist:
+            return Response({"error": "Workflow not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(WorkflowDetailSerializer(wf).data)
+
+    @extend_schema(tags=["Workflows"])
+    def delete(self, request: Request, workflow_id: str) -> Response:
+        try:
+            wf = Workflow.objects.get(id=workflow_id)
+        except Workflow.DoesNotExist:
+            return Response({"error": "Workflow not found"}, status=status.HTTP_404_NOT_FOUND)
+        if wf.is_template:
+            return Response(
+                {"error": "Cannot delete template workflows"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        wf.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WorkflowTriggerView(APIView):
+    @extend_schema(tags=["Workflows"])
+    def post(self, request: Request, workflow_id: str) -> Response:
+        from analysis.services.workflow_engine import WorkflowEngine
+
+        try:
+            run_id, job_id = WorkflowEngine.trigger(
+                workflow_id,
+                trigger="api",
+                params=request.data.get("params"),
+            )
+        except Workflow.DoesNotExist:
+            return Response({"error": "Workflow not found"}, status=status.HTTP_404_NOT_FOUND)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"workflow_run_id": run_id, "job_id": job_id},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class WorkflowEnableView(APIView):
+    @extend_schema(tags=["Workflows"])
+    def post(self, request: Request, workflow_id: str) -> Response:
+        try:
+            wf = Workflow.objects.get(id=workflow_id)
+        except Workflow.DoesNotExist:
+            return Response({"error": "Workflow not found"}, status=status.HTTP_404_NOT_FOUND)
+        wf.schedule_enabled = True
+        wf.save(update_fields=["schedule_enabled", "updated_at"])
+        return Response({"status": "enabled", "workflow_id": workflow_id})
+
+
+class WorkflowDisableView(APIView):
+    @extend_schema(tags=["Workflows"])
+    def post(self, request: Request, workflow_id: str) -> Response:
+        try:
+            wf = Workflow.objects.get(id=workflow_id)
+        except Workflow.DoesNotExist:
+            return Response({"error": "Workflow not found"}, status=status.HTTP_404_NOT_FOUND)
+        wf.schedule_enabled = False
+        wf.save(update_fields=["schedule_enabled", "updated_at"])
+        return Response({"status": "disabled", "workflow_id": workflow_id})
+
+
+class WorkflowRunListView(APIView):
+    @extend_schema(responses=WorkflowRunListSerializer(many=True), tags=["Workflows"])
+    def get(self, request: Request, workflow_id: str) -> Response:
+        limit = _safe_int(request.query_params.get("limit"), 20, max_val=100)
+        runs = WorkflowRun.objects.filter(
+            workflow_id=workflow_id,
+        ).select_related("workflow", "job")[:limit]
+        return Response(WorkflowRunListSerializer(runs, many=True).data)
+
+
+class WorkflowRunDetailView(APIView):
+    @extend_schema(responses=WorkflowRunDetailSerializer, tags=["Workflows"])
+    def get(self, request: Request, run_id: str) -> Response:
+        try:
+            run = WorkflowRun.objects.select_related(
+                "workflow", "job",
+            ).prefetch_related(
+                "step_runs__step",
+            ).get(id=run_id)
+        except WorkflowRun.DoesNotExist:
+            return Response({"error": "Workflow run not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(WorkflowRunDetailSerializer(run).data)
+
+
+class WorkflowRunCancelView(APIView):
+    @extend_schema(tags=["Workflows"])
+    def post(self, request: Request, run_id: str) -> Response:
+        from analysis.services.workflow_engine import WorkflowEngine
+
+        cancelled = WorkflowEngine.cancel(run_id)
+        if not cancelled:
+            return Response(
+                {"error": "Run not found or not cancellable"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response({"status": "cancelled"})
+
+
+class WorkflowStepTypesView(APIView):
+    @extend_schema(tags=["Workflows"])
+    def get(self, request: Request) -> Response:
+        from analysis.services.step_registry import get_step_types
+
+        return Response(get_step_types())
