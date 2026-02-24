@@ -124,8 +124,13 @@ export function RiskManagement() {
   });
 
   // Position sizer state
-  const [entryPrice, setEntryPrice] = useState(50000);
-  const [stopLoss, setStopLoss] = useState(48000);
+  const positionDefaults: Record<string, { entry: number; stop: number; size: number }> = {
+    crypto: { entry: 50000, stop: 48000, size: 0.1 },
+    equity: { entry: 200, stop: 194, size: 10 },
+    forex: { entry: 1.1, stop: 1.098, size: 10000 },
+  };
+  const [entryPrice, setEntryPrice] = useState(positionDefaults[assetClass].entry);
+  const [stopLoss, setStopLoss] = useState(positionDefaults[assetClass].stop);
   const [posResult, setPosResult] = useState<{ size: number; risk_amount: number; position_value: number } | null>(null);
 
   const positionMutation = useMutation({
@@ -137,8 +142,8 @@ export function RiskManagement() {
   // Trade checker state
   const [tradeSymbol, setTradeSymbol] = useState(DEFAULT_SYMBOL[assetClass]);
   const [tradeSide, setTradeSide] = useState("buy");
-  const [tradeSize, setTradeSize] = useState(0.1);
-  const [tradeEntry, setTradeEntry] = useState(50000);
+  const [tradeSize, setTradeSize] = useState(positionDefaults[assetClass].size);
+  const [tradeEntry, setTradeEntry] = useState(positionDefaults[assetClass].entry);
   const [tradeResult, setTradeResult] = useState<{ approved: boolean; reason: string } | null>(null);
 
   const tradeMutation = useMutation({

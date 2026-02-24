@@ -12,16 +12,16 @@ export function AssetClassSelector() {
   const { assetClass, setAssetClass } = useAssetClass();
 
   return (
-    <div className="flex rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]">
+    <div className="flex flex-col gap-0.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
       {SEGMENTS.map(({ value, label, Icon }) => (
         <button
           key={value}
           onClick={() => setAssetClass(value)}
-          className={`flex flex-1 items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium transition-colors ${
+          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
             assetClass === value
               ? "bg-[var(--color-primary)] text-white"
-              : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-          } ${value === "crypto" ? "rounded-l-lg" : ""} ${value === "forex" ? "rounded-r-lg" : ""}`}
+              : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+          }`}
         >
           <Icon size={14} />
           {label}

@@ -18,8 +18,9 @@ export function PaperTrading() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { assetClass } = useAssetClass();
-  const frameworks = BACKTEST_FRAMEWORKS[assetClass].map((f) => f.label).join(", ");
-  const [selectedStrategy, setSelectedStrategy] = useState("CryptoInvestorV1");
+  const frameworkList = BACKTEST_FRAMEWORKS[assetClass];
+  const frameworks = frameworkList.map((f) => f.label).join(", ");
+  const [selectedStrategy, setSelectedStrategy] = useState("");
 
   useEffect(() => { document.title = "Paper Trading | A1SI-AITP"; }, []);
 
@@ -33,6 +34,10 @@ export function PaperTrading() {
     queryKey: ["strategies"],
     queryFn: backtestApi.strategies,
   });
+
+  // Filter strategies by frameworks available for this asset class
+  const frameworkValues = frameworkList.map((f) => f.value);
+  const filteredStrategies = strategies?.filter((s) => frameworkValues.includes(s.framework)) ?? [];
 
   const { data: openTrades } = useQuery<PaperTrade[]>({
     queryKey: ["paper-trading-trades"],
@@ -110,13 +115,12 @@ export function PaperTrading() {
               onChange={(e) => setSelectedStrategy(e.target.value)}
               className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
             >
-              {strategies?.map((s) => (
+              <option value="">Select strategy...</option>
+              {filteredStrategies.map((s) => (
                 <option key={s.name} value={s.name}>
                   {s.name}
                 </option>
-              )) ?? (
-                <option value="CryptoInvestorV1">CryptoInvestorV1</option>
-              )}
+              ))}
             </select>
           )}
           {isRunning ? (

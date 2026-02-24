@@ -110,7 +110,8 @@ describe("PaperTrading - Running State", () => {
 
   it("shows strategy name in status bar", async () => {
     renderWithProviders(<PaperTrading />);
-    expect(await screen.findByText("CryptoInvestorV1")).toBeInTheDocument();
+    const matches = await screen.findAllByText("CryptoInvestorV1");
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders open trades section", async () => {

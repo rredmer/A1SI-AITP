@@ -135,7 +135,7 @@ export function Layout({ onLogout, username }: LayoutProps) {
         )}
         <div className="p-6">
           <ErrorBoundary>
-            <Outlet />
+            <Outlet key={assetClass} />
           </ErrorBoundary>
         </div>
       </main>
