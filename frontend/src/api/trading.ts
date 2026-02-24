@@ -1,6 +1,7 @@
 import { api } from "./client";
 import type {
   AssetClass,
+  ExchangeHealthResponse,
   LiveTradingStatus,
   Order,
   OrderCreate,
@@ -45,4 +46,10 @@ export const tradingApi = {
     api.get<TradingPerformanceSummary>(`/trading/performance/summary/${perfQuery(params)}`),
   performanceBySymbol: (params?: PerformanceParams) =>
     api.get<SymbolPerformance[]>(`/trading/performance/by-symbol/${perfQuery(params)}`),
+  cancelAll: (portfolioId: number = 1) =>
+    api.post<{ cancelled: number }>("/trading/cancel-all/", { portfolio_id: portfolioId }),
+  exchangeHealth: (exchangeId?: string) => {
+    const params = exchangeId ? `?exchange_id=${exchangeId}` : "";
+    return api.get<ExchangeHealthResponse>(`/trading/exchange-health/${params}`);
+  },
 };

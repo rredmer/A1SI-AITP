@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from market.constants import AssetClass
-from risk.models import AlertLog, RiskLimits, RiskMetricHistory, TradeCheckLog
+from risk.models import AlertLog, RiskLimitChange, RiskLimits, RiskMetricHistory, TradeCheckLog
 
 
 class RiskLimitsSerializer(serializers.ModelSerializer):
@@ -28,6 +28,7 @@ class RiskLimitsUpdateSerializer(serializers.Serializer):
     max_correlation = serializers.FloatField(required=False, min_value=0.0, max_value=1.0)
     min_risk_reward = serializers.FloatField(required=False, min_value=0.1, max_value=100.0)
     max_leverage = serializers.FloatField(required=False, min_value=1.0, max_value=125.0)
+    reason = serializers.CharField(required=False, max_length=500, default="")
 
 
 class RiskStatusSerializer(serializers.Serializer):
@@ -149,6 +150,21 @@ class AlertLogSerializer(serializers.ModelSerializer):
             "delivered",
             "error",
             "created_at",
+        ]
+
+
+class RiskLimitChangeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RiskLimitChange
+        fields = [
+            "id",
+            "portfolio_id",
+            "field_name",
+            "old_value",
+            "new_value",
+            "changed_by",
+            "reason",
+            "changed_at",
         ]
 
 

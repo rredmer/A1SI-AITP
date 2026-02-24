@@ -148,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dashboard/kpis/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["dashboard_kpis_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/data/": {
         parameters: {
             query?: never;
@@ -1116,6 +1132,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["risk_heat_check_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/risk/{portfolio_id}/limit-history/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["risk_limit_history_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2294,6 +2326,18 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        RiskLimitChange: {
+            readonly id: number;
+            /** Format: int64 */
+            portfolio_id: number;
+            field_name: string;
+            old_value: string;
+            new_value: string;
+            changed_by?: string;
+            reason?: string;
+            /** Format: date-time */
+            readonly changed_at: string;
+        };
         RiskLimits: {
             /** Format: double */
             max_portfolio_drawdown?: number;
@@ -2328,6 +2372,8 @@ export interface components {
             min_risk_reward?: number;
             /** Format: double */
             max_leverage?: number;
+            /** @default  */
+            reason: string;
         };
         RiskMetricHistory: {
             readonly id: number;
@@ -2884,6 +2930,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StrategyInfo"][];
                 };
+            };
+        };
+    };
+    dashboard_kpis_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4406,6 +4470,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HeatCheckResponse"];
+                };
+            };
+        };
+    };
+    risk_limit_history_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskLimitChange"][];
                 };
             };
         };

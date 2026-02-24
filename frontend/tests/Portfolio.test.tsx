@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { PortfolioPage } from "../src/pages/Portfolio";
 import { renderWithProviders, mockFetch } from "./helpers";
 
@@ -54,5 +54,78 @@ describe("Portfolio Page", () => {
     renderWithProviders(<PortfolioPage />);
     expect(await screen.findByText("Total Value")).toBeInTheDocument();
     expect(screen.getByText("Total Cost")).toBeInTheDocument();
+  });
+});
+
+describe("Portfolio - Create Form", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/portfolios": mockPortfolios,
+        "/api/market/tickers": mockTickers,
+      }),
+    );
+  });
+
+  it("renders Create Portfolio button", () => {
+    renderWithProviders(<PortfolioPage />);
+    expect(screen.getByText("Create Portfolio")).toBeInTheDocument();
+  });
+
+  it("toggles create form on button click", () => {
+    renderWithProviders(<PortfolioPage />);
+    fireEvent.click(screen.getByText("Create Portfolio"));
+    const nameInput = document.getElementById("portfolio-name");
+    expect(nameInput).toBeInTheDocument();
+  });
+
+  it("renders form fields in create form", () => {
+    renderWithProviders(<PortfolioPage />);
+    fireEvent.click(screen.getByText("Create Portfolio"));
+    expect(document.getElementById("portfolio-name")).toBeInTheDocument();
+    expect(document.getElementById("portfolio-exchange")).toBeInTheDocument();
+  });
+});
+
+describe("Portfolio - Portfolio Cards", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/portfolios": mockPortfolios,
+        "/api/market/tickers": mockTickers,
+      }),
+    );
+  });
+
+  it("shows empty state when no portfolios", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/portfolios": [],
+        "/api/market/tickers": [],
+      }),
+    );
+    renderWithProviders(<PortfolioPage />);
+    // Should show create prompt or empty state
+    expect(screen.getByText("Create Portfolio")).toBeInTheDocument();
+  });
+
+  it("renders allocation toggle button", async () => {
+    renderWithProviders(<PortfolioPage />);
+    await screen.findByText("Main Portfolio");
+    const allocationBtn = screen.queryByText(/Allocation/);
+    // The allocation toggle should exist
+    expect(allocationBtn).toBeInTheDocument();
+  });
+
+  it("renders edit and delete buttons for portfolio", async () => {
+    renderWithProviders(<PortfolioPage />);
+    await screen.findByText("Main Portfolio");
+    const editButtons = screen.getAllByText("Edit");
+    expect(editButtons.length).toBeGreaterThanOrEqual(1);
+    const deleteButtons = screen.getAllByText("Delete");
+    expect(deleteButtons.length).toBeGreaterThanOrEqual(1);
   });
 });

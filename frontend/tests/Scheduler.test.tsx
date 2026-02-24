@@ -88,3 +88,61 @@ describe("Scheduler Page", () => {
     expect(resumeButtons.length).toBeGreaterThan(0);
   });
 });
+
+describe("Scheduler - Status Cards", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/scheduler/status": mockStatus,
+        "/api/scheduler/tasks": mockTasks,
+      }),
+    );
+  });
+
+  it("shows total tasks count", async () => {
+    renderWithProviders(<Scheduler />);
+    expect(await screen.findByText("5")).toBeInTheDocument();
+  });
+
+  it("shows active tasks count", async () => {
+    renderWithProviders(<Scheduler />);
+    expect(await screen.findByText("3")).toBeInTheDocument();
+  });
+
+  it("shows paused tasks count", async () => {
+    renderWithProviders(<Scheduler />);
+    expect(await screen.findByText("2")).toBeInTheDocument();
+  });
+
+  it("shows stopped state when not running", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/scheduler/status": { ...mockStatus, running: false },
+        "/api/scheduler/tasks": mockTasks,
+      }),
+    );
+    renderWithProviders(<Scheduler />);
+    expect(await screen.findByText("Stopped")).toBeInTheDocument();
+  });
+
+  it("shows trigger buttons for each task", async () => {
+    renderWithProviders(<Scheduler />);
+    await screen.findByText("Data Refresh (Crypto)");
+    const triggerButtons = screen.getAllByText("Trigger");
+    expect(triggerButtons.length).toBe(2);
+  });
+
+  it("shows empty state when no tasks", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/scheduler/status": { running: true, total_tasks: 0, active_tasks: 0, paused_tasks: 0 },
+        "/api/scheduler/tasks": [],
+      }),
+    );
+    renderWithProviders(<Scheduler />);
+    expect(await screen.findByText("No scheduled tasks found.")).toBeInTheDocument();
+  });
+});

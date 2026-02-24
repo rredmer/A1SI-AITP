@@ -8,6 +8,8 @@ import { tradingApi } from "../api/trading";
 import { OrderForm } from "../components/OrderForm";
 import { QueryResult } from "../components/QueryResult";
 import { Pagination } from "../components/Pagination";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ExchangeHealthBadge } from "../components/ExchangeHealthBadge";
 import type { Order, OrderStatus, TradingMode, TradingPerformanceSummary } from "../types";
 
 const PAGE_SIZE = 15;
@@ -38,6 +40,7 @@ export function Trading() {
   const [page, setPage] = useState(1);
   const [symbolFilter, setSymbolFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [showCancelAll, setShowCancelAll] = useState(false);
   const { isConnected, isHalted } = useSystemEvents();
 
   const amountLabel = assetClass === "equity" ? "Shares" : assetClass === "forex" ? "Lots" : "Amount";
@@ -63,10 +66,26 @@ export function Trading() {
     onError: (err) => toast((err as Error).message || "Failed to cancel order", "error"),
   });
 
+  const cancelAllMutation = useMutation({
+    mutationFn: () => tradingApi.cancelAll(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast(`Cancelled ${data.cancelled ?? 0} orders`, "info");
+      setShowCancelAll(false);
+    },
+    onError: (err) => {
+      toast((err as Error).message || "Failed to cancel all orders", "error");
+      setShowCancelAll(false);
+    },
+  });
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Trading</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold">Trading</h2>
+          <ExchangeHealthBadge />
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMode("paper")}
@@ -107,9 +126,17 @@ export function Trading() {
 
       {/* Live mode warning banner */}
       {mode === "live" && (
-        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-          <span className="font-bold">LIVE MODE</span> — Orders will be
-          submitted to the exchange. Real money is at risk.
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+          <span>
+            <span className="font-bold">LIVE MODE</span> — Orders will be
+            submitted to the exchange. Real money is at risk.
+          </span>
+          <button
+            onClick={() => setShowCancelAll(true)}
+            className="rounded border border-red-600 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-900/30"
+          >
+            Cancel All Orders
+          </button>
         </div>
       )}
 
@@ -276,6 +303,17 @@ export function Trading() {
           </QueryResult>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showCancelAll}
+        title="Cancel All Orders"
+        message="This will cancel all open live orders. This action cannot be undone."
+        confirmLabel="Cancel All"
+        variant="danger"
+        isPending={cancelAllMutation.isPending}
+        onConfirm={() => cancelAllMutation.mutate()}
+        onCancel={() => setShowCancelAll(false)}
+      />
     </div>
   );
 }

@@ -14,6 +14,7 @@ from risk.serializers import (
     HeatCheckResponseSerializer,
     PositionSizeRequestSerializer,
     PositionSizeResponseSerializer,
+    RiskLimitChangeSerializer,
     RiskLimitsSerializer,
     RiskLimitsUpdateSerializer,
     RiskMetricHistorySerializer,
@@ -48,7 +49,12 @@ class RiskLimitsView(APIView):
         ser.is_valid(raise_exception=True)
         # Only include fields that were explicitly sent in the request
         updates = {k: v for k, v in ser.validated_data.items() if k in request.data}
-        limits = RiskManagementService.update_limits(portfolio_id, updates)
+        limits = RiskManagementService.update_limits(
+            portfolio_id,
+            updates,
+            changed_by=request.user.username if request.user.is_authenticated else "",
+            reason=request.data.get("reason", ""),
+        )
         return Response(RiskLimitsSerializer(limits).data)
 
 
@@ -189,3 +195,17 @@ class TradeLogView(APIView):
         limit = _safe_int(request.query_params.get("limit"), 50, max_val=200)
         logs = RiskManagementService.get_trade_log(portfolio_id, limit)
         return Response(TradeCheckLogSerializer(logs, many=True).data)
+
+
+class RiskLimitHistoryView(APIView):
+    @extend_schema(responses=RiskLimitChangeSerializer(many=True), tags=["Risk"])
+    def get(self, request: Request, portfolio_id: int) -> Response:
+        from risk.models import RiskLimitChange
+
+        limit = _safe_int(request.query_params.get("limit"), 50, max_val=200)
+        qs = RiskLimitChange.objects.filter(portfolio_id=portfolio_id)
+        field = request.query_params.get("field")
+        if field:
+            qs = qs.filter(field_name=field)
+        entries = qs.order_by("-changed_at")[:limit]
+        return Response(RiskLimitChangeSerializer(entries, many=True).data)

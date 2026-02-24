@@ -128,6 +128,15 @@ class HealthView(APIView):
         return Response({"status": overall, "checks": checks})
 
 
+class DashboardKPIView(APIView):
+    @extend_schema(tags=["Core"])
+    def get(self, request: Request) -> Response:
+        from core.services.dashboard import DashboardService
+
+        asset_class = request.query_params.get("asset_class")
+        return Response(DashboardService.get_kpis(asset_class))
+
+
 class PlatformStatusView(APIView):
     @extend_schema(tags=["Core"])
     def get(self, request: Request) -> Response:

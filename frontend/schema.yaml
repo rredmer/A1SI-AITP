@@ -132,6 +132,16 @@ paths:
                 items:
                   $ref: '#/components/schemas/StrategyInfo'
           description: ''
+  /api/dashboard/kpis/:
+    get:
+      operationId: dashboard_kpis_retrieve
+      tags:
+      - Core
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/data/:
     get:
       operationId: data_list
@@ -1412,6 +1422,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HeatCheckResponse'
+          description: ''
+  /api/risk/{portfolio_id}/limit-history/:
+    get:
+      operationId: risk_limit_history_list
+      parameters:
+      - in: path
+        name: portfolio_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Risk
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RiskLimitChange'
           description: ''
   /api/risk/{portfolio_id}/limits/:
     get:
@@ -3408,6 +3440,43 @@ components:
       - regime
       - symbol
       - trend_alignment
+    RiskLimitChange:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        portfolio_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        field_name:
+          type: string
+          maxLength: 50
+        old_value:
+          type: string
+          maxLength: 50
+        new_value:
+          type: string
+          maxLength: 50
+        changed_by:
+          type: string
+          maxLength: 150
+        reason:
+          type: string
+          maxLength: 500
+        changed_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - changed_at
+      - field_name
+      - id
+      - new_value
+      - old_value
+      - portfolio_id
     RiskLimits:
       type: object
       properties:
@@ -3479,6 +3548,10 @@ components:
           format: double
           maximum: 125.0
           minimum: 1.0
+        reason:
+          type: string
+          default: ''
+          maxLength: 500
     RiskMetricHistory:
       type: object
       properties:

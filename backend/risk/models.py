@@ -83,6 +83,12 @@ class TradeCheckLog(models.Model):
 
     class Meta:
         ordering = ["-checked_at"]
+        indexes = [
+            models.Index(
+                fields=["portfolio_id", "-checked_at"],
+                name="idx_tradecheck_portfolio_time",
+            ),
+        ]
 
     def __str__(self):
         verdict = "APPROVED" if self.approved else "REJECTED"
@@ -101,6 +107,41 @@ class AlertLog(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["portfolio_id", "-created_at"],
+                name="idx_alert_portfolio_created",
+            ),
+            models.Index(
+                fields=["severity", "-created_at"],
+                name="idx_alert_severity_created",
+            ),
+        ]
 
     def __str__(self):
         return f"Alert({self.severity} {self.event_type}: {self.message[:50]})"
+
+
+class RiskLimitChange(models.Model):
+    portfolio_id = models.IntegerField(db_index=True)
+    field_name = models.CharField(max_length=50)
+    old_value = models.CharField(max_length=50)
+    new_value = models.CharField(max_length=50)
+    changed_by = models.CharField(max_length=150, default="")
+    reason = models.CharField(max_length=500, default="", blank=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-changed_at"]
+        indexes = [
+            models.Index(
+                fields=["portfolio_id", "-changed_at"],
+                name="idx_risklimitchange_port_time",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"RiskLimitChange(portfolio={self.portfolio_id}, "
+            f"{self.field_name}: {self.old_value} -> {self.new_value})"
+        )

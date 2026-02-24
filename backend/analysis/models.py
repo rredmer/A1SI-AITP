@@ -20,6 +20,12 @@ class BackgroundJob(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["status", "-created_at"],
+                name="idx_job_status_created",
+            ),
+        ]
 
     def __str__(self):
         return f"Job({self.id[:8]}... {self.job_type} {self.status})"
@@ -48,6 +54,20 @@ class BacktestResult(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["asset_class", "strategy_name"],
+                name="idx_backtest_asset_strategy",
+            ),
+            models.Index(
+                fields=["framework", "asset_class"],
+                name="idx_backtest_framework_asset",
+            ),
+            models.Index(
+                fields=["symbol", "timeframe"],
+                name="idx_backtest_symbol_tf",
+            ),
+        ]
 
     def __str__(self):
         return f"Backtest({self.strategy_name} {self.symbol} {self.timeframe})"
@@ -135,6 +155,12 @@ class WorkflowRun(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["workflow", "-created_at"],
+                name="idx_wfrun_workflow_created",
+            ),
+        ]
 
     def __str__(self):
         return f"WorkflowRun({self.id[:8]}... {self.workflow_id} {self.status})"
@@ -187,6 +213,12 @@ class ScreenResult(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["asset_class", "-created_at"],
+                name="idx_screen_asset_created",
+            ),
+        ]
 
     def __str__(self):
         return f"Screen({self.strategy_name} {self.symbol} {self.timeframe})"

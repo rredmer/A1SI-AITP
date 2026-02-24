@@ -653,6 +653,14 @@ export interface SymbolPerformance extends TradingPerformanceSummary {
   symbol: string;
 }
 
+// Exchange Health types
+export interface ExchangeHealthResponse {
+  connected: boolean;
+  exchange: string;
+  latency_ms: number;
+  error?: string;
+}
+
 // Platform types
 export interface FrameworkStatus {
   name: string;

@@ -110,6 +110,14 @@ class Order(models.Model):
                 fields=["asset_class", "symbol"],
                 name="idx_order_asset_symbol",
             ),
+            models.Index(
+                fields=["portfolio_id", "status", "-timestamp"],
+                name="idx_order_portfolio_status_ts",
+            ),
+            models.Index(
+                fields=["-created_at"],
+                name="idx_order_created_desc",
+            ),
         ]
 
     def __str__(self):

@@ -53,3 +53,61 @@ describe("Backtesting Page", () => {
     expect(cells.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("Backtesting - Configuration Form", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/backtest/strategies": mockStrategies,
+        "/api/backtest/results": mockResults,
+      }),
+    );
+  });
+
+  it("renders strategy dropdown", () => {
+    renderWithProviders(<Backtesting />);
+    const strategySelect = document.getElementById("bt-strategy");
+    expect(strategySelect).toBeInTheDocument();
+  });
+
+  it("renders symbol input", () => {
+    renderWithProviders(<Backtesting />);
+    const symbolInput = document.getElementById("bt-symbol");
+    expect(symbolInput).toBeInTheDocument();
+  });
+
+  it("renders timeframe select", () => {
+    renderWithProviders(<Backtesting />);
+    const timeframeSelect = document.getElementById("bt-timeframe");
+    expect(timeframeSelect).toBeInTheDocument();
+  });
+
+  it("renders exchange select", () => {
+    renderWithProviders(<Backtesting />);
+    const exchangeSelect = document.getElementById("bt-exchange");
+    expect(exchangeSelect).toBeInTheDocument();
+  });
+
+  it("renders Run Backtest button", () => {
+    renderWithProviders(<Backtesting />);
+    expect(screen.getByText("Run Backtest")).toBeInTheDocument();
+  });
+
+  it("renders Export CSV link in history", async () => {
+    renderWithProviders(<Backtesting />);
+    expect(await screen.findByText("Export CSV")).toBeInTheDocument();
+  });
+
+  it("shows empty state when no results", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/backtest/strategies": mockStrategies,
+        "/api/backtest/results": [],
+      }),
+    );
+    renderWithProviders(<Backtesting />);
+    expect(await screen.findByText("History")).toBeInTheDocument();
+  });
+});

@@ -44,6 +44,44 @@ class AuditLogSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class DashboardPortfolioKPISerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    total_value = serializers.FloatField()
+    total_cost = serializers.FloatField()
+    unrealized_pnl = serializers.FloatField()
+    pnl_pct = serializers.FloatField()
+
+
+class DashboardTradingKPISerializer(serializers.Serializer):
+    total_trades = serializers.IntegerField()
+    win_rate = serializers.FloatField()
+    total_pnl = serializers.FloatField()
+    profit_factor = serializers.FloatField(allow_null=True)
+    open_orders = serializers.IntegerField()
+
+
+class DashboardRiskKPISerializer(serializers.Serializer):
+    equity = serializers.FloatField()
+    drawdown = serializers.FloatField()
+    daily_pnl = serializers.FloatField()
+    is_halted = serializers.BooleanField()
+    open_positions = serializers.IntegerField()
+
+
+class DashboardPlatformKPISerializer(serializers.Serializer):
+    data_files = serializers.IntegerField()
+    active_jobs = serializers.IntegerField()
+    framework_count = serializers.IntegerField()
+
+
+class DashboardKPISerializer(serializers.Serializer):
+    portfolio = DashboardPortfolioKPISerializer()
+    trading = DashboardTradingKPISerializer()
+    risk = DashboardRiskKPISerializer()
+    platform = DashboardPlatformKPISerializer()
+    generated_at = serializers.CharField()
+
+
 class NotificationPreferencesSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationPreferences

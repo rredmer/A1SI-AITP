@@ -258,3 +258,58 @@ describe("Trading - Order Filters", () => {
     expect(screen.getByText("All statuses")).toBeInTheDocument();
   });
 });
+
+describe("Trading - Cancel All Orders", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ "/api/trading/orders": mockOrders }),
+    );
+  });
+
+  it("shows Cancel All button in live mode", () => {
+    renderWithProviders(<Trading />);
+    fireEvent.click(screen.getByText("Live"));
+    expect(screen.getByText("Cancel All Orders")).toBeInTheDocument();
+  });
+
+  it("hides Cancel All button in paper mode", () => {
+    renderWithProviders(<Trading />);
+    // Ensure we're in paper mode
+    fireEvent.click(screen.getByText("Paper"));
+    expect(screen.queryByText("Cancel All Orders")).not.toBeInTheDocument();
+  });
+
+  it("opens confirm dialog when Cancel All clicked", () => {
+    renderWithProviders(<Trading />);
+    fireEvent.click(screen.getByText("Live"));
+    fireEvent.click(screen.getByText("Cancel All Orders"));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("This will cancel all open live orders. This action cannot be undone.")).toBeInTheDocument();
+  });
+
+  it("closes dialog when cancel is clicked", () => {
+    renderWithProviders(<Trading />);
+    fireEvent.click(screen.getByText("Live"));
+    fireEvent.click(screen.getByText("Cancel All Orders"));
+    // Click the dialog's Cancel button (not Cancel All)
+    const cancelBtns = screen.getAllByText("Cancel");
+    // The dialog has a Cancel button
+    const dialogCancel = cancelBtns.find(
+      (btn) => btn.closest("[role='dialog']") !== null,
+    );
+    if (dialogCancel) fireEvent.click(dialogCancel);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("Trading - Exchange Health Badge", () => {
+  it("renders exchange health badge", () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ "/api/trading/orders": mockOrders }),
+    );
+    renderWithProviders(<Trading />);
+    expect(screen.getByText("Checking...")).toBeInTheDocument();
+  });
+});

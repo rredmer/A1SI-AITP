@@ -89,11 +89,28 @@ class RiskManagementService:
         return RiskManagementService._get_or_create_limits(portfolio_id)
 
     @staticmethod
-    def update_limits(portfolio_id: int, updates: dict) -> RiskLimits:
+    def update_limits(
+        portfolio_id: int,
+        updates: dict,
+        changed_by: str = "",
+        reason: str = "",
+    ) -> RiskLimits:
+        from risk.models import RiskLimitChange
+
         limits = RiskManagementService._get_or_create_limits(portfolio_id)
         for key, value in updates.items():
             if value is not None and hasattr(limits, key):
-                setattr(limits, key, value)
+                old_value = getattr(limits, key)
+                if old_value != value:
+                    RiskLimitChange.objects.create(
+                        portfolio_id=portfolio_id,
+                        field_name=key,
+                        old_value=str(old_value),
+                        new_value=str(value),
+                        changed_by=changed_by,
+                        reason=reason,
+                    )
+                    setattr(limits, key, value)
         limits.save()
         return limits
 
