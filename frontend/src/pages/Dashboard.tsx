@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { exchangesApi } from "../api/exchanges";
+import { marketApi } from "../api/market";
 import { portfoliosApi } from "../api/portfolios";
 import { platformApi } from "../api/platform";
 import { jobsApi } from "../api/jobs";
@@ -9,25 +9,49 @@ import { riskApi } from "../api/risk";
 import { useAssetClass } from "../hooks/useAssetClass";
 import { ProgressBar } from "../components/ProgressBar";
 import { MarketStatusBadge } from "../components/MarketStatusBadge";
+import { PriceChart } from "../components/PriceChart";
+import { AssetClassBadge } from "../components/AssetClassBadge";
+import {
+  DEFAULT_SYMBOLS,
+  DEFAULT_SYMBOL,
+  EXCHANGE_OPTIONS,
+  BACKTEST_FRAMEWORKS,
+  ASSET_CLASS_LABELS,
+} from "../constants/assetDefaults";
 import type {
+  AssetClass,
   BackgroundJob,
-  ExchangeInfo,
+  OHLCVData,
   PlatformStatus,
   Portfolio,
   RegimeState,
   RegimeType,
   RiskStatus,
+  TickerData,
 } from "../types";
+
+const ALWAYS_SHOW_FRAMEWORKS = ["VectorBT", "CCXT", "Pandas", "TA-Lib"];
+
+function formatPrice(price: number, assetClass: AssetClass): string {
+  if (assetClass === "forex") return price.toFixed(5);
+  if (price < 1) return price.toFixed(6);
+  return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatVolume(volume: number): string {
+  if (volume >= 1e9) return `${(volume / 1e9).toFixed(1)}B`;
+  if (volume >= 1e6) return `${(volume / 1e6).toFixed(1)}M`;
+  if (volume >= 1e3) return `${(volume / 1e3).toFixed(1)}K`;
+  return volume.toFixed(0);
+}
 
 export function Dashboard() {
   const queryClient = useQueryClient();
   const { assetClass } = useAssetClass();
+  const [chartSymbol, setChartSymbol] = useState(DEFAULT_SYMBOL[assetClass]);
 
   useEffect(() => { document.title = "Dashboard | A1SI-AITP"; }, []);
-  const exchanges = useQuery<ExchangeInfo[]>({
-    queryKey: ["exchanges"],
-    queryFn: exchangesApi.list,
-  });
+
   const portfolios = useQuery<Portfolio[]>({
     queryKey: ["portfolios"],
     queryFn: portfoliosApi.list,
@@ -52,6 +76,22 @@ export function Dashboard() {
     queryKey: ["regime-overview"],
     queryFn: regimeApi.getCurrentAll,
     refetchInterval: 30000,
+    enabled: assetClass === "crypto",
+  });
+
+  // Watchlist tickers
+  const { data: tickerData, isLoading: tickersLoading } = useQuery<TickerData[]>({
+    queryKey: ["watchlist-tickers", assetClass],
+    queryFn: () => marketApi.tickers(DEFAULT_SYMBOLS[assetClass], assetClass),
+    refetchInterval: 30000,
+    retry: 1,
+  });
+
+  // Daily OHLCV for chart
+  const { data: ohlcvData, isLoading: ohlcvLoading } = useQuery<OHLCVData[]>({
+    queryKey: ["dashboard-ohlcv", chartSymbol, assetClass],
+    queryFn: () => marketApi.ohlcv(chartSymbol, "1d", 30, assetClass),
+    retry: 1,
   });
 
   // Compute aggregate portfolio value from holdings
@@ -68,6 +108,12 @@ export function Dashboard() {
     enabled: primaryPortfolioId != null,
   });
 
+  // Filter frameworks by asset class
+  const frameworkLabels = BACKTEST_FRAMEWORKS[assetClass].map((f) => f.label);
+  const filteredFrameworks = platformStatus?.frameworks.filter(
+    (fw) => ALWAYS_SHOW_FRAMEWORKS.includes(fw.name) || frameworkLabels.includes(fw.name),
+  );
+
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
@@ -75,10 +121,9 @@ export function Dashboard() {
         <MarketStatusBadge assetClass={assetClass} />
       </div>
 
-      {(exchanges.isError || portfolios.isError) && (
+      {portfolios.isError && (
         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-          {exchanges.isError && <p>Failed to load exchanges: {exchanges.error instanceof Error ? exchanges.error.message : "Unknown error"}</p>}
-          {portfolios.isError && <p>Failed to load portfolios: {portfolios.error instanceof Error ? portfolios.error.message : "Unknown error"}</p>}
+          <p>Failed to load portfolios: {portfolios.error instanceof Error ? portfolios.error.message : "Unknown error"}</p>
         </div>
       )}
 
@@ -90,9 +135,8 @@ export function Dashboard() {
           loading={portfolios.isLoading}
         />
         <SummaryCard
-          label="Exchanges"
-          value={exchanges.data?.length ?? 0}
-          loading={exchanges.isLoading}
+          label="Data Sources"
+          value={EXCHANGE_OPTIONS[assetClass].length}
         />
         <SummaryCard
           label="Data Files"
@@ -116,36 +160,124 @@ export function Dashboard() {
         <SummaryCard label="Status" text="Online" textColor="text-[var(--color-success)]" />
       </div>
 
-      {/* Regime Overview */}
-      {regimeStates && regimeStates.length > 0 && (
-        <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-          <h3 className="mb-4 text-lg font-semibold">Regime Overview</h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {regimeStates.map((rs) => (
-              <div
-                key={rs.symbol}
-                className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3"
-              >
-                <div>
-                  <p className="font-medium">{rs.symbol}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    Confidence: {(rs.confidence * 100).toFixed(1)}%
-                  </p>
-                </div>
-                <RegimeBadge regime={rs.regime} />
-              </div>
+      {/* Watchlist */}
+      <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <h3 className="text-lg font-semibold">{ASSET_CLASS_LABELS[assetClass]} Watchlist</h3>
+          <AssetClassBadge assetClass={assetClass} />
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["watchlist-tickers", assetClass] })}
+            className="ml-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+            title="Refresh prices"
+          >
+            &#8635; Refresh
+          </button>
+        </div>
+        {tickersLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-10 animate-pulse rounded-lg bg-[var(--color-border)]" />
             ))}
           </div>
+        ) : tickerData && tickerData.length > 0 ? (
+          <div className="space-y-1">
+            <div className="grid grid-cols-4 px-3 py-1 text-xs font-medium text-[var(--color-text-muted)]">
+              <span>Symbol</span>
+              <span className="text-right">Price</span>
+              <span className="text-right">24h Change</span>
+              <span className="text-right">Volume</span>
+            </div>
+            {tickerData.map((t) => (
+              <button
+                key={t.symbol}
+                onClick={() => setChartSymbol(t.symbol)}
+                className={`grid w-full grid-cols-4 rounded-lg border p-3 text-left transition-colors hover:bg-[var(--color-bg)] ${
+                  chartSymbol === t.symbol
+                    ? "border-[var(--color-primary)] bg-[var(--color-bg)]"
+                    : "border-[var(--color-border)]"
+                }`}
+              >
+                <span className="font-medium">{t.symbol}</span>
+                <span className="text-right">{formatPrice(t.price, assetClass)}</span>
+                <span className={`text-right ${t.change_24h >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {t.change_24h >= 0 ? "+" : ""}{t.change_24h.toFixed(2)}%
+                </span>
+                <span className="text-right text-[var(--color-text-muted)]">
+                  {formatVolume(t.volume_24h)}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="py-8 text-center text-sm text-[var(--color-text-muted)]">
+            <p>No price data available</p>
+            <p className="mt-1 text-xs">
+              {assetClass === "crypto"
+                ? "Connect an exchange to see live prices"
+                : "Download data to see prices"}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Daily Chart */}
+      <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <h3 className="text-lg font-semibold">{chartSymbol}</h3>
+          <span className="rounded-full bg-[var(--color-bg)] px-2 py-0.5 text-xs text-[var(--color-text-muted)]">
+            Daily
+          </span>
+        </div>
+        {ohlcvLoading ? (
+          <div className="h-[300px] animate-pulse rounded-lg bg-[var(--color-border)]" />
+        ) : ohlcvData && ohlcvData.length > 0 ? (
+          <PriceChart data={ohlcvData} height={300} assetClass={assetClass} />
+        ) : (
+          <div className="flex h-[300px] items-center justify-center text-sm text-[var(--color-text-muted)]">
+            No chart data available for {chartSymbol}
+          </div>
+        )}
+      </div>
+
+      {/* Regime Overview */}
+      {assetClass === "crypto" ? (
+        regimeStates && regimeStates.length > 0 ? (
+          <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+            <h3 className="mb-4 text-lg font-semibold">Regime Overview</h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {regimeStates.map((rs) => (
+                <div
+                  key={rs.symbol}
+                  className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3"
+                >
+                  <div>
+                    <p className="font-medium">{rs.symbol}</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      Confidence: {(rs.confidence * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                  <RegimeBadge regime={rs.regime} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null
+      ) : (
+        <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <h3 className="mb-4 text-lg font-semibold">Regime Overview</h3>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Regime detection for {ASSET_CLASS_LABELS[assetClass].toLowerCase()} is not yet available.
+          </p>
         </div>
       )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Framework Status */}
-        {platformStatus?.frameworks && (
+        {filteredFrameworks && filteredFrameworks.length > 0 && (
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
             <h3 className="mb-4 text-lg font-semibold">Framework Status</h3>
             <div className="space-y-2">
-              {platformStatus.frameworks.map((fw) => (
+              {filteredFrameworks.map((fw) => (
                 <div
                   key={fw.name}
                   className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3"
@@ -229,25 +361,25 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Exchange list */}
-      {exchanges.data && (
-        <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-          <h3 className="mb-4 text-lg font-semibold">Available Exchanges</h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {exchanges.data.map((ex) => (
-              <div
-                key={ex.id}
-                className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] p-3"
-              >
-                <div>
-                  <p className="font-medium">{ex.name}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">{ex.id}</p>
-                </div>
+      {/* Data Sources */}
+      <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        <h3 className="mb-4 text-lg font-semibold">
+          {assetClass === "crypto" ? "Available Exchanges" : "Data Sources"}
+        </h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {EXCHANGE_OPTIONS[assetClass].map((ex) => (
+            <div
+              key={ex.value}
+              className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] p-3"
+            >
+              <div>
+                <p className="font-medium">{ex.label}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">{ex.value}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,13 @@ import { screen } from "@testing-library/react";
 import { Dashboard } from "../src/pages/Dashboard";
 import { renderWithProviders, mockFetch } from "./helpers";
 
+// Mock PriceChart to avoid lightweight-charts canvas errors in jsdom
+vi.mock("../src/components/PriceChart", () => ({
+  PriceChart: ({ data }: { data: unknown[] }) => (
+    <div data-testid="price-chart">Chart ({data.length} bars)</div>
+  ),
+}));
+
 const mockPlatformStatus = {
   frameworks: [
     { name: "VectorBT", installed: true, version: "0.28.4" },
@@ -16,10 +23,6 @@ const mockPlatformStatus = {
   data_files: 12,
   active_jobs: 2,
 };
-
-const mockExchanges = [
-  { id: "binance", name: "Binance", countries: ["MT"], has_fetch_tickers: true, has_fetch_ohlcv: true },
-];
 
 const mockPortfolios = [
   { id: 1, name: "Main", exchange_id: "binance", description: "", holdings: [], created_at: "", updated_at: "" },
@@ -77,16 +80,55 @@ const mockRiskStatus = {
   halt_reason: "",
 };
 
+const mockTickers = [
+  {
+    symbol: "BTC/USDT",
+    price: 65432.10,
+    volume_24h: 1234567890,
+    change_24h: 2.45,
+    high_24h: 66000,
+    low_24h: 64000,
+    timestamp: "2026-02-23T12:00:00Z",
+  },
+  {
+    symbol: "ETH/USDT",
+    price: 3456.78,
+    volume_24h: 987654321,
+    change_24h: -1.23,
+    high_24h: 3500,
+    low_24h: 3400,
+    timestamp: "2026-02-23T12:00:00Z",
+  },
+];
+
+const mockOhlcv = [
+  { timestamp: 1708646400000, open: 64000, high: 66000, low: 63500, close: 65432, volume: 1000 },
+  { timestamp: 1708732800000, open: 65432, high: 67000, low: 65000, close: 66500, volume: 1200 },
+];
+
+const mockEquityTickers = [
+  {
+    symbol: "AAPL/USD",
+    price: 185.50,
+    volume_24h: 45000000,
+    change_24h: 0.85,
+    high_24h: 186.00,
+    low_24h: 184.00,
+    timestamp: "2026-02-23T16:00:00Z",
+  },
+];
+
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     mockFetch({
       "/api/platform/status": mockPlatformStatus,
-      "/api/exchanges": mockExchanges,
       "/api/portfolios": mockPortfolios,
       "/api/regime/current": mockRegimeStates,
       "/api/jobs": mockJobs,
       "/api/risk/1/status/": mockRiskStatus,
+      "/api/market/tickers": mockTickers,
+      "/api/market/ohlcv": mockOhlcv,
     }),
   );
 });
@@ -100,7 +142,7 @@ describe("Dashboard", () => {
   it("renders summary cards", async () => {
     renderWithProviders(<Dashboard />);
     expect(await screen.findByText("Portfolios")).toBeInTheDocument();
-    expect(screen.getByText("Exchanges")).toBeInTheDocument();
+    expect(screen.getByText("Data Sources")).toBeInTheDocument();
     expect(screen.getByText("Data Files")).toBeInTheDocument();
     expect(screen.getByText("Active Jobs")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
@@ -121,9 +163,80 @@ describe("Dashboard", () => {
   it("renders regime overview after data loads", async () => {
     renderWithProviders(<Dashboard />);
     expect(await screen.findByText("Regime Overview")).toBeInTheDocument();
-    expect(screen.getByText("BTC/USDT")).toBeInTheDocument();
-    expect(screen.getByText("ETH/USDT")).toBeInTheDocument();
     expect(screen.getByText("Strong Trend Up")).toBeInTheDocument();
     expect(screen.getByText("Ranging")).toBeInTheDocument();
+  });
+
+  it("renders watchlist with ticker data", async () => {
+    renderWithProviders(<Dashboard />);
+    expect(await screen.findByText("Crypto Watchlist")).toBeInTheDocument();
+    expect(await screen.findByText("+2.45%")).toBeInTheDocument();
+    expect(screen.getByText("-1.23%")).toBeInTheDocument();
+  });
+
+  it("renders daily chart section", async () => {
+    renderWithProviders(<Dashboard />);
+    expect(await screen.findByText("Daily")).toBeInTheDocument();
+    expect(screen.getByText("BTC/USDT")).toBeInTheDocument();
+  });
+
+  it("shows equity-specific content", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/platform/status": mockPlatformStatus,
+        "/api/portfolios": mockPortfolios,
+        "/api/jobs": mockJobs,
+        "/api/risk/1/status/": mockRiskStatus,
+        "/api/market/tickers": mockEquityTickers,
+        "/api/market/ohlcv": mockOhlcv,
+      }),
+    );
+    renderWithProviders(<Dashboard />, { assetClass: "equity" });
+    expect(await screen.findByText("Equities Watchlist")).toBeInTheDocument();
+    expect(await screen.findByText("Yahoo Finance")).toBeInTheDocument();
+    expect(screen.getByText(/not yet available/)).toBeInTheDocument();
+  });
+
+  it("shows empty state when no ticker data", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/platform/status": mockPlatformStatus,
+        "/api/portfolios": mockPortfolios,
+        "/api/regime/current": mockRegimeStates,
+        "/api/jobs": mockJobs,
+        "/api/risk/1/status/": mockRiskStatus,
+        "/api/market/ohlcv": mockOhlcv,
+      }),
+    );
+    renderWithProviders(<Dashboard />);
+    expect(await screen.findByText("No price data available")).toBeInTheDocument();
+  });
+
+  it("filters frameworks for equity asset class", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/platform/status": mockPlatformStatus,
+        "/api/portfolios": mockPortfolios,
+        "/api/jobs": mockJobs,
+        "/api/risk/1/status/": mockRiskStatus,
+        "/api/market/tickers": mockEquityTickers,
+        "/api/market/ohlcv": mockOhlcv,
+      }),
+    );
+    renderWithProviders(<Dashboard />, { assetClass: "equity" });
+    expect(await screen.findByText("Framework Status")).toBeInTheDocument();
+    expect(screen.getByText("NautilusTrader")).toBeInTheDocument();
+    expect(screen.getByText("VectorBT")).toBeInTheDocument();
+    expect(screen.queryByText("Freqtrade")).not.toBeInTheDocument();
+    expect(screen.queryByText("HFT Backtest")).not.toBeInTheDocument();
+  });
+
+  it("shows data sources with exchanges for crypto", async () => {
+    renderWithProviders(<Dashboard />);
+    expect(await screen.findByText("Available Exchanges")).toBeInTheDocument();
+    expect(screen.getByText("Binance")).toBeInTheDocument();
   });
 });
