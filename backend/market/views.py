@@ -249,6 +249,96 @@ class ExchangeConfigTestView(APIView):
         )
 
 
+class ExchangeConfigRotateView(APIView):
+    """Rotate exchange API keys with validation."""
+
+    @extend_schema(tags=["Market"])
+    def post(self, request: Request, pk: int) -> Response:
+        import ccxt.async_support as ccxt
+        from asgiref.sync import async_to_sync
+
+        from market.serializers import ExchangeConfigRotateSerializer
+
+        try:
+            config = ExchangeConfig.objects.get(pk=pk)
+        except ExchangeConfig.DoesNotExist:
+            return error_response("Exchange config not found", 404)
+
+        ser = ExchangeConfigRotateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        new_key = ser.validated_data["api_key"]
+        new_secret = ser.validated_data["api_secret"]
+        new_passphrase = ser.validated_data.get("passphrase", "")
+
+        # Test new credentials before applying
+        async def _test_new_keys():
+            exchange_class = getattr(ccxt, config.exchange_id)
+            ccxt_config: dict[str, object] = {
+                "enableRateLimit": True,
+                "apiKey": new_key,
+                "secret": new_secret,
+            }
+            if new_passphrase:
+                ccxt_config["password"] = new_passphrase
+            if config.options:
+                ccxt_config["options"] = config.options
+
+            exchange = None
+            try:
+                exchange = exchange_class(ccxt_config)
+                if config.is_sandbox:
+                    exchange.set_sandbox_mode(True)
+                await exchange.load_markets()
+                return True, len(exchange.markets), ""
+            except Exception as e:
+                return False, 0, str(e)[:500]
+            finally:
+                if exchange:
+                    await exchange.close()
+
+        success, markets_count, error_msg = async_to_sync(_test_new_keys)()
+
+        if not success:
+            return Response(
+                {"error": f"New key validation failed: {error_msg}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Atomically update keys
+        from django.db import transaction
+        from django.utils import timezone
+
+        from risk.models import AlertLog
+
+        now = timezone.now()
+        with transaction.atomic():
+            config.api_key = new_key
+            config.api_secret = new_secret
+            if new_passphrase:
+                config.passphrase = new_passphrase
+            config.key_rotated_at = now
+            config.last_tested_at = now
+            config.last_test_success = True
+            config.last_test_error = ""
+            config.save()
+
+            AlertLog.objects.create(
+                portfolio_id=0,
+                event_type="key_rotation",
+                severity="info",
+                channel="system",
+                message=f"API keys rotated for {config.name} ({config.exchange_id})",
+                delivered=True,
+            )
+
+        return Response({
+            "success": True,
+            "markets_count": markets_count,
+            "message": f"Keys rotated for {config.name} — {markets_count} markets validated",
+            "key_rotated_at": now.isoformat(),
+        })
+
+
 # ── Data Source Config CRUD ──────────────────────────────────
 
 

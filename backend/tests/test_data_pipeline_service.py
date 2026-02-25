@@ -1,9 +1,8 @@
 """Tests for DataPipelineService — wraps common.data_pipeline for the web app."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
-import pytest
 
 
 class TestDataPipelineServiceListAvailable:
@@ -52,7 +51,13 @@ class TestDataPipelineServiceGetDataInfo:
     def test_get_data_info_file_exists(self, tmp_path):
         index = pd.date_range("2024-01-01", periods=5, freq="1h", tz="UTC")
         df = pd.DataFrame(
-            {"open": range(5), "high": range(5), "low": range(5), "close": range(5), "volume": range(5)},
+            {
+                "open": range(5),
+                "high": range(5),
+                "low": range(5),
+                "close": range(5),
+                "volume": range(5),
+            },
             index=index,
         )
         df.to_parquet(tmp_path / "binance_BTC_USDT_1h.parquet")

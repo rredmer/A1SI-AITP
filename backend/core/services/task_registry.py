@@ -222,6 +222,19 @@ def _run_risk_monitoring(params: dict, progress_cb: ProgressCallback) -> dict[st
         return {"status": "error", "error": str(e)}
 
 
+def _run_db_maintenance(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
+    """Run SQLite WAL checkpoint to prevent unbounded WAL growth."""
+    from django.db import connection
+
+    progress_cb(0.1, "Running WAL checkpoint")
+    with connection.cursor() as cursor:
+        cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        row = cursor.fetchone()
+        wal_result = {"busy": row[0], "log": row[1], "checkpointed": row[2]}
+    progress_cb(0.9, "Checkpoint complete")
+    return {"status": "completed", "wal_checkpoint": wal_result}
+
+
 TASK_REGISTRY: dict[str, TaskExecutor] = {
     "data_refresh": _run_data_refresh,
     "regime_detection": _run_regime_detection,
@@ -230,4 +243,5 @@ TASK_REGISTRY: dict[str, TaskExecutor] = {
     "news_fetch": _run_news_fetch,
     "workflow": _run_workflow,
     "risk_monitoring": _run_risk_monitoring,
+    "db_maintenance": _run_db_maintenance,
 }

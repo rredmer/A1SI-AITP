@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from analysis.services.screening import ScreenerService, STRATEGY_TYPES
+from analysis.services.screening import STRATEGY_TYPES, ScreenerService
 
 
 class TestScreenerServiceStrategyTypes:
@@ -86,7 +86,7 @@ class TestScreenerServiceRunFullScreen:
             )
             assert "strategies" in result
             # Each strategy should report import error
-            for strategy_name, strategy_result in result["strategies"].items():
+            for _strategy_name, strategy_result in result["strategies"].items():
                 assert "error" in strategy_result
 
     def test_progress_callback_called(self):

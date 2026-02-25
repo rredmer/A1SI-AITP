@@ -277,6 +277,7 @@ SCHEDULER_ENABLED = os.environ.get("SCHEDULER_ENABLED", "true").lower() in ("tru
 SCHEDULER_MAX_WORKERS = int(os.environ.get("SCHEDULER_MAX_WORKERS", "2"))
 
 NEWSAPI_KEY = os.environ.get("NEWSAPI_KEY", "")
+METRICS_AUTH_TOKEN = os.environ.get("METRICS_AUTH_TOKEN", "")
 
 SCHEDULED_TASKS = {
     "data_refresh_crypto": {
@@ -333,6 +334,13 @@ SCHEDULED_TASKS = {
         "description": "Periodic risk check across portfolios",
         "task_type": "risk_monitoring",
         "interval_seconds": 300,
+        "params": {},
+    },
+    "db_maintenance": {
+        "name": "Database Maintenance",
+        "description": "SQLite WAL checkpoint",
+        "task_type": "db_maintenance",
+        "interval_seconds": 86400,
         "params": {},
     },
 }

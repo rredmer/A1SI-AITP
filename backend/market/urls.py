@@ -6,6 +6,7 @@ from market.views import (
     DataSourceConfigListView,
     ExchangeConfigDetailView,
     ExchangeConfigListView,
+    ExchangeConfigRotateView,
     ExchangeConfigTestView,
     ExchangeListView,
     IndicatorComputeView,
@@ -38,6 +39,11 @@ urlpatterns = [
         "exchange-configs/<int:pk>/test/",
         ExchangeConfigTestView.as_view(),
         name="exchange-config-test",
+    ),
+    path(
+        "exchange-configs/<int:pk>/rotate/",
+        ExchangeConfigRotateView.as_view(),
+        name="exchange-config-rotate",
     ),
     # Data source config CRUD
     path("data-sources/", DataSourceConfigListView.as_view(), name="data-source-list"),

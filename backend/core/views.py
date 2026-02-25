@@ -3,9 +3,10 @@
 import contextlib
 import logging
 
+from django.conf import settings as django_settings
 from django.http import HttpResponse, JsonResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -19,6 +20,18 @@ def csrf_failure(request, reason="") -> JsonResponse:
         {"error": "CSRF verification failed.", "detail": reason},
         status=403,
     )
+
+
+class MetricsTokenOrSessionAuth(BasePermission):
+    """Allow access via Bearer token (for Prometheus) or session auth (browser)."""
+
+    def has_permission(self, request, view):
+        token = getattr(django_settings, "METRICS_AUTH_TOKEN", "")
+        if token:
+            auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+            if auth_header == f"Bearer {token}":
+                return True
+        return bool(request.user and request.user.is_authenticated)
 
 
 class AuditLogListView(APIView):
@@ -163,6 +176,52 @@ class HealthView(APIView):
         except Exception as e:
             checks["circuit_breakers"] = {"status": "error", "detail": str(e)}
 
+        # Channel layer check
+        try:
+            from channels.layers import get_channel_layer
+
+            layer = get_channel_layer()
+            checks["channel_layer"] = {
+                "status": "ok" if layer is not None else "warning",
+                "backend": type(layer).__name__ if layer else "none",
+            }
+        except Exception as e:
+            checks["channel_layer"] = {"status": "error", "detail": str(e)}
+
+        # Job queue staleness check
+        try:
+            from django.utils import timezone
+
+            from analysis.models import BackgroundJob
+
+            pending_jobs = BackgroundJob.objects.filter(status="pending").order_by("created_at")
+            oldest = pending_jobs.first()
+            if oldest:
+                age_minutes = (timezone.now() - oldest.created_at).total_seconds() / 60
+                checks["job_queue"] = {
+                    "status": "warning" if age_minutes > 30 else "ok",
+                    "oldest_pending_minutes": round(age_minutes, 1),
+                    "pending_count": pending_jobs.count(),
+                }
+            else:
+                checks["job_queue"] = {"status": "ok", "pending_count": 0}
+        except Exception as e:
+            checks["job_queue"] = {"status": "error", "detail": str(e)}
+
+        # WAL check
+        try:
+            import os
+
+            db_path = str(django_settings.DATABASES["default"]["NAME"])
+            wal_path = db_path + "-wal"
+            wal_size_mb = os.path.getsize(wal_path) / (1024**2) if os.path.exists(wal_path) else 0
+            checks["wal"] = {
+                "status": "ok" if wal_size_mb < 100 else "warning",
+                "size_mb": round(wal_size_mb, 2),
+            }
+        except Exception as e:
+            checks["wal"] = {"status": "error", "detail": str(e)}
+
         overall = "ok" if all(
             c.get("status", "ok") == "ok" for c in checks.values() if isinstance(c, dict)
         ) else "degraded"
@@ -252,7 +311,7 @@ class NotificationPreferencesView(APIView):
 
 
 class MetricsView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [MetricsTokenOrSessionAuth]
 
     @extend_schema(tags=["Core"], exclude=True)
     def get(self, request: Request) -> HttpResponse:

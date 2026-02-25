@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from market.services.exchange import ExchangeService, SUPPORTED_EXCHANGES, _load_db_config
+from market.services.exchange import SUPPORTED_EXCHANGES, ExchangeService, _load_db_config
 
 
 class TestLoadDbConfig:
@@ -12,11 +12,13 @@ class TestLoadDbConfig:
         """When market.models can't be imported, _load_db_config returns None."""
         with patch.dict("sys.modules", {"market.models": None}):
             # Force re-import failure by making the lazy import raise
-            import importlib
-            import market.services.exchange as mod
 
             # Temporarily break the import
-            original_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else __import__
+            original_import = (
+                __builtins__.__import__
+                if hasattr(__builtins__, '__import__')
+                else __import__
+            )
             def failing_import(name, *args, **kwargs):
                 if name == "market.models":
                     raise ImportError("mocked")

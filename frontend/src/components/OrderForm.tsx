@@ -6,26 +6,8 @@ import { FieldError } from "./FieldError";
 import { useToast } from "../hooks/useToast";
 import { useAssetClass } from "../hooks/useAssetClass";
 import { DEFAULT_SYMBOL } from "../constants/assetDefaults";
-import { getErrorMessage } from "../utils/errors";
+import { getErrorMessage, getFieldErrors } from "../utils/errors";
 import type { Portfolio, TradingMode } from "../types";
-
-function parseFieldErrors(
-  error: unknown,
-): Record<string, string> {
-  if (!error || typeof error !== "object") return {};
-  // Axios-style: error.response.data
-  const data = (error as { response?: { data?: unknown } }).response?.data;
-  if (!data || typeof data !== "object") return {};
-  const result: Record<string, string> = {};
-  for (const [key, val] of Object.entries(data as Record<string, unknown>)) {
-    if (Array.isArray(val) && val.length > 0) {
-      result[key] = String(val[0]);
-    } else if (typeof val === "string") {
-      result[key] = val;
-    }
-  }
-  return result;
-}
 
 interface OrderFormProps {
   mode?: TradingMode;
@@ -62,7 +44,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
     },
   });
 
-  const fieldErrors = mutation.isError ? parseFieldErrors(mutation.error) : {};
+  const fieldErrors = mutation.isError ? getFieldErrors(mutation.error) : {};
   const activePortfolio = portfolios?.find((p) => String(p.id) === selectedPortfolio);
   const orderData = {
     symbol,

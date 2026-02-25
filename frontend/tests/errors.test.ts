@@ -25,4 +25,19 @@ describe("getErrorMessage", () => {
   it("returns custom fallback", () => {
     expect(getErrorMessage(42, "Custom fallback")).toBe("Custom fallback");
   });
+
+  it("getFieldErrors returns field errors from ApiError", async () => {
+    const { getFieldErrors } = await import("../src/utils/errors");
+    const { ApiError } = await import("../src/api/client");
+    const err = new ApiError(400, "Bad Request", { symbol: ["Too short"], amount: ["Required"] });
+    const fields = getFieldErrors(err);
+    expect(fields.symbol).toBe("Too short");
+    expect(fields.amount).toBe("Required");
+  });
+
+  it("getFieldErrors returns empty object for non-ApiError", async () => {
+    const { getFieldErrors } = await import("../src/utils/errors");
+    const fields = getFieldErrors(new Error("generic error"));
+    expect(fields).toEqual({});
+  });
 });

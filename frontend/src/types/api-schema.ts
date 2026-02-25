@@ -324,6 +324,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/exchange-configs/{id}/rotate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Rotate exchange API keys with validation. */
+        post: operations["exchange_configs_rotate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/exchange-configs/{id}/test/": {
         parameters: {
             query?: never;
@@ -1935,6 +1952,8 @@ export interface components {
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
+            /** Format: date-time */
+            key_rotated_at?: string | null;
         };
         /** @description Write serializer for creating exchange configs. */
         ExchangeConfigCreate: {
@@ -3315,6 +3334,26 @@ export interface operations {
         responses: {
             /** @description No response body */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    exchange_configs_rotate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

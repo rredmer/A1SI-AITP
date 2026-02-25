@@ -83,6 +83,14 @@ class ExchangeConfigUpdateSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class ExchangeConfigRotateSerializer(serializers.Serializer):
+    """Serializer for key rotation — requires new credentials."""
+
+    api_key = serializers.CharField(required=True)
+    api_secret = serializers.CharField(required=True)
+    passphrase = serializers.CharField(required=False, allow_blank=True, default="")
+
+
 # ── Data Source Config serializers ───────────────────────────
 
 

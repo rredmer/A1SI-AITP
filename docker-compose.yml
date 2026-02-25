@@ -37,11 +37,11 @@ services:
         reservations:
           memory: 1g
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+      test: ["CMD", "sh", "-c", "curl -sf http://localhost:8000/api/health/?detailed=true | grep -q '\"status\":\"ok\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   frontend:
     build:
@@ -49,6 +49,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:8080"
+    volumes:
+      - nginx-logs:/var/log/nginx
     restart: unless-stopped
     logging:
       driver: json-file
@@ -68,3 +70,4 @@ services:
 volumes:
   backend-data:
   market-data:
+  nginx-logs:

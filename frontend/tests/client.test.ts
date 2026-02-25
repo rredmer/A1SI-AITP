@@ -216,16 +216,110 @@ describe("API Client", () => {
       await expect(api.post("/test/", {})).rejects.toThrow("Forbidden");
     });
 
-    it("throws API error on other non-OK statuses", async () => {
+    it("throws ApiError on other non-OK statuses", async () => {
       mockFetchResponse({
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
+        json: () => Promise.reject(new Error("not json")),
       });
 
       await expect(api.get("/test/")).rejects.toThrow(
         "API error: 500 Internal Server Error",
       );
+    });
+
+    it("throws ApiError with parsed JSON body", async () => {
+      mockFetchResponse({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: () => Promise.resolve({ error: "Symbol too short", symbol: ["Minimum 5 characters"] }),
+      });
+
+      try {
+        await api.get("/test/");
+        expect.fail("should have thrown");
+      } catch (err) {
+        const { ApiError: ApiErrorClass } = await import("../src/api/client");
+        expect(err).toBeInstanceOf(ApiErrorClass);
+        expect((err as InstanceType<typeof ApiErrorClass>).status).toBe(400);
+        expect((err as InstanceType<typeof ApiErrorClass>).message).toBe("Symbol too short");
+      }
+    });
+
+    it("ApiError fieldErrors parses DRF format", async () => {
+      mockFetchResponse({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: () => Promise.resolve({ symbol: ["Too short"], amount: ["Required"] }),
+      });
+
+      try {
+        await api.get("/test/");
+        expect.fail("should have thrown");
+      } catch (err) {
+        const { ApiError: ApiErrorClass } = await import("../src/api/client");
+        expect(err).toBeInstanceOf(ApiErrorClass);
+        const fieldErrors = (err as InstanceType<typeof ApiErrorClass>).fieldErrors;
+        expect(fieldErrors.symbol).toBe("Too short");
+        expect(fieldErrors.amount).toBe("Required");
+      }
+    });
+
+    it("ApiError fieldErrors empty for non-object body", async () => {
+      mockFetchResponse({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: () => Promise.reject(new Error("not json")),
+      });
+
+      try {
+        await api.get("/test/");
+        expect.fail("should have thrown");
+      } catch (err) {
+        const { ApiError: ApiErrorClass } = await import("../src/api/client");
+        expect(err).toBeInstanceOf(ApiErrorClass);
+        expect((err as InstanceType<typeof ApiErrorClass>).fieldErrors).toEqual({});
+      }
+    });
+
+    it("ApiError falls back to status text when no error field", async () => {
+      mockFetchResponse({
+        ok: false,
+        status: 422,
+        statusText: "Unprocessable Entity",
+        json: () => Promise.resolve({ detail: "Validation error" }),
+      });
+
+      try {
+        await api.get("/test/");
+        expect.fail("should have thrown");
+      } catch (err) {
+        const { ApiError } = await import("../src/api/client");
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as InstanceType<typeof ApiError>).message).toBe("API error: 422 Unprocessable Entity");
+      }
+    });
+
+    it("non-JSON error response still throws ApiError", async () => {
+      mockFetchResponse({
+        ok: false,
+        status: 502,
+        statusText: "Bad Gateway",
+        json: () => Promise.reject(new Error("not json")),
+      });
+
+      try {
+        await api.get("/test/");
+        expect.fail("should have thrown");
+      } catch (err) {
+        const { ApiError: ApiErrorClass } = await import("../src/api/client");
+        expect(err).toBeInstanceOf(ApiErrorClass);
+        expect((err as InstanceType<typeof ApiErrorClass>).body).toBeNull();
+      }
     });
 
     it("returns undefined for 204 No Content", async () => {

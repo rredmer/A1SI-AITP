@@ -1,8 +1,6 @@
 """Tests for BacktestService — wraps Freqtrade, NautilusTrader, hftbacktest."""
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from analysis.services.backtest import BacktestService
 
@@ -53,7 +51,7 @@ class TestBacktestServiceRunBacktest:
         with patch.object(
             BacktestService, "_run_freqtrade", return_value={"framework": "freqtrade"}
         ) as mock_ft:
-            result = BacktestService.run_backtest(
+            _result = BacktestService.run_backtest(
                 {},
                 lambda pct, msg: None,
             )
@@ -128,7 +126,7 @@ class TestBacktestServiceNautilus:
             def progress_cb(pct, msg):
                 progress_calls.append((pct, msg))
 
-            result = BacktestService._run_nautilus(
+            _result = BacktestService._run_nautilus(
                 {"strategy": "TrendFollowing"},
                 progress_cb,
             )

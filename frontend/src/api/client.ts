@@ -1,3 +1,33 @@
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+
+  constructor(status: number, statusText: string, body: unknown) {
+    const msg =
+      typeof body === "object" && body !== null && "error" in body
+        ? String((body as Record<string, unknown>).error)
+        : `API error: ${status} ${statusText}`;
+    super(msg);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+  }
+
+  get fieldErrors(): Record<string, string> {
+    if (!this.body || typeof this.body !== "object") return {};
+    const result: Record<string, string> = {};
+    for (const [key, val] of Object.entries(
+      this.body as Record<string, unknown>,
+    )) {
+      if (key === "error" || key === "detail" || key === "status_code")
+        continue;
+      if (Array.isArray(val) && val.length > 0) result[key] = String(val[0]);
+      else if (typeof val === "string") result[key] = val;
+    }
+    return result;
+  }
+}
+
 const BASE_URL = "/api";
 
 function getCsrfToken(): string {
@@ -43,7 +73,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    let body: unknown = null;
+    try {
+      body = await response.json();
+    } catch {
+      /* not JSON */
+    }
+    throw new ApiError(response.status, response.statusText, body);
   }
   if (response.status === 204) return undefined as T;
   return response.json();

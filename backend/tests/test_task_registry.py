@@ -1,6 +1,6 @@
 """Tests for task registry — maps task_type strings to executor functions."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -17,6 +17,7 @@ class TestTaskRegistryContents:
             "news_fetch",
             "workflow",
             "risk_monitoring",
+            "db_maintenance",
         ]
         for key in expected_keys:
             assert key in TASK_REGISTRY, f"Missing registry key: {key}"
@@ -69,3 +70,30 @@ class TestTaskRegistryRiskMonitoring:
         result = executor({}, progress_cb)
         assert result["status"] == "completed"
         assert result["message"] == "No portfolios"
+
+
+class TestTaskRegistryDbMaintenance:
+    @pytest.mark.django_db
+    def test_db_maintenance_executor_runs_checkpoint(self):
+        executor = TASK_REGISTRY["db_maintenance"]
+        progress_calls = []
+
+        def progress_cb(pct, msg):
+            progress_calls.append((pct, msg))
+
+        result = executor({}, progress_cb)
+        assert result["status"] == "completed"
+        assert "wal_checkpoint" in result
+
+    @pytest.mark.django_db
+    def test_db_maintenance_returns_wal_stats(self):
+        executor = TASK_REGISTRY["db_maintenance"]
+        result = executor({}, lambda p, m: None)
+        wal = result["wal_checkpoint"]
+        assert "busy" in wal
+        assert "log" in wal
+        assert "checkpointed" in wal
+
+    def test_db_maintenance_in_registry(self):
+        assert "db_maintenance" in TASK_REGISTRY
+        assert callable(TASK_REGISTRY["db_maintenance"])

@@ -1,11 +1,10 @@
 """Tests for order_sync — background order sync loop for live orders."""
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from trading.services.order_sync import start_order_sync, stop_order_sync, _sync_loop
+from trading.services.order_sync import start_order_sync, stop_order_sync
 
 
 class TestStartOrderSync:

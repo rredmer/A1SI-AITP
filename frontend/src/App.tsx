@@ -22,8 +22,20 @@ const Workflows = lazy(() => import("./pages/Workflows").then(m => ({ default: m
 
 function PageLoader() {
   return (
-    <div className="flex h-64 items-center justify-center">
-      <div className="text-[var(--color-text-muted)]">Loading...</div>
+    <div className="space-y-4 p-6" data-testid="page-loader">
+      <div className="h-8 w-48 animate-pulse rounded bg-[var(--color-border)]" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-24 animate-pulse rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+          >
+            <div className="mb-2 h-3 w-1/3 rounded bg-[var(--color-border)]" />
+            <div className="h-6 w-2/3 rounded bg-[var(--color-border)]" />
+          </div>
+        ))}
+      </div>
+      <div className="h-64 animate-pulse rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]" />
     </div>
   );
 }

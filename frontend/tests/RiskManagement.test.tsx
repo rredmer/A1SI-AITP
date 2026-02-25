@@ -281,4 +281,311 @@ describe("RiskManagement - Trade Audit Log", () => {
     const rejected = await screen.findAllByText("Rejected");
     expect(rejected.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("renders trade symbols in audit log", async () => {
+    renderWithProviders(<RiskManagement />);
+    // BTC/USDT appears in both position weights and trade log
+    const btcElements = await screen.findAllByText("BTC/USDT");
+    expect(btcElements.length).toBeGreaterThanOrEqual(2);
+    const ethElements = await screen.findAllByText("ETH/USDT");
+    expect(ethElements.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders trade sides with correct labels", async () => {
+    renderWithProviders(<RiskManagement />);
+    const buys = await screen.findAllByText("BUY");
+    expect(buys.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders rejection reason", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText(/Position too large/)).toBeInTheDocument();
+  });
+});
+
+describe("RiskManagement - Position Sizer", () => {
+  beforeEach(() => {
+    setupAllMocks();
+  });
+
+  it("renders Position Sizer section", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByText("Position Sizer")).toBeInTheDocument();
+  });
+
+  it("renders entry price and stop loss inputs", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByLabelText("Entry Price")).toBeInTheDocument();
+    expect(screen.getByLabelText("Stop Loss")).toBeInTheDocument();
+  });
+
+  it("renders Calculate button", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByText("Calculate")).toBeInTheDocument();
+  });
+
+  it("allows changing entry price", async () => {
+    renderWithProviders(<RiskManagement />);
+    const input = screen.getByLabelText("Entry Price");
+    fireEvent.change(input, { target: { value: "55000" } });
+    expect(screen.getByDisplayValue("55000")).toBeInTheDocument();
+  });
+
+  it("allows changing stop loss", async () => {
+    renderWithProviders(<RiskManagement />);
+    const input = screen.getByLabelText("Stop Loss");
+    fireEvent.change(input, { target: { value: "47000" } });
+    expect(screen.getByDisplayValue("47000")).toBeInTheDocument();
+  });
+});
+
+describe("RiskManagement - Trade Checker", () => {
+  beforeEach(() => {
+    setupAllMocks();
+  });
+
+  it("renders Trade Checker section", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByText("Trade Checker")).toBeInTheDocument();
+  });
+
+  it("renders symbol input", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByLabelText("Symbol")).toBeInTheDocument();
+  });
+
+  it("renders Buy and Sell toggle buttons", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByText("Buy")).toBeInTheDocument();
+    expect(screen.getByText("Sell")).toBeInTheDocument();
+  });
+
+  it("renders Check Trade button", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByText("Check Trade")).toBeInTheDocument();
+  });
+
+  it("allows switching to Sell side", async () => {
+    renderWithProviders(<RiskManagement />);
+    const sellBtn = screen.getByText("Sell");
+    fireEvent.click(sellBtn);
+    // Sell button should now have the active styling (bg-red-500)
+    expect(sellBtn.className).toContain("bg-red-500");
+  });
+
+  it("allows changing trade symbol", async () => {
+    renderWithProviders(<RiskManagement />);
+    const input = screen.getByLabelText("Symbol");
+    fireEvent.change(input, { target: { value: "SOL/USDT" } });
+    expect(screen.getByDisplayValue("SOL/USDT")).toBeInTheDocument();
+  });
+});
+
+describe("RiskManagement - Alert History", () => {
+  it("renders Alert History section", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByText("Alert History")).toBeInTheDocument();
+  });
+
+  it("shows empty alert state when no alerts", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText(/No alerts recorded yet/)).toBeInTheDocument();
+  });
+
+  it("renders severity filter dropdown", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByDisplayValue("All Severities")).toBeInTheDocument();
+  });
+
+  it("renders event type filter input", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(screen.getByPlaceholderText("Filter by event type")).toBeInTheDocument();
+  });
+
+  it("renders alerts when present", async () => {
+    const mockAlerts = [
+      {
+        id: 1,
+        event_type: "trade_halt",
+        severity: "critical",
+        channel: "telegram",
+        delivered: true,
+        error: null,
+        message: "Trading halted: drawdown exceeded",
+        created_at: "2026-02-24T10:00:00Z",
+      },
+      {
+        id: 2,
+        event_type: "daily_summary",
+        severity: "info",
+        channel: "webhook",
+        delivered: false,
+        error: "Connection timeout",
+        message: "Daily summary report",
+        created_at: "2026-02-24T09:00:00Z",
+      },
+    ];
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/risk/1/status": mockStatus,
+        "/api/risk/1/limits": mockLimits,
+        "/api/risk/1/var": mockVaR,
+        "/api/risk/1/heat-check": mockHeatCheckHealthy,
+        "/api/risk/1/metric-history": mockMetricHistory,
+        "/api/risk/1/trade-log": mockTradeLog,
+        "/api/risk/1/alerts": mockAlerts,
+      }),
+    );
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("trade_halt")).toBeInTheDocument();
+    expect(await screen.findByText("critical")).toBeInTheDocument();
+    expect(await screen.findByText("telegram")).toBeInTheDocument();
+    expect(await screen.findByText("Yes")).toBeInTheDocument();
+    expect(await screen.findByText("No")).toBeInTheDocument();
+  });
+});
+
+describe("RiskManagement - Status Cards", () => {
+  beforeEach(() => {
+    setupAllMocks();
+  });
+
+  it("renders Equity status card", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Equity")).toBeInTheDocument();
+  });
+
+  it("renders Drawdown status card", async () => {
+    renderWithProviders(<RiskManagement />);
+    // "Drawdown" appears in both status card and health section
+    const drawdownLabels = await screen.findAllByText("Drawdown");
+    expect(drawdownLabels.length).toBeGreaterThanOrEqual(2);
+    // "2.00%" appears in both status card and health section
+    const pctValues = await screen.findAllByText(/2\.00%/);
+    expect(pctValues.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders Daily PnL status card", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Daily PnL")).toBeInTheDocument();
+    expect(await screen.findByText("$150.00")).toBeInTheDocument();
+  });
+
+  it("renders Status card as Active", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Status")).toBeInTheDocument();
+    expect(await screen.findByText("Active")).toBeInTheDocument();
+  });
+
+  it("renders Refresh button", async () => {
+    renderWithProviders(<RiskManagement />);
+    const refreshButtons = screen.getAllByTitle("Refresh status");
+    expect(refreshButtons.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("RiskManagement - Snapshot Now", () => {
+  beforeEach(() => {
+    setupAllMocks();
+  });
+
+  it("renders Snapshot Now button", async () => {
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Snapshot Now")).toBeInTheDocument();
+  });
+});
+
+describe("RiskManagement - Empty Trade Log", () => {
+  it("shows empty message when no trades", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/risk/1/status": mockStatus,
+        "/api/risk/1/limits": mockLimits,
+        "/api/risk/1/var": mockVaR,
+        "/api/risk/1/heat-check": mockHeatCheckHealthy,
+        "/api/risk/1/metric-history": [],
+        "/api/risk/1/trade-log": [],
+      }),
+    );
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText(/No trade checks recorded yet/)).toBeInTheDocument();
+  });
+});
+
+describe("RiskManagement - Portfolio Health Details", () => {
+  it("shows position weights", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Position Weights")).toBeInTheDocument();
+    // BTC/USDT and ETH/USDT appear in multiple sections
+    const btcElements = await screen.findAllByText("BTC/USDT");
+    expect(btcElements.length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText("60.0%")).toBeInTheDocument();
+    expect(await screen.findByText("40.0%")).toBeInTheDocument();
+  });
+
+  it("shows open positions count in health", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Open Positions")).toBeInTheDocument();
+  });
+
+  it("shows max correlation in health", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Max Correlation")).toBeInTheDocument();
+    expect(await screen.findByText("0.350")).toBeInTheDocument();
+  });
+
+  it("shows max concentration in health", async () => {
+    setupAllMocks();
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("Max Concentration")).toBeInTheDocument();
+    // 15.0% for max_concentration
+    const pctElements = await screen.findAllByText("15.0%");
+    expect(pctElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows high correlation pairs when present", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/risk/1/status": mockStatus,
+        "/api/risk/1/limits": mockLimits,
+        "/api/risk/1/var": mockVaR,
+        "/api/risk/1/heat-check": {
+          ...mockHeatCheckHealthy,
+          high_corr_pairs: [["BTC/USDT", "ETH/USDT", 0.85]],
+        },
+        "/api/risk/1/metric-history": [],
+        "/api/risk/1/trade-log": [],
+      }),
+    );
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText("High Correlation Pairs")).toBeInTheDocument();
+    expect(await screen.findByText("0.850")).toBeInTheDocument();
+  });
+
+  it("shows issues list when unhealthy", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/risk/1/status": mockStatus,
+        "/api/risk/1/limits": mockLimits,
+        "/api/risk/1/var": mockVaR,
+        "/api/risk/1/heat-check": mockHeatCheckUnhealthy,
+        "/api/risk/1/metric-history": [],
+        "/api/risk/1/trade-log": [],
+      }),
+    );
+    renderWithProviders(<RiskManagement />);
+    expect(await screen.findByText(/Drawdown warning/)).toBeInTheDocument();
+    expect(await screen.findByText(/VaR warning/)).toBeInTheDocument();
+  });
 });

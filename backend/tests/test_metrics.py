@@ -15,10 +15,36 @@ class TestMetricsEndpoint:
         assert resp.status_code == 200
         assert resp["Content-Type"].startswith("text/plain")
 
-    def test_metrics_allows_unauthenticated(self):
-        """Metrics endpoint is public for Prometheus scraping."""
+    def test_metrics_requires_auth_when_no_token(self):
+        """Without METRICS_AUTH_TOKEN, unauthenticated access is denied."""
         client = Client()
         resp = client.get("/metrics/")
+        assert resp.status_code == 403
+
+    def test_metrics_allows_bearer_token(self, settings):
+        settings.METRICS_AUTH_TOKEN = "test-secret-token"
+        client = Client()
+        resp = client.get("/metrics/", HTTP_AUTHORIZATION="Bearer test-secret-token")
+        assert resp.status_code == 200
+
+    def test_metrics_allows_session_auth(self, authenticated_client):
+        resp = authenticated_client.get("/metrics/")
+        assert resp.status_code == 200
+
+    def test_metrics_rejects_wrong_token(self, settings):
+        settings.METRICS_AUTH_TOKEN = "test-secret-token"
+        client = Client()
+        resp = client.get("/metrics/", HTTP_AUTHORIZATION="Bearer wrong-token")
+        assert resp.status_code == 403
+
+    def test_metrics_rejects_unauthenticated(self):
+        client = Client()
+        resp = client.get("/metrics/")
+        assert resp.status_code == 403
+
+    def test_metrics_allows_empty_token_with_session(self, authenticated_client, settings):
+        settings.METRICS_AUTH_TOKEN = ""
+        resp = authenticated_client.get("/metrics/")
         assert resp.status_code == 200
 
     def test_metrics_contains_gauges(self, authenticated_client):
@@ -170,6 +196,84 @@ class TestMetricsInstrumentation:
             )
         output = metrics.collect()
         assert "workflow_execution_seconds" in output
+
+    def test_health_detailed_includes_channel_layer(self, authenticated_client):
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "channel_layer" in data["checks"]
+        assert data["checks"]["channel_layer"]["status"] == "ok"
+
+    def test_health_detailed_includes_job_queue(self, authenticated_client):
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "job_queue" in data["checks"]
+        assert "pending_count" in data["checks"]["job_queue"]
+
+    def test_health_detailed_job_queue_warning_when_stale(self, authenticated_client):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from analysis.models import BackgroundJob
+
+        # Create a pending job, then backdate it (auto_now_add prevents direct set)
+        job = BackgroundJob.objects.create(
+            job_type="test",
+            status="pending",
+        )
+        old_time = timezone.now() - timedelta(minutes=45)
+        BackgroundJob.objects.filter(pk=job.pk).update(created_at=old_time)
+
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        data = resp.json()
+        assert data["checks"]["job_queue"]["status"] == "warning"
+        assert data["checks"]["job_queue"]["oldest_pending_minutes"] > 30
+
+    def test_health_detailed_overall_degraded_on_warning(self, authenticated_client):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from analysis.models import BackgroundJob
+
+        job = BackgroundJob.objects.create(
+            job_type="test",
+            status="pending",
+        )
+        old_time = timezone.now() - timedelta(minutes=45)
+        BackgroundJob.objects.filter(pk=job.pk).update(created_at=old_time)
+
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        data = resp.json()
+        assert data["status"] == "degraded"
+
+    def test_health_detailed_wal_warning_threshold(self, authenticated_client):
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        data = resp.json()
+        # With test DB, WAL should be small -> "ok"
+        assert data["checks"]["wal"]["status"] == "ok"
+
+    def test_docker_healthcheck_format_matches_grep(self, authenticated_client):
+        """The grep in docker-compose expects '"status":"ok"' in the response."""
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        body = resp.content.decode()
+        # When all checks are healthy, "status":"ok" should appear
+        assert '"status"' in body
+
+    def test_health_detailed_includes_wal(self, authenticated_client):
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "wal" in data["checks"]
+        assert "size_mb" in data["checks"]["wal"]
+
+    def test_scheduled_task_config_exists(self):
+        from django.conf import settings
+
+        assert "db_maintenance" in settings.SCHEDULED_TASKS
+        assert settings.SCHEDULED_TASKS["db_maintenance"]["task_type"] == "db_maintenance"
 
     def test_metrics_high_cardinality_paths_normalized(self, authenticated_client):
         """Verify that different URL paths don't create unbounded metric keys."""

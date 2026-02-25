@@ -527,6 +527,23 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/exchange-configs/{id}/rotate/:
+    post:
+      operationId: exchange_configs_rotate_create
+      description: Rotate exchange API keys with validation.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Market
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/exchange-configs/{id}/test/:
     post:
       operationId: exchange_configs_test_create
@@ -2767,6 +2784,10 @@ components:
           type: string
           format: date-time
           readOnly: true
+        key_rotated_at:
+          type: string
+          format: date-time
+          nullable: true
       required:
       - api_key_masked
       - created_at

@@ -64,6 +64,7 @@ class ExchangeConfig(models.Model):
     options = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    key_rotated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-is_default", "-created_at"]

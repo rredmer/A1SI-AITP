@@ -217,6 +217,22 @@ export function Trading() {
               <option value="error">Error</option>
             </select>
           </div>
+          {ordersQuery.isLoading && (
+            <div className="animate-pulse" data-testid="skeleton-table">
+              <div className="mb-3 flex gap-4 border-b border-[var(--color-border)] pb-2">
+                {[1, 2, 3, 4, 5, 6, 7].map((c) => (
+                  <div key={c} className="h-3 flex-1 rounded bg-[var(--color-border)]" />
+                ))}
+              </div>
+              {[1, 2, 3, 4, 5].map((r) => (
+                <div key={r} className="mb-2 flex gap-4">
+                  {[1, 2, 3, 4, 5, 6, 7].map((c) => (
+                    <div key={c} className="h-4 flex-1 rounded bg-[var(--color-border)]" />
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
           <QueryResult query={ordersQuery}>
             {(orders) => orders.length === 0 ? (
               <p className="text-sm text-[var(--color-text-muted)]">
