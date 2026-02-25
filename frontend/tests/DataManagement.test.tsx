@@ -151,6 +151,29 @@ describe("DataManagement - Empty State", () => {
   });
 });
 
+describe("DataManagement - ARIA Labels", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ "/api/data/": mockFiles }),
+    );
+  });
+
+  it("buttons have aria-labels", () => {
+    renderWithProviders(<DataManagement />);
+    expect(screen.getByLabelText("Refresh market data")).toBeInTheDocument();
+    expect(screen.getByLabelText("Run data quality check")).toBeInTheDocument();
+  });
+
+  it("timeframe toggle buttons have aria-pressed", () => {
+    renderWithProviders(<DataManagement />);
+    const btn1h = screen.getByLabelText("Timeframe 1h");
+    expect(btn1h).toHaveAttribute("aria-pressed", "true");
+    const btn5m = screen.getByLabelText("Timeframe 5m");
+    expect(btn5m).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
 describe("DataManagement - Table Headers", () => {
   beforeEach(() => {
     vi.stubGlobal(

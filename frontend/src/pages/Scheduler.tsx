@@ -94,6 +94,7 @@ export function Scheduler() {
           <h3 className="text-lg font-semibold">Scheduled Tasks</h3>
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ["scheduler-tasks"] })}
+            aria-label="Refresh task list"
             className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           >
             &#8635; Refresh
@@ -146,6 +147,7 @@ export function Scheduler() {
                           <button
                             onClick={() => pauseMutation.mutate(t.id)}
                             disabled={pauseMutation.isPending}
+                            aria-label={`Pause task ${t.name}`}
                             className="rounded bg-yellow-500/10 px-2 py-0.5 text-xs text-yellow-400 hover:bg-yellow-500/20"
                           >
                             Pause
@@ -154,6 +156,7 @@ export function Scheduler() {
                           <button
                             onClick={() => resumeMutation.mutate(t.id)}
                             disabled={resumeMutation.isPending}
+                            aria-label={`Resume task ${t.name}`}
                             className="rounded bg-green-500/10 px-2 py-0.5 text-xs text-green-400 hover:bg-green-500/20"
                           >
                             Resume
@@ -162,6 +165,7 @@ export function Scheduler() {
                         <button
                           onClick={() => triggerMutation.mutate(t.id)}
                           disabled={triggerMutation.isPending}
+                          aria-label={`Trigger task ${t.name}`}
                           className="rounded bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400 hover:bg-blue-500/20"
                         >
                           Trigger

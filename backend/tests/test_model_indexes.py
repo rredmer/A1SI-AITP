@@ -70,7 +70,7 @@ class TestRiskLimitChangeIndexes:
 class TestMigrationsFresh:
     def test_no_pending_migrations(self):
         result = subprocess.run(
-            [sys.executable, "backend/manage.py", "makemigrations", "--check", "--dry-run"],
+            [sys.executable, "manage.py", "makemigrations", "--check", "--dry-run"],
             capture_output=True,
             text=True,
         )

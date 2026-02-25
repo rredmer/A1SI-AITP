@@ -91,33 +91,57 @@ def _run_regime_detection(params: dict, progress_cb: ProgressCallback) -> dict[s
 
 def _run_order_sync(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
     """Sync open live orders with exchange."""
-    progress_cb(0.1, "Syncing orders")
-    try:
-        from trading.models import Order, OrderStatus, TradingMode
+    from datetime import timedelta
 
-        open_orders = Order.objects.filter(
-            mode=TradingMode.LIVE,
-            status__in=[OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIAL_FILL],
-        )
-        count = open_orders.count()
-        if count == 0:
-            return {"status": "completed", "synced": 0, "message": "No open orders"}
+    from asgiref.sync import async_to_sync
+    from django.conf import settings
+    from django.utils import timezone
 
-        from trading.services.live import LiveTradingService
+    from trading.models import Order, OrderStatus, TradingMode
+    from trading.services.live_trading import LiveTradingService
 
-        service = LiveTradingService()
-        synced = 0
-        for order in open_orders:
-            try:
-                service.sync_order(order)
-                synced += 1
-            except Exception as e:
-                logger.warning("Failed to sync order %s: %s", order.id, e)
+    timeout_hours = getattr(settings, "ORDER_SYNC_TIMEOUT_HOURS", 24)
+    cutoff = timezone.now() - timedelta(hours=timeout_hours)
 
-        return {"status": "completed", "synced": synced, "total": count}
-    except Exception as e:
-        logger.warning("Order sync failed: %s", e)
-        return {"status": "error", "error": str(e)}
+    pending = Order.objects.filter(
+        mode=TradingMode.LIVE,
+        status__in=[OrderStatus.SUBMITTED, OrderStatus.OPEN, OrderStatus.PARTIAL_FILL],
+    )
+    total = pending.count()
+    progress_cb(0.0, f"Syncing {total} pending orders")
+
+    if total == 0:
+        return {"status": "completed", "synced": 0, "timed_out": 0, "errors": 0, "total": 0}
+
+    synced = 0
+    timed_out = 0
+    errors = 0
+
+    for i, order in enumerate(pending):
+        # Timeout stuck SUBMITTED orders
+        if order.status == OrderStatus.SUBMITTED and order.created_at < cutoff:
+            order.status = OrderStatus.ERROR
+            order.error_message = "Order sync timeout: no exchange confirmation"
+            order.save(update_fields=["status", "error_message"])
+            timed_out += 1
+            continue
+
+        try:
+            async_to_sync(LiveTradingService.sync_order)(order)
+            synced += 1
+        except Exception as exc:
+            logger.warning("Order sync failed for %s: %s", order.id, exc)
+            errors += 1
+
+        progress_cb((i + 1) / max(total, 1), f"Synced {i + 1}/{total}")
+
+    return {
+        "status": "completed",
+        "total": total,
+        "synced": synced,
+        "timed_out": timed_out,
+        "errors": errors,
+    }
 
 
 def _run_data_quality(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:

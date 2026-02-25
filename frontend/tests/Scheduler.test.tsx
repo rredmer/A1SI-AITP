@@ -159,3 +159,25 @@ describe("Scheduler - Status Cards", () => {
     expect(await screen.findByText("Failed to load scheduler tasks")).toBeInTheDocument();
   });
 });
+
+describe("Scheduler - ARIA Labels", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        "/api/scheduler/status": mockStatus,
+        "/api/scheduler/tasks": mockTasks,
+      }),
+    );
+  });
+
+  it("task action buttons have aria-labels", async () => {
+    renderWithProviders(<Scheduler />);
+    await screen.findByText("Data Refresh (Crypto)");
+    expect(screen.getByLabelText("Refresh task list")).toBeInTheDocument();
+    expect(screen.getByLabelText("Pause task Data Refresh (Crypto)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Resume task Regime Detection")).toBeInTheDocument();
+    expect(screen.getByLabelText("Trigger task Data Refresh (Crypto)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Trigger task Regime Detection")).toBeInTheDocument();
+  });
+});

@@ -144,6 +144,8 @@ export function DataManagement() {
                   <button
                     key={tf}
                     onClick={() => tfToggle(tf)}
+                    aria-pressed={downloadTimeframes.includes(tf)}
+                    aria-label={`Timeframe ${tf}`}
                     className={`rounded px-2 py-1 text-xs ${
                       downloadTimeframes.includes(tf)
                         ? "bg-[var(--color-primary)] text-white"
@@ -226,6 +228,7 @@ export function DataManagement() {
             onClick={() => queryClient.invalidateQueries({ queryKey: ["data-files"] })}
             className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
             title="Refresh files"
+            aria-label="Refresh market data"
           >
             &#8635; Refresh
           </button>
@@ -292,6 +295,7 @@ export function DataManagement() {
               if (showQuality) qualityQuery.refetch();
             }}
             disabled={qualityQuery.isFetching}
+            aria-label="Run data quality check"
             className="rounded-lg bg-[var(--color-primary)] px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
           >
             {qualityQuery.isFetching ? "Checking..." : "Run Quality Check"}

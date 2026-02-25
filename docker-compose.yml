@@ -24,6 +24,9 @@ services:
     volumes:
       - backend-data:/project/backend/data
       - market-data:/project/data
+    cpus: "4"
+    pids_limit: 512
+    init: true
     restart: unless-stopped
     logging:
       driver: json-file
@@ -49,6 +52,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:8080"
+    cpus: "1"
+    pids_limit: 256
+    init: true
     volumes:
       - nginx-logs:/var/log/nginx
     restart: unless-stopped

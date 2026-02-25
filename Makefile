@@ -1,4 +1,4 @@
-.PHONY: setup dev test lint build clean harden audit certs backup restore analyze test-security test-e2e ci typecheck docker-build check-schema-freshness generate-types install-hooks docker-up docker-down docker-restart docker-deploy docker-logs docker-status docker-clean
+.PHONY: setup dev test lint build clean harden audit certs backup restore analyze test-security test-e2e ci typecheck docker-build check-schema-freshness generate-types install-hooks docker-up docker-down docker-restart docker-deploy docker-logs docker-status docker-clean maintain-db health-check clean-data
 
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
@@ -214,6 +214,17 @@ restore:
 analyze:
 	cd $(FRONTEND_DIR) && npx vite build
 	@echo "✓ Bundle analysis: $(FRONTEND_DIR)/dist/stats.html"
+
+# ── Operational ──────────────────────────────────────────────
+
+maintain-db:
+	bash scripts/maintain_db.sh
+
+health-check:
+	bash scripts/health_check.sh
+
+clean-data:
+	bash scripts/clean_data.sh
 
 # ── Clean ──────────────────────────────────────────────────
 

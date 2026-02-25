@@ -114,6 +114,7 @@ export function PaperTrading() {
             <select
               value={selectedStrategy}
               onChange={(e) => setSelectedStrategy(e.target.value)}
+              aria-label="Select trading strategy"
               className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
             >
               <option value="">Select strategy...</option>
@@ -128,6 +129,7 @@ export function PaperTrading() {
             <button
               onClick={() => stopMutation.mutate()}
               disabled={stopMutation.isPending}
+              aria-label="Stop paper trading"
               className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
             >
               {stopMutation.isPending ? "Stopping..." : "Stop"}
@@ -136,6 +138,7 @@ export function PaperTrading() {
             <button
               onClick={() => startMutation.mutate()}
               disabled={startMutation.isPending}
+              aria-label="Start paper trading"
               className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
             >
               {startMutation.isPending ? "Starting..." : "Start"}

@@ -272,6 +272,8 @@ if EXCHANGE_API_KEY and not TESTING:
 
 MAX_JOB_WORKERS = int(os.environ.get("MAX_JOB_WORKERS", "2"))
 
+ORDER_SYNC_TIMEOUT_HOURS = int(os.environ.get("ORDER_SYNC_TIMEOUT_HOURS", "24"))
+
 # ── Scheduler ────────────────────────────────────────────────
 SCHEDULER_ENABLED = os.environ.get("SCHEDULER_ENABLED", "true").lower() in ("true", "1", "yes")
 SCHEDULER_MAX_WORKERS = int(os.environ.get("SCHEDULER_MAX_WORKERS", "2"))

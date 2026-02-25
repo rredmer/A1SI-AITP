@@ -91,6 +91,8 @@ export function Trading() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMode("paper")}
+            aria-pressed={mode === "paper"}
+            aria-label="Paper trading mode"
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
               mode === "paper"
                 ? "bg-blue-600 text-white"
@@ -101,6 +103,8 @@ export function Trading() {
           </button>
           <button
             onClick={() => setMode("live")}
+            aria-pressed={mode === "live"}
+            aria-label="Live trading mode"
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
               mode === "live"
                 ? "bg-red-600 text-white"
@@ -199,11 +203,13 @@ export function Trading() {
               placeholder="Filter by symbol..."
               value={symbolFilter}
               onChange={(e) => { setSymbolFilter(e.target.value); setPage(1); }}
+              aria-label="Filter by symbol"
               className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs"
             />
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              aria-label="Filter by status"
               className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-xs"
             >
               <option value="">All statuses</option>
@@ -305,6 +311,7 @@ export function Trading() {
                             <button
                               onClick={() => cancelMutation.mutate(o.id)}
                               disabled={cancelMutation.isPending}
+                              aria-label={`Cancel order ${o.symbol}`}
                               className="rounded border border-red-700 px-2 py-0.5 text-xs text-red-400 hover:bg-red-900/30 disabled:opacity-50"
                             >
                               Cancel

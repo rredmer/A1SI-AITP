@@ -86,6 +86,7 @@ export function RegimeDashboard() {
         <select
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
+          aria-label="Select symbol for regime analysis"
           className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         >
           {SYMBOLS.map((s) => (

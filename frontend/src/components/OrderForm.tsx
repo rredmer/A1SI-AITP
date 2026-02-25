@@ -136,6 +136,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
           step="any"
           min="0.00000001"
           required
+          aria-label="Order amount"
           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         />
         <FieldError error={fieldErrors.amount} />
@@ -150,6 +151,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
           placeholder="0.00"
           step="any"
           min="0"
+          aria-label="Order price"
           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         />
         <FieldError error={fieldErrors.price} />

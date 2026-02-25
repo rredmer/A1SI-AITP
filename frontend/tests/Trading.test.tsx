@@ -303,6 +303,29 @@ describe("Trading - Cancel All Orders", () => {
   });
 });
 
+describe("Trading - ARIA Labels", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ "/api/trading/orders": mockOrders }),
+    );
+  });
+
+  it("filter inputs have aria-labels", () => {
+    renderWithProviders(<Trading />);
+    expect(screen.getByLabelText("Filter by symbol")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by status")).toBeInTheDocument();
+  });
+
+  it("mode toggle buttons have aria-pressed and aria-label", () => {
+    renderWithProviders(<Trading />);
+    const paperBtn = screen.getByLabelText("Paper trading mode");
+    const liveBtn = screen.getByLabelText("Live trading mode");
+    expect(paperBtn).toHaveAttribute("aria-pressed");
+    expect(liveBtn).toHaveAttribute("aria-pressed");
+  });
+});
+
 describe("Trading - Exchange Health Badge", () => {
   it("renders exchange health badge", () => {
     vi.stubGlobal(

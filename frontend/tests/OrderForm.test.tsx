@@ -100,4 +100,10 @@ describe("OrderForm", () => {
     const parent = amountInput.closest("div");
     expect(parent?.querySelector("p")).toBeNull();
   });
+
+  it("inputs have aria-labels", () => {
+    renderWithProviders(<OrderForm />);
+    expect(screen.getByLabelText("Order amount")).toBeInTheDocument();
+    expect(screen.getByLabelText("Order price")).toBeInTheDocument();
+  });
 });
