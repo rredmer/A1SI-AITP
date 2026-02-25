@@ -232,7 +232,7 @@ CORS_ALLOW_HEADERS = ["content-type", "x-csrftoken"]
 # ── Channels (ASGI) ──────────────────────────────────────────
 # NOTE: InMemoryChannelLayer only works within a single process. WebSocket
 # messages sent in one Daphne worker will NOT reach consumers in another.
-# This is acceptable for the Jetson single-process deployment target.
+# This is acceptable for the single-process desktop deployment target.
 # For multi-process deployments, switch to channels_redis.core.RedisChannelLayer.
 ASGI_APPLICATION = "config.asgi.application"
 CHANNEL_LAYERS = {

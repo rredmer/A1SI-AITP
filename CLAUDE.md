@@ -16,7 +16,7 @@ A1SI-AITP — Full-stack crypto investment platform with portfolio tracking, mar
 ## Architecture
 
 - **Monorepo**: `backend/` + `frontend/` (web app) alongside platform modules (`common/`, `research/`, `nautilus/`, `freqtrade/`)
-- **Database**: SQLite with WAL mode — single-user, low-memory target (Jetson 8GB RAM)
+- **Database**: SQLite with WAL mode — single-user desktop deployment
 - **Auth**: Django session-based authentication, CSRF protection, DRF SessionAuthentication + IsAuthenticated defaults
 - **ASGI**: Django Channels + Daphne server, async views for ccxt exchange calls
 - **Django apps**: core (auth, health, platform), portfolio, trading, market, risk, analysis

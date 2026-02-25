@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, memo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { portfoliosApi } from "../api/portfolios";
 import { useToast } from "../hooks/useToast";
@@ -11,7 +11,7 @@ interface HoldingsTableProps {
   priceMap?: Record<string, number>;
 }
 
-export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: HoldingsTableProps) {
+function HoldingsTableInner({ holdings, portfolioId, priceMap = {} }: HoldingsTableProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -74,6 +74,8 @@ export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: Holdings
           value={newSymbol}
           onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
           placeholder="BTC/USDT"
+          minLength={3}
+          maxLength={20}
           className="w-28 rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-sm"
         />
       </div>
@@ -86,6 +88,7 @@ export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: Holdings
           onChange={(e) => setNewAmount(e.target.value)}
           placeholder="0.0"
           step="any"
+          min="0.00000001"
           className="w-24 rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-sm"
         />
       </div>
@@ -98,6 +101,7 @@ export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: Holdings
           onChange={(e) => setNewPrice(e.target.value)}
           placeholder="0.00"
           step="any"
+          min="0"
           className="w-24 rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-sm"
         />
       </div>
@@ -123,6 +127,23 @@ export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: Holdings
     </div>
   );
 
+  const hasLivePrices = holdings.some((h) => priceMap[h.symbol] != null);
+
+  const { totalCost, totalValue, totalPnl } = useMemo(() => {
+    let cost = 0;
+    let value = 0;
+    for (const h of holdings) {
+      const amt = h.amount ?? 0;
+      const avg = h.avg_buy_price ?? 0;
+      const c = amt * avg;
+      const price = priceMap[h.symbol];
+      const v = price != null ? amt * price : c;
+      cost += c;
+      value += v;
+    }
+    return { totalCost: cost, totalValue: value, totalPnl: value - cost };
+  }, [holdings, priceMap]);
+
   if (holdings.length === 0) {
     return (
       <div>
@@ -141,21 +162,6 @@ export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: Holdings
       </div>
     );
   }
-
-  const hasLivePrices = holdings.some((h) => priceMap[h.symbol] != null);
-
-  let totalCost = 0;
-  let totalValue = 0;
-  for (const h of holdings) {
-    const amt = h.amount ?? 0;
-    const avg = h.avg_buy_price ?? 0;
-    const cost = amt * avg;
-    const price = priceMap[h.symbol];
-    const value = price != null ? amt * price : cost;
-    totalCost += cost;
-    totalValue += value;
-  }
-  const totalPnl = totalValue - totalCost;
 
   return (
     <div className="overflow-x-auto">
@@ -209,6 +215,7 @@ export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: Holdings
                       onChange={(e) => setEditAmount(e.target.value)}
                       className="w-24 rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs"
                       step="any"
+                      min="0.00000001"
                     />
                   ) : (
                     amt.toFixed(6)
@@ -222,6 +229,7 @@ export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: Holdings
                       onChange={(e) => setEditPrice(e.target.value)}
                       className="w-24 rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs"
                       step="any"
+                      min="0"
                     />
                   ) : (
                     `$${avg.toLocaleString()}`
@@ -309,3 +317,5 @@ export function HoldingsTable({ holdings, portfolioId, priceMap = {} }: Holdings
     </div>
   );
 }
+
+export const HoldingsTable = memo(HoldingsTableInner);

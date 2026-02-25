@@ -21,7 +21,7 @@ except ImportError:
     HAS_LIGHTGBM = False
     lgb = None  # type: ignore[assignment]
 
-# Default training parameters — tuned for Jetson 8GB RAM
+# Default training parameters
 DEFAULT_TRAIN_PARAMS = {
     "objective": "binary",
     "metric": "binary_logloss",
@@ -36,7 +36,7 @@ DEFAULT_TRAIN_PARAMS = {
     "reg_alpha": 0.1,
     "reg_lambda": 0.1,
     "verbose": -1,
-    "n_jobs": 2,  # Conservative for Jetson
+    "n_jobs": 4,  # Adjust based on available CPU cores
 }
 
 

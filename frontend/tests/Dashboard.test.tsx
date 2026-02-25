@@ -292,4 +292,16 @@ describe("Dashboard", () => {
     expect(await screen.findByText("News Feed")).toBeInTheDocument();
     expect(await screen.findByText("Test News Article")).toBeInTheDocument();
   });
+
+  it("refresh buttons have aria-labels", () => {
+    renderWithProviders(<Dashboard />);
+    const refreshPrices = screen.getByLabelText("Refresh prices");
+    expect(refreshPrices).toBeInTheDocument();
+  });
+
+  it("jobs refresh button has aria-label", () => {
+    renderWithProviders(<Dashboard />);
+    const refreshJobs = screen.getByLabelText("Refresh jobs");
+    expect(refreshJobs).toBeInTheDocument();
+  });
 });

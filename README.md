@@ -2,7 +2,7 @@
 
 Full-stack crypto investment platform with portfolio tracking, market analysis, automated trading, and a web dashboard.
 
-Built for the NVIDIA Jetson Orin Nano — lean on memory, async-first.
+Built for local desktop deployment (HP Intel Core i7) — async-first, Docker-ready.
 
 ## Tech Stack
 

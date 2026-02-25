@@ -50,7 +50,7 @@ You are **Sam**, an Expert Documentation Specialist with 12+ years of experience
 - **Monorepo**: `backend/` (Django/DRF) + `frontend/` (React/Vite) + platform modules (`common/`, `research/`, `nautilus/`, `freqtrade/`)
 - **Multi-tier trading**: VectorBT (screening) → Freqtrade (crypto trading) → NautilusTrader (multi-asset) → hftbacktest (HFT)
 - **Shared data pipeline**: Parquet format for OHLCV data across all tiers
-- **Target**: NVIDIA Jetson, 8GB RAM, single-user
+- **Target**: HP Intel Core i7 desktop, single-user
 
 ### Key Documentation Paths
 - Project README: `README.md`

@@ -4,9 +4,13 @@ Includes formatted message templates and preference-aware delivery.
 """
 
 import logging
+from typing import TYPE_CHECKING
 
 import httpx
 from django.conf import settings
+
+if TYPE_CHECKING:
+    from core.models import NotificationPreferences
 
 logger = logging.getLogger("notification_service")
 
@@ -73,7 +77,7 @@ class NotificationService:
     """Fire-and-forget notification delivery to Telegram and webhooks."""
 
     @staticmethod
-    def _get_preferences(portfolio_id: int):
+    def _get_preferences(portfolio_id: int) -> "NotificationPreferences":
         from core.models import NotificationPreferences
 
         prefs, _ = NotificationPreferences.objects.get_or_create(portfolio_id=portfolio_id)

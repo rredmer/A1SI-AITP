@@ -7,6 +7,7 @@ import { useAssetClass } from "../hooks/useAssetClass";
 import { ProgressBar } from "../components/ProgressBar";
 import { DEFAULT_SYMBOL, EXCHANGE_OPTIONS, TIMEFRAME_OPTIONS, DEFAULT_FEES } from "../constants/assetDefaults";
 import { getErrorMessage } from "../utils/errors";
+import { isJobResult } from "../utils/typeGuards";
 
 export function Screening() {
   const { toast } = useToast();
@@ -31,7 +32,8 @@ export function Screening() {
   });
 
   const isJobActive = job.data?.status === "pending" || job.data?.status === "running";
-  const jobResult = job.data?.result as Record<string, unknown> | undefined;
+  const rawResult = job.data?.result;
+  const jobResult = isJobResult(rawResult) ? rawResult : undefined;
   const strategiesResult = (jobResult?.strategies ?? {}) as Record<string, Record<string, unknown>>;
 
   return (
@@ -165,7 +167,7 @@ export function Screening() {
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
-                            {Object.keys(data.top_results[0] as Record<string, unknown>).map((col) => (
+                            {(data.top_results[0] != null ? Object.keys(data.top_results[0]) : []).map((col) => (
                               <th key={col} className="pb-2 pr-3">{col}</th>
                             ))}
                           </tr>

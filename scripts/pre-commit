@@ -15,3 +15,46 @@ if git diff --cached --name-only | grep -qE '^backend/.*\.py$'; then
         exit 1
     }
 fi
+
+# Lint staged Python files
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(py)$' | grep -E '^(backend|common)/' || true)
+if [ -n "$STAGED_PY" ]; then
+    echo "→ Linting staged Python files..."
+    if command -v ruff >/dev/null 2>&1; then
+        echo "$STAGED_PY" | xargs ruff check || {
+            echo ""
+            echo "Ruff lint failed. Fix issues and re-stage."
+            exit 1
+        }
+    elif [ -f backend/.venv/bin/ruff ]; then
+        echo "$STAGED_PY" | xargs backend/.venv/bin/ruff check || {
+            echo ""
+            echo "Ruff lint failed. Fix issues and re-stage."
+            exit 1
+        }
+    fi
+fi
+
+# Lint staged TypeScript files
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | grep -E '^frontend/src/' || true)
+if [ -n "$STAGED_TS" ]; then
+    echo "→ Linting staged TypeScript files..."
+    if [ -f frontend/node_modules/.bin/eslint ]; then
+        echo "$STAGED_TS" | xargs frontend/node_modules/.bin/eslint || {
+            echo ""
+            echo "ESLint failed. Fix issues and re-stage."
+            exit 1
+        }
+    fi
+fi
+
+# Optional: scan for secrets if gitleaks is installed
+if command -v gitleaks >/dev/null 2>&1; then
+    echo "→ Scanning for secrets..."
+    gitleaks protect --staged --no-banner || {
+        echo ""
+        echo "⚠ Gitleaks found potential secrets. Review before committing."
+        echo "  Install gitleaks: https://github.com/gitleaks/gitleaks"
+        # Non-blocking — warn but don't fail
+    }
+fi

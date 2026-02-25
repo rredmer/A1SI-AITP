@@ -110,4 +110,17 @@ describe("Backtesting - Configuration Form", () => {
     renderWithProviders(<Backtesting />);
     expect(await screen.findByText("History")).toBeInTheDocument();
   });
+
+  it("framework buttons have aria-labels", () => {
+    renderWithProviders(<Backtesting />);
+    const buttons = screen.getAllByRole("button");
+    const fwButtons = buttons.filter(btn => btn.getAttribute("aria-label")?.includes("Select"));
+    expect(fwButtons.length).toBeGreaterThan(0);
+  });
+
+  it("refresh history button has aria-label", async () => {
+    renderWithProviders(<Backtesting />);
+    const btn = await screen.findByLabelText("Refresh history");
+    expect(btn).toBeInTheDocument();
+  });
 });

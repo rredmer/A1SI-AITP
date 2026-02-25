@@ -88,4 +88,23 @@ describe("HoldingsTable", () => {
     expect(screen.getByLabelText("Avg Buy Price")).toBeInTheDocument();
     expect(screen.getByText("Add")).toBeInTheDocument();
   });
+
+  it("symbol input has maxLength", async () => {
+    renderWithProviders(<HoldingsTable holdings={mockHoldings} portfolioId={1} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText("+ Add Holding"));
+    const symbolInput = screen.getByPlaceholderText("BTC/USDT");
+    expect(symbolInput).toHaveAttribute("maxLength", "20");
+  });
+
+  it("amount input has min attribute in add form", async () => {
+    renderWithProviders(<HoldingsTable holdings={mockHoldings} portfolioId={1} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText("+ Add Holding"));
+    const inputs = screen.getAllByRole("spinbutton");
+    const amountInput = inputs.find(i => i.getAttribute("min") === "0.00000001");
+    expect(amountInput).toBeDefined();
+  });
 });

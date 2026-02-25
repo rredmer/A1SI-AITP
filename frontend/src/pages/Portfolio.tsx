@@ -34,7 +34,7 @@ export function PortfolioPage() {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      portfoliosApi.create({ name: newName, exchange_id: newExchange, description: newDescription, asset_class: assetClass } as unknown as PortfolioCreate),
+      portfoliosApi.create({ name: newName, exchange_id: newExchange, description: newDescription, asset_class: assetClass } as PortfolioCreate),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolios"] });
       setShowCreateForm(false);
@@ -268,8 +268,8 @@ export function PortfolioPage() {
                         <div>
                           <div className="mb-1 flex items-center gap-2">
                             <h3 className="text-lg font-semibold">{p.name}</h3>
-                            {String((p as Record<string, unknown>).asset_class || "") !== "" && (
-                              <AssetClassBadge assetClass={String((p as Record<string, unknown>).asset_class) as "crypto" | "equity" | "forex"} />
+                            {p.asset_class && (
+                              <AssetClassBadge assetClass={p.asset_class as "crypto" | "equity" | "forex"} />
                             )}
                           </div>
                           <p className="text-sm text-[var(--color-text-muted)]">

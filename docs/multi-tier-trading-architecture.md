@@ -634,7 +634,7 @@ A single risk layer prevents tier-specific bugs from causing outsized losses. Th
 ### Why Parquet for data storage?
 
 - Columnar format is efficient for time-series queries (read only the columns needed)
-- Snappy compression keeps file sizes manageable on the Jetson's storage
+- Snappy compression keeps file sizes manageable
 - Native pandas/PyArrow support across all Python frameworks
 - Merge-on-save deduplicates overlapping downloads automatically
 

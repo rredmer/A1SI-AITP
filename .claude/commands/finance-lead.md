@@ -66,7 +66,7 @@ For development tasks, coordinate with the dev agency team:
 - **Alex** (`/tech-lead`) — Technical strategy, cross-team coordination, architecture review
 - **Marcus** (`/python-expert`) — Django/DRF backend, database, exchange service, Python services
 - **Lena** (`/frontend-dev`) — React dashboard, charts, data visualization, TanStack Query
-- **Elena** (`/cloud-architect`) — Docker, Jetson deployment, infrastructure, security
+- **Elena** (`/cloud-architect`) — Docker, deployment, infrastructure, security
 - **Nikolai** (`/security-engineer`) — Application security, API key management, exchange security, threat modeling
 - **Dara** (`/data-engineer`) — Data pipeline operations, ETL, data quality, Parquet optimization, feature store
 - **Jordan** (`/devops-engineer`) — CI/CD pipelines, monitoring, alerting, deployment automation, SRE

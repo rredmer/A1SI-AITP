@@ -65,4 +65,16 @@ describe("OrderForm", () => {
 
     expect(screen.queryByText("Confirm")).not.toBeInTheDocument();
   });
+
+  it("amount input has min attribute", () => {
+    renderWithProviders(<OrderForm />);
+    const amount = screen.getByLabelText("Amount");
+    expect(amount).toHaveAttribute("min", "0.00000001");
+  });
+
+  it("price input has min attribute", () => {
+    renderWithProviders(<OrderForm />);
+    const price = screen.getByLabelText(/Price/);
+    expect(price).toHaveAttribute("min", "0");
+  });
 });

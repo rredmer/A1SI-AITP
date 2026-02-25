@@ -62,8 +62,8 @@ export function Layout({ onLogout, username }: LayoutProps) {
 
   useEffect(() => {
     if (lastOrderUpdate && lastOrderUpdate !== prevOrderRef.current) {
-      const symbol = lastOrderUpdate.symbol as string || "";
-      const status = lastOrderUpdate.status as string || "updated";
+      const symbol = String(lastOrderUpdate?.symbol ?? "");
+      const status = String(lastOrderUpdate?.status ?? "updated");
       toast(`Order ${symbol}: ${status}`, "info");
     }
     prevOrderRef.current = lastOrderUpdate;
@@ -71,7 +71,7 @@ export function Layout({ onLogout, username }: LayoutProps) {
 
   useEffect(() => {
     if (lastRiskAlert && lastRiskAlert !== prevAlertRef.current) {
-      const message = (lastRiskAlert.message as string) || "New risk alert";
+      const message = String(lastRiskAlert?.message ?? "New risk alert");
       toast(message, "error");
     }
     prevAlertRef.current = lastRiskAlert;

@@ -267,6 +267,21 @@ describe("Settings - Masked API Key", () => {
   });
 });
 
+describe("Settings - Accessibility Labels", () => {
+  it("show/hide buttons have aria-labels", async () => {
+    setupMocks();
+    renderWithProviders(<Settings />);
+    const addBtn = await screen.findByText("Add Exchange");
+    fireEvent.click(addBtn);
+    const buttons = screen.getAllByRole("button");
+    const toggleButtons = buttons.filter(btn => {
+      const label = btn.getAttribute("aria-label") || "";
+      return label.includes("API key") || label.includes("API secret") || label.includes("passphrase");
+    });
+    expect(toggleButtons.length).toBeGreaterThan(0);
+  });
+});
+
 describe("Settings - Empty State", () => {
   it("shows empty message when no configs exist", async () => {
     vi.stubGlobal(

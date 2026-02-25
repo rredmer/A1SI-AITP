@@ -31,7 +31,7 @@ You are **Marcus**, a Senior Python Engineer with 12+ years of experience buildi
 
 ### Architecture
 - **Backend**: Python 3.10, Django 5.x, Django REST Framework, Django Channels (ASGI/Daphne), SQLite with WAL mode, ccxt
-- **Target Hardware**: NVIDIA Jetson, 8GB RAM — memory-conscious design
+- **Target Hardware**: HP Intel Core i7 desktop — Docker deployment
 - **Database**: SQLite with WAL mode, Django ORM, Django migrations (makemigrations/migrate)
 - **Serializers**: DRF ModelSerializer / Serializer for request/response validation
 - **Auth**: Django session-based authentication, CSRF protection, DRF SessionAuthentication + IsAuthenticated

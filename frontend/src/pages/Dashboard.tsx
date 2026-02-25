@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "../api/dashboard";
 import { formatPrice, formatVolume } from "../utils/formatters";
@@ -22,6 +22,7 @@ import {
   ASSET_CLASS_LABELS,
 } from "../constants/assetDefaults";
 import type {
+  AssetClass,
   BackgroundJob,
   DashboardKPIs,
   OHLCVData,
@@ -32,6 +33,28 @@ import type {
 } from "../types";
 
 const ALWAYS_SHOW_FRAMEWORKS = ["VectorBT", "CCXT", "Pandas", "TA-Lib"];
+
+const TickerButton = memo(function TickerButton({ symbol, ticker, isActive, onClick, assetClass }: { symbol: string; ticker?: TickerData; isActive: boolean; onClick: () => void; assetClass: AssetClass }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`grid w-full grid-cols-4 rounded-lg border p-3 text-left transition-colors hover:bg-[var(--color-bg)] ${
+        isActive
+          ? "border-[var(--color-primary)] bg-[var(--color-bg)]"
+          : "border-[var(--color-border)]"
+      }`}
+    >
+      <span className="font-medium">{symbol}</span>
+      <span className="text-right">{ticker ? formatPrice(ticker.price, assetClass) : "\u2014"}</span>
+      <span className={`text-right ${ticker && ticker.change_24h >= 0 ? "text-green-400" : "text-red-400"}`}>
+        {ticker ? `${ticker.change_24h >= 0 ? "+" : ""}${ticker.change_24h.toFixed(2)}%` : "\u2014"}
+      </span>
+      <span className="text-right text-[var(--color-text-muted)]">
+        {ticker ? formatVolume(ticker.volume_24h) : "\u2014"}
+      </span>
+    </button>
+  );
+});
 
 export function Dashboard() {
   const queryClient = useQueryClient();
@@ -146,6 +169,7 @@ export function Dashboard() {
             onClick={() => queryClient.invalidateQueries({ queryKey: ["watchlist-tickers", assetClass] })}
             className="ml-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
             title="Refresh prices"
+            aria-label="Refresh prices"
           >
             &#8635; Refresh
           </button>
@@ -165,24 +189,14 @@ export function Dashboard() {
               <span className="text-right">Volume</span>
             </div>
             {tickerData.map((t) => (
-              <button
+              <TickerButton
                 key={t.symbol}
+                symbol={t.symbol}
+                ticker={t}
+                isActive={chartSymbol === t.symbol}
                 onClick={() => setChartSymbol(t.symbol)}
-                className={`grid w-full grid-cols-4 rounded-lg border p-3 text-left transition-colors hover:bg-[var(--color-bg)] ${
-                  chartSymbol === t.symbol
-                    ? "border-[var(--color-primary)] bg-[var(--color-bg)]"
-                    : "border-[var(--color-border)]"
-                }`}
-              >
-                <span className="font-medium">{t.symbol}</span>
-                <span className="text-right">{formatPrice(t.price, assetClass)}</span>
-                <span className={`text-right ${t.change_24h >= 0 ? "text-green-400" : "text-red-400"}`}>
-                  {t.change_24h >= 0 ? "+" : ""}{t.change_24h.toFixed(2)}%
-                </span>
-                <span className="text-right text-[var(--color-text-muted)]">
-                  {formatVolume(t.volume_24h)}
-                </span>
-              </button>
+                assetClass={assetClass}
+              />
             ))}
           </div>
         ) : (
@@ -316,6 +330,7 @@ export function Dashboard() {
               onClick={() => queryClient.invalidateQueries({ queryKey: ["recent-jobs"] })}
               className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
               title="Refresh jobs"
+              aria-label="Refresh jobs"
             >
               &#8635; Refresh
             </button>

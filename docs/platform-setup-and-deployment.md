@@ -8,14 +8,14 @@ This document covers how to set up the A1SI-AITP platform for local development,
 
 ### Hardware
 
-The platform is designed for the NVIDIA Jetson Orin Nano Super but runs on any Linux system.
+The platform is designed for local desktop deployment (HP Intel Core i7) but runs on any Linux system.
 
-| Resource | Minimum | Recommended (Jetson) |
-|----------|---------|---------------------|
-| CPU | 4 cores | 6 cores (aarch64) |
-| RAM | 4 GB | 8 GB |
+| Resource | Minimum | Recommended |
+|----------|---------|-------------|
+| CPU | 4 cores | 8+ cores (Intel Core i7) |
+| RAM | 4 GB | 16+ GB |
 | Storage | 5 GB free | 20+ GB free |
-| GPU | Not required | Orin (for FreqAI/ML) |
+| GPU | Not required | Optional (for future PyTorch/ML) |
 
 ### Software
 
@@ -29,7 +29,7 @@ The platform is designed for the NVIDIA Jetson Orin Nano Super but runs on any L
 | Docker | 24+ | For containerized deployment (optional) |
 | OpenSSL | 1.1+ | For TLS certificate generation |
 
-**ARM64 note:** This is an aarch64 system. Use arm64-native packages when available. Not all x86 Docker images work on ARM.
+**Note:** This platform targets x86_64 Linux. Standard Docker images work out of the box.
 
 ---
 
@@ -133,8 +133,8 @@ make setup-backend
 This runs the following steps:
 
 1. **Create Python virtual environment** at `backend/.venv/`
-   - Uses `--without-pip` (system python3 on the Jetson has no `ensurepip`)
-   - Bootstraps pip via `get-pip.py`
+   - Uses `--without-pip` if system python3 has no `ensurepip`
+   - Bootstraps pip via `get-pip.py` if needed
 2. **Install Python dependencies** from `backend/pyproject.toml` (editable install with dev extras)
 3. **Create data directory** at `backend/data/`
 4. **Run database migrations** (creates SQLite database at `backend/data/a1si_aitp.db`)
@@ -687,7 +687,7 @@ A1SI-AITP/
 ### Backend won't start
 
 **"No module named pip"** during setup:
-The system Python on Jetson has no `ensurepip`. The Makefile handles this by creating the venv with `--without-pip` and bootstrapping via `get-pip.py`. If setup still fails, manually bootstrap:
+Some system Python installations lack `ensurepip`. The Makefile handles this by creating the venv with `--without-pip` and bootstrapping via `get-pip.py`. If setup still fails, manually bootstrap:
 
 ```bash
 python3 -m venv --without-pip backend/.venv

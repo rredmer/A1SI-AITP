@@ -131,6 +131,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.0"
           step="any"
+          min="0.00000001"
           required
           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         />
@@ -144,6 +145,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
           onChange={(e) => setPrice(e.target.value)}
           placeholder="0.00"
           step="any"
+          min="0"
           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         />
       </div>
@@ -164,7 +166,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
       </button>
       {mutation.isError && (
         <p className="text-sm text-[var(--color-danger)]">
-          {(mutation.error as Error).message}
+          {getErrorMessage(mutation.error)}
         </p>
       )}
 

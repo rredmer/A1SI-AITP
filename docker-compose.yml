@@ -33,9 +33,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4g
+          memory: 8g
         reservations:
-          memory: 512m
+          memory: 1g
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 10s
@@ -58,9 +58,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 512m
         reservations:
-          memory: 128m
+          memory: 256m
     depends_on:
       backend:
         condition: service_healthy

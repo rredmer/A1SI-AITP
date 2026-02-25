@@ -122,6 +122,16 @@ describe("MarketAnalysis - Indicator Toggle Interaction", () => {
       expect(screen.getByText(ind)).toBeInTheDocument();
     }
   });
+
+  it("indicator buttons have aria-labels", () => {
+    renderWithProviders(<MarketAnalysis />);
+    const buttons = screen.getAllByRole("button");
+    const indicatorButtons = buttons.filter(btn => btn.getAttribute("aria-label")?.includes("Toggle"));
+    expect(indicatorButtons.length).toBeGreaterThan(0);
+    indicatorButtons.forEach(btn => {
+      expect(btn).toHaveAttribute("aria-label", expect.stringContaining("indicator"));
+    });
+  });
 });
 
 describe("MarketAnalysis - Form Controls", () => {

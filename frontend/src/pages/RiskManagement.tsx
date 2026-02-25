@@ -207,7 +207,7 @@ export function RiskManagement() {
     const changes: Partial<RiskLimits> = {};
     for (const key of Object.keys(editLimits) as (keyof RiskLimits)[]) {
       if (editLimits[key] !== limits[key]) {
-        (changes as Record<string, unknown>)[key] = editLimits[key];
+        Object.assign(changes, { [key]: editLimits[key] });
       }
     }
     if (Object.keys(changes).length > 0) {

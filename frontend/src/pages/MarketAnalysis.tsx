@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { marketApi } from "../api/market";
 import { indicatorsApi, type IndicatorData } from "../api/indicators";
@@ -31,6 +31,22 @@ function formatRegimeName(regime: RegimeType): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
+
+const IndicatorButton = memo(function IndicatorButton({ name, isActive, onClick }: { name: string; isActive: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={`Toggle ${name} indicator`}
+      className={`rounded px-2 py-1 text-xs ${
+        isActive
+          ? "bg-[var(--color-primary)] text-white"
+          : "bg-[var(--color-bg)] text-[var(--color-text-muted)]"
+      }`}
+    >
+      {name}
+    </button>
+  );
+});
 
 export function MarketAnalysis() {
   const { assetClass } = useAssetClass();
@@ -112,33 +128,23 @@ export function MarketAnalysis() {
         <h3 className="mb-2 text-sm font-medium text-[var(--color-text-muted)]">Overlays</h3>
         <div className="mb-3 flex flex-wrap gap-1">
           {OVERLAY_INDICATORS.map((ind) => (
-            <button
+            <IndicatorButton
               key={ind}
+              name={ind}
+              isActive={selectedIndicators.includes(ind)}
               onClick={() => toggleIndicator(ind)}
-              className={`rounded px-2 py-1 text-xs ${
-                selectedIndicators.includes(ind)
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "bg-[var(--color-bg)] text-[var(--color-text-muted)]"
-              }`}
-            >
-              {ind}
-            </button>
+            />
           ))}
         </div>
         <h3 className="mb-2 text-sm font-medium text-[var(--color-text-muted)]">Panes</h3>
         <div className="flex flex-wrap gap-1">
           {PANE_INDICATORS.map((ind) => (
-            <button
+            <IndicatorButton
               key={ind}
+              name={ind}
+              isActive={selectedIndicators.includes(ind)}
               onClick={() => toggleIndicator(ind)}
-              className={`rounded px-2 py-1 text-xs ${
-                selectedIndicators.includes(ind)
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "bg-[var(--color-bg)] text-[var(--color-text-muted)]"
-              }`}
-            >
-              {ind}
-            </button>
+            />
           ))}
         </div>
       </div>

@@ -5,7 +5,7 @@ Shared functionality for all Nautilus strategies:
 - Indicator computation via common.indicators.technical
 - Risk API gating (same pattern as Freqtrade strategies)
 - ATR-based position sizing
-- Bounded bar buffer for 8GB Jetson
+- Bounded bar buffer for memory efficiency
 """
 
 import logging
@@ -26,8 +26,8 @@ from common.indicators.technical import (
 
 logger = logging.getLogger(__name__)
 
-# Maximum bars to keep in memory (bounded for Jetson 8GB)
-MAX_BARS = 500
+# Maximum bars to keep in memory
+MAX_BARS = 5000
 
 # Risk API defaults (same as Freqtrade strategies)
 RISK_API_URL = "http://127.0.0.1:8000"

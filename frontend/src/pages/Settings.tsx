@@ -120,6 +120,7 @@ function ExchangeForm({
           <button
             type="button"
             onClick={() => setShowKey(!showKey)}
+            aria-label={showKey ? "Hide API key" : "Show API key"}
             className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs"
           >
             {showKey ? "Hide" : "Show"}
@@ -140,6 +141,7 @@ function ExchangeForm({
           <button
             type="button"
             onClick={() => setShowSecret(!showSecret)}
+            aria-label={showSecret ? "Hide API secret" : "Show API secret"}
             className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs"
           >
             {showSecret ? "Hide" : "Show"}
@@ -161,6 +163,7 @@ function ExchangeForm({
             <button
               type="button"
               onClick={() => setShowPass(!showPass)}
+              aria-label={showPass ? "Hide passphrase" : "Show passphrase"}
               className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs"
             >
               {showPass ? "Hide" : "Show"}
@@ -479,6 +482,7 @@ export function Settings() {
               {testResult.message}
               <button
                 onClick={() => setTestResult(null)}
+                aria-label="Dismiss test result"
                 className="ml-2 text-xs opacity-70 hover:opacity-100"
               >
                 dismiss

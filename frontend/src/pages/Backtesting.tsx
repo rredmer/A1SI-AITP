@@ -15,6 +15,7 @@ import {
   TIMEFRAME_OPTIONS,
 } from "../constants/assetDefaults";
 import { getErrorMessage } from "../utils/errors";
+import { isJobResult } from "../utils/typeGuards";
 import type { BacktestComparison, BacktestResult, StrategyInfo } from "../types";
 
 export function Backtesting() {
@@ -67,7 +68,8 @@ export function Backtesting() {
   };
 
   const isJobActive = job.data?.status === "pending" || job.data?.status === "running";
-  const jobResult = job.data?.result as Record<string, unknown> | undefined;
+  const rawResult = job.data?.result;
+  const jobResult = isJobResult(rawResult) ? rawResult : undefined;
   const metrics = (jobResult?.metrics ?? {}) as Record<string, unknown>;
   const trades = (jobResult?.trades ?? []) as Record<string, unknown>[];
 
@@ -96,6 +98,7 @@ export function Backtesting() {
                   <button
                     key={fw.value}
                     onClick={() => { setFramework(fw.value); setStrategy(""); }}
+                    aria-label={`Select ${fw.label} framework`}
                     className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium ${
                       framework === fw.value
                         ? "bg-[var(--color-primary)] text-white"
@@ -274,6 +277,7 @@ export function Backtesting() {
                     onClick={() => queryClient.invalidateQueries({ queryKey: ["backtest-results"] })}
                     className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
                     title="Refresh history"
+                    aria-label="Refresh history"
                   >
                     &#8635; Refresh
                   </button>
