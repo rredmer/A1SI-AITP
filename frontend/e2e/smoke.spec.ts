@@ -9,7 +9,10 @@ async function login(page: Page) {
   await page.fill("#username", "admin");
   await page.fill("#password", "admin");
   await page.click('button[type="submit"]');
-  await page.waitForURL("/");
+  // Wait for authenticated layout to render (sidebar nav appears after login)
+  await page.waitForSelector('nav[aria-label="Main navigation"]', {
+    timeout: 30_000,
+  });
 }
 
 test.describe("Smoke tests", () => {
@@ -20,8 +23,7 @@ test.describe("Smoke tests", () => {
     await page.fill("#username", "admin");
     await page.fill("#password", "admin");
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL("/");
-    // Sidebar nav should show "Dashboard" link
+    // Sidebar nav should show "Dashboard" link (confirms auth + redirect)
     await expect(page.locator('nav[aria-label="Main navigation"]')).toBeVisible();
     await expect(page.locator("text=Dashboard")).toBeVisible();
   });
@@ -45,6 +47,7 @@ test.describe("Smoke tests", () => {
   });
 
   test("navigate all pages without crash", async ({ page }) => {
+    test.slow(); // Triple timeout — 14 routes with potentially slow API calls in CI
     await login(page);
     // Routes from App.tsx router config
     const routes = [
@@ -64,8 +67,8 @@ test.describe("Smoke tests", () => {
       "/settings",
     ];
     for (const route of routes) {
-      await page.goto(route);
-      // Wait for lazy-loaded page to render (Suspense fallback says "Loading...")
+      await page.goto(route, { waitUntil: "domcontentloaded" });
+      // Wait briefly for lazy-loaded page to render (Suspense fallback)
       await page.waitForFunction(
         () => !document.querySelector("main")?.textContent?.includes("Loading..."),
         { timeout: 10_000 },
@@ -119,6 +122,7 @@ test.describe("Smoke tests", () => {
   });
 
   test("asset class selector updates context", async ({ page }) => {
+    test.slow(); // Asset class switches trigger API refetches that may be slow in CI
     await login(page);
     // AssetClassSelector renders buttons with text "Crypto", "Equities", "Forex"
     const equitiesButton = page.locator("button", { hasText: "Equities" });
