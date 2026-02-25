@@ -143,7 +143,29 @@ class HealthView(APIView):
         except Exception as e:
             checks["memory"] = {"status": "error", "detail": str(e)}
 
-        overall = "ok" if all(c["status"] == "ok" for c in checks.values()) else "degraded"
+        # Scheduler check
+        try:
+            from core.services.scheduler import get_scheduler
+
+            sched = get_scheduler()
+            checks["scheduler"] = {
+                "running": sched.running,
+            }
+        except Exception as e:
+            checks["scheduler"] = {"status": "error", "detail": str(e)}
+
+        # Circuit breaker check
+        try:
+            from market.services.circuit_breaker import get_all_breakers
+
+            breaker_states = {b["exchange_id"]: b["state"] for b in get_all_breakers()}
+            checks["circuit_breakers"] = breaker_states
+        except Exception as e:
+            checks["circuit_breakers"] = {"status": "error", "detail": str(e)}
+
+        overall = "ok" if all(
+            c.get("status", "ok") == "ok" for c in checks.values() if isinstance(c, dict)
+        ) else "degraded"
         return Response({"status": overall, "checks": checks})
 
 
@@ -265,6 +287,42 @@ class MetricsView(APIView):
                     metrics.gauge("risk_halt_active", 1.0 if state.is_halted else 0.0)
         except Exception:
             logger.warning("Failed to snapshot risk metrics", exc_info=True)
+
+        # Job queue depth
+        try:
+            from analysis.models import BackgroundJob
+
+            pending = BackgroundJob.objects.filter(status="pending").count()
+            running = BackgroundJob.objects.filter(status="running").count()
+            metrics.gauge("job_queue_pending", pending)
+            metrics.gauge("job_queue_running", running)
+        except Exception:
+            logger.warning("Failed to snapshot job queue metrics", exc_info=True)
+
+        # Circuit breaker state
+        try:
+            from market.services.circuit_breaker import get_all_breakers
+
+            for breaker_info in get_all_breakers():
+                state_val = {"open": 1, "half_open": 0.5, "closed": 0}.get(
+                    breaker_info["state"], 0
+                )
+                metrics.gauge(
+                    "circuit_breaker_state",
+                    state_val,
+                    {"exchange": breaker_info["exchange_id"]},
+                )
+        except Exception:
+            logger.warning("Failed to snapshot circuit breaker metrics", exc_info=True)
+
+        # Scheduler health
+        try:
+            from core.services.scheduler import get_scheduler
+
+            sched = get_scheduler()
+            metrics.gauge("scheduler_running", 1 if sched.running else 0)
+        except Exception:
+            logger.warning("Failed to snapshot scheduler metrics", exc_info=True)
 
         return HttpResponse(metrics.collect(), content_type="text/plain; charset=utf-8")
 

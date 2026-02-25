@@ -1,6 +1,7 @@
 import { useState, useMemo, memo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { portfoliosApi } from "../api/portfolios";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { useToast } from "../hooks/useToast";
 import { getErrorMessage } from "../utils/errors";
 import type { Holding } from "../types";
@@ -21,6 +22,7 @@ function HoldingsTableInner({ holdings, portfolioId, priceMap = {} }: HoldingsTa
   const [newSymbol, setNewSymbol] = useState("");
   const [newAmount, setNewAmount] = useState("");
   const [newPrice, setNewPrice] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; symbol: string } | null>(null);
 
   const updateMutation = useMutation({
     mutationFn: ({ holdingId, data }: { holdingId: number; data: { amount?: number; avg_buy_price?: number } }) =>
@@ -34,7 +36,10 @@ function HoldingsTableInner({ holdings, portfolioId, priceMap = {} }: HoldingsTa
 
   const deleteMutation = useMutation({
     mutationFn: (holdingId: number) => portfoliosApi.deleteHolding(portfolioId, holdingId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["portfolios"] });
+      setDeleteTarget(null);
+    },
     onError: (err) => toast(getErrorMessage(err) || "Failed to delete holding", "error"),
   });
 
@@ -282,7 +287,7 @@ function HoldingsTableInner({ holdings, portfolioId, priceMap = {} }: HoldingsTa
                         Edit
                       </button>
                       <button
-                        onClick={() => deleteMutation.mutate(h.id)}
+                        onClick={() => setDeleteTarget({ id: h.id, symbol: h.symbol })}
                         disabled={deleteMutation.isPending}
                         className="rounded bg-red-500/10 px-2 py-1 text-xs text-red-400 hover:bg-red-500/20"
                       >
@@ -314,6 +319,16 @@ function HoldingsTableInner({ holdings, portfolioId, priceMap = {} }: HoldingsTa
           </tr>
         </tbody>
       </table>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete Holding"
+        message={`Are you sure you want to delete ${deleteTarget?.symbol ?? "this holding"}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

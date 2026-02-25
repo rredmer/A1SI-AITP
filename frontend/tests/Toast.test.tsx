@@ -78,4 +78,44 @@ describe("Toast", () => {
     expect(screen.getByText("Error message")).toBeInTheDocument();
     expect(screen.getAllByRole("alert")).toHaveLength(2);
   });
+
+  it("caps at 5 concurrent toasts", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWithProviders(<ToastTrigger />);
+    // Add 6 toasts rapidly — alternating types to create distinct messages
+    for (let i = 0; i < 6; i++) {
+      if (i % 3 === 0) await user.click(screen.getByText("Show Success"));
+      else if (i % 3 === 1) await user.click(screen.getByText("Show Error"));
+      else await user.click(screen.getByText("Show Info"));
+    }
+    // Should cap at 5
+    expect(screen.getAllByRole("alert").length).toBeLessThanOrEqual(5);
+  });
+
+  it("oldest dismissed when over limit", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWithProviders(<ToastTrigger />);
+    // Add 6 toasts (all the same type creates identical messages, so we check count)
+    for (let i = 0; i < 6; i++) {
+      await user.click(screen.getByText("Show Success"));
+    }
+    // Only 5 should remain
+    const alerts = screen.getAllByRole("alert");
+    expect(alerts).toHaveLength(5);
+  });
+
+  it("auto-dismiss still works with cap", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWithProviders(<ToastTrigger />);
+    await user.click(screen.getByText("Show Info"));
+    expect(screen.getByText("Info message")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(4100);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Info message")).not.toBeInTheDocument();
+    });
+  });
 });

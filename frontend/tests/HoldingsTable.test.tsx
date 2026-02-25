@@ -107,4 +107,31 @@ describe("HoldingsTable", () => {
     const amountInput = inputs.find(i => i.getAttribute("min") === "0.00000001");
     expect(amountInput).toBeDefined();
   });
+
+  it("shows confirm dialog when delete is clicked", async () => {
+    renderWithProviders(<HoldingsTable holdings={mockHoldings} portfolioId={1} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getAllByText("Delete")[0]);
+
+    expect(screen.getByText("Delete Holding")).toBeInTheDocument();
+    // Dialog message contains the symbol name
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.textContent).toContain("BTC/USDT");
+  });
+
+  it("dismisses confirm dialog on cancel", async () => {
+    renderWithProviders(<HoldingsTable holdings={mockHoldings} portfolioId={1} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getAllByText("Delete")[0]);
+    expect(screen.getByText("Delete Holding")).toBeInTheDocument();
+
+    // Click the Cancel button in the dialog
+    const cancelButtons = screen.getAllByText("Cancel");
+    const dialogCancel = cancelButtons[cancelButtons.length - 1];
+    await user.click(dialogCancel);
+
+    expect(screen.queryByText("Delete Holding")).not.toBeInTheDocument();
+  });
 });

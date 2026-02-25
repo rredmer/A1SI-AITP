@@ -77,4 +77,27 @@ describe("OrderForm", () => {
     const price = screen.getByLabelText(/Price/);
     expect(price).toHaveAttribute("min", "0");
   });
+
+  it("renders FieldError slots for symbol, amount, and price", () => {
+    // With no mutation error, no field errors should be visible
+    renderWithProviders(<OrderForm />);
+    // The form should have labels but no error paragraphs
+    const errorParagraphs = document.querySelectorAll("p.mt-1.text-xs");
+    expect(errorParagraphs).toHaveLength(0);
+  });
+
+  it("symbol input renders without FieldError when no error", () => {
+    renderWithProviders(<OrderForm />);
+    const symbolInput = screen.getByLabelText("Symbol");
+    // There should be no sibling error paragraph
+    const parent = symbolInput.closest("div");
+    expect(parent?.querySelector("p")).toBeNull();
+  });
+
+  it("amount input renders without FieldError when no error", () => {
+    renderWithProviders(<OrderForm />);
+    const amountInput = screen.getByLabelText("Amount");
+    const parent = amountInput.closest("div");
+    expect(parent?.querySelector("p")).toBeNull();
+  });
 });

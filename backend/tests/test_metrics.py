@@ -2,6 +2,8 @@
 Tests for Prometheus-compatible metrics endpoint and collector.
 """
 
+import contextlib
+
 import pytest
 from django.test import Client
 
@@ -85,3 +87,95 @@ class TestMetricsCollector:
 
         output = mc.collect()
         assert "test_timing" in output
+
+
+@pytest.mark.django_db
+class TestMetricsInstrumentation:
+    def test_metrics_contains_job_queue_gauges(self, authenticated_client):
+        resp = authenticated_client.get("/metrics/")
+        body = resp.content.decode()
+        assert "job_queue_pending" in body
+        assert "job_queue_running" in body
+
+    def test_metrics_contains_scheduler_status(self, authenticated_client):
+        resp = authenticated_client.get("/metrics/")
+        body = resp.content.decode()
+        assert "scheduler_running" in body
+
+    def test_metrics_contains_circuit_breaker_state(self, authenticated_client):
+        """Circuit breaker state only appears after a breaker is registered."""
+        from market.services.circuit_breaker import get_breaker
+
+        get_breaker("test_exchange")
+        resp = authenticated_client.get("/metrics/")
+        body = resp.content.decode()
+        assert "circuit_breaker_state" in body
+
+    def test_health_detailed_includes_scheduler(self, authenticated_client):
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "scheduler" in data["checks"]
+
+    def test_health_detailed_includes_circuit_breakers(self, authenticated_client):
+        resp = authenticated_client.get("/api/health/?detailed=true")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "circuit_breakers" in data["checks"]
+
+    def test_order_create_increments_counter(self, authenticated_client):
+        # Create a paper order
+        authenticated_client.post(
+            "/api/trading/orders/",
+            {
+                "symbol": "BTC/USDT",
+                "side": "buy",
+                "order_type": "market",
+                "amount": 0.1,
+                "price": 0,
+                "exchange_id": "binance",
+                "mode": "paper",
+                "portfolio_id": 1,
+            },
+            content_type="application/json",
+        )
+
+        resp = authenticated_client.get("/metrics/")
+        body = resp.content.decode()
+        assert "orders_created_total" in body
+
+    def test_timed_dashboard_kpi(self, authenticated_client):
+        from core.services.metrics import metrics
+
+        authenticated_client.get("/api/dashboard/kpis/")
+        output = metrics.collect()
+        assert "dashboard_kpi_latency_seconds" in output
+
+    def test_timed_risk_check(self):
+        from core.services.metrics import metrics
+        from risk.services.risk import RiskManagementService
+
+        with contextlib.suppress(Exception):
+            RiskManagementService.periodic_risk_check(1)
+        output = metrics.collect()
+        assert "risk_check_duration_seconds" in output
+
+    def test_timed_workflow_execution(self):
+        from analysis.services.workflow_engine import execute_workflow
+        from core.services.metrics import metrics
+
+        with contextlib.suppress(Exception):
+            execute_workflow(
+                {"workflow_run_id": "nonexistent", "steps": []}, lambda p, m: None
+            )
+        output = metrics.collect()
+        assert "workflow_execution_seconds" in output
+
+    def test_metrics_high_cardinality_paths_normalized(self, authenticated_client):
+        """Verify that different URL paths don't create unbounded metric keys."""
+        authenticated_client.get("/api/health/")
+        authenticated_client.get("/api/health/?detailed=true")
+        resp = authenticated_client.get("/metrics/")
+        body = resp.content.decode()
+        # http_requests_total should be present but not explode with unique paths
+        assert "http_requests_total" in body

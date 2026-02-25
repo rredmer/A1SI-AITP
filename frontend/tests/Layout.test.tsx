@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import { render } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "../src/components/Layout";
@@ -90,5 +91,77 @@ describe("Layout", () => {
     renderLayout({ isReconnecting: true, reconnectAttempt: 3 });
     expect(screen.getByText(/reconnecting/i)).toBeInTheDocument();
     expect(screen.getByText(/attempt 3/i)).toBeInTheDocument();
+  });
+
+  it("sidebar has hidden-by-default mobile classes", () => {
+    renderLayout();
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(nav.className).toContain("-translate-x-full");
+    expect(nav.className).toContain("md:translate-x-0");
+  });
+
+  it("hamburger button toggles sidebar", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    const toggle = screen.getByLabelText("Toggle navigation");
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+
+    await user.click(toggle);
+    expect(nav.className).toContain("translate-x-0");
+    expect(nav.className).not.toContain("-translate-x-full");
+
+    await user.click(toggle);
+    expect(nav.className).toContain("-translate-x-full");
+  });
+
+  it("backdrop closes sidebar", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText("Toggle navigation"));
+    const backdrop = screen.getByTestId("sidebar-backdrop");
+    await user.click(backdrop);
+
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(nav.className).toContain("-translate-x-full");
+  });
+
+  it("sidebar always visible on desktop via md:translate-x-0", () => {
+    renderLayout();
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(nav.className).toContain("md:translate-x-0");
+    expect(nav.className).toContain("md:relative");
+  });
+
+  it("sidebar closes on navigation", async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/"]}>
+          <ToastProvider>
+            <Routes>
+              <Route element={<Layout onLogout={async () => {}} username="testuser" />}>
+                <Route index element={<div>Dashboard</div>} />
+                <Route path="portfolio" element={<div>Portfolio Page</div>} />
+              </Route>
+            </Routes>
+          </ToastProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+
+    // Open sidebar
+    await user.click(screen.getByLabelText("Toggle navigation"));
+    // Click a nav link
+    await user.click(screen.getByText("Portfolio"));
+
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(nav.className).toContain("-translate-x-full");
+  });
+
+  it("hamburger has aria-label", () => {
+    renderLayout();
+    expect(screen.getByLabelText("Toggle navigation")).toBeInTheDocument();
   });
 });

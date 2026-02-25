@@ -304,4 +304,19 @@ describe("Dashboard", () => {
     const refreshJobs = screen.getByLabelText("Refresh jobs");
     expect(refreshJobs).toBeInTheDocument();
   });
+
+  it("renders watchlist timestamp after data loads", async () => {
+    renderWithProviders(<Dashboard />);
+    await screen.findByText("Crypto Watchlist");
+    const timestamp = await screen.findByTestId("watchlist-timestamp");
+    expect(timestamp).toBeInTheDocument();
+    expect(timestamp.textContent).toContain("as of");
+  });
+
+  it("renders KPI timestamp after data loads", async () => {
+    renderWithProviders(<Dashboard />);
+    const timestamp = await screen.findByTestId("kpi-timestamp");
+    expect(timestamp).toBeInTheDocument();
+    expect(timestamp.textContent).toContain("Updated");
+  });
 });

@@ -141,6 +141,7 @@ describe("MarketAnalysis - Form Controls", () => {
       mockFetch({
         "/api/market/ohlcv": mockOhlcv,
         "/api/indicators": { data: [] },
+        "/api/regime/current": { symbol: "BTC/USDT", regime: "ranging", confidence: 0.5, adx_value: 20, bb_width_percentile: 50, ema_slope: 0, trend_alignment: 0, price_structure_score: 0, transition_probabilities: {} },
       }),
     );
   });
@@ -172,5 +173,12 @@ describe("MarketAnalysis - Form Controls", () => {
     for (const tf of timeframes) {
       expect(screen.getByRole("option", { name: tf })).toBeInTheDocument();
     }
+  });
+
+  it("renders chart timestamp after data loads", async () => {
+    renderWithProviders(<MarketAnalysis />);
+    const timestamp = await screen.findByTestId("chart-timestamp");
+    expect(timestamp).toBeInTheDocument();
+    expect(timestamp.textContent).toContain("Data as of");
   });
 });

@@ -2,11 +2,30 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tradingApi } from "../api/trading";
 import { portfoliosApi } from "../api/portfolios";
+import { FieldError } from "./FieldError";
 import { useToast } from "../hooks/useToast";
 import { useAssetClass } from "../hooks/useAssetClass";
 import { DEFAULT_SYMBOL } from "../constants/assetDefaults";
 import { getErrorMessage } from "../utils/errors";
 import type { Portfolio, TradingMode } from "../types";
+
+function parseFieldErrors(
+  error: unknown,
+): Record<string, string> {
+  if (!error || typeof error !== "object") return {};
+  // Axios-style: error.response.data
+  const data = (error as { response?: { data?: unknown } }).response?.data;
+  if (!data || typeof data !== "object") return {};
+  const result: Record<string, string> = {};
+  for (const [key, val] of Object.entries(data as Record<string, unknown>)) {
+    if (Array.isArray(val) && val.length > 0) {
+      result[key] = String(val[0]);
+    } else if (typeof val === "string") {
+      result[key] = val;
+    }
+  }
+  return result;
+}
 
 interface OrderFormProps {
   mode?: TradingMode;
@@ -43,6 +62,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
     },
   });
 
+  const fieldErrors = mutation.isError ? parseFieldErrors(mutation.error) : {};
   const activePortfolio = portfolios?.find((p) => String(p.id) === selectedPortfolio);
   const orderData = {
     symbol,
@@ -97,6 +117,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
           placeholder="BTC/USDT"
           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         />
+        <FieldError error={fieldErrors.symbol} />
       </div>
       <div className="flex gap-2">
         <button
@@ -135,6 +156,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
           required
           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         />
+        <FieldError error={fieldErrors.amount} />
       </div>
       <div>
         <label htmlFor="order-price" className="mb-1 block text-xs text-[var(--color-text-muted)]">Price (empty for market)</label>
@@ -148,6 +170,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
           min="0"
           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
         />
+        <FieldError error={fieldErrors.price} />
       </div>
       <button
         type="submit"
@@ -164,7 +187,7 @@ export function OrderForm({ mode = "paper" }: OrderFormProps) {
             ? "Place Live Order"
             : "Place Paper Order"}
       </button>
-      {mutation.isError && (
+      {mutation.isError && Object.keys(fieldErrors).length === 0 && (
         <p className="text-sm text-[var(--color-danger)]">
           {getErrorMessage(mutation.error)}
         </p>

@@ -57,10 +57,11 @@ export function MarketAnalysis() {
 
   useEffect(() => { document.title = "Market Analysis | A1SI-AITP"; }, []);
 
-  const { data: ohlcv, isLoading, isError, error } = useQuery<OHLCVData[]>({
+  const ohlcvQuery = useQuery<OHLCVData[]>({
     queryKey: ["ohlcv", symbol, timeframe, assetClass],
     queryFn: () => marketApi.ohlcv(symbol, timeframe, 100, assetClass),
   });
+  const { data: ohlcv, isLoading, isError, error } = ohlcvQuery;
 
   const { data: indicatorData } = useQuery<IndicatorData>({
     queryKey: ["indicators", exchange, symbol, timeframe, selectedIndicators],
@@ -173,6 +174,11 @@ export function MarketAnalysis() {
               assetClass={assetClass}
             />
           </ErrorBoundary>
+        )}
+        {ohlcvQuery.dataUpdatedAt > 0 && (
+          <p className="mt-2 text-right text-xs text-[var(--color-text-muted)]" data-testid="chart-timestamp">
+            Data as of {new Date(ohlcvQuery.dataUpdatedAt).toLocaleTimeString()}
+          </p>
         )}
       </div>
       </section>

@@ -13,6 +13,9 @@ else
     echo "→ Skipping superuser creation (set DJANGO_SUPERUSER_PASSWORD to enable)"
 fi
 
+echo "→ Validating environment..."
+python manage.py validate_env || true
+
 echo "→ Collecting static files..."
 python manage.py collectstatic --noinput --clear 2>/dev/null
 

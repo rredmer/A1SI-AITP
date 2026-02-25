@@ -92,5 +92,8 @@ backend/db.sqlite3
 # Freqtrade runtime config (contains credentials — use config.json.example as template)
 freqtrade/config.json
 
+# Bundle analysis
+frontend/dist/stats.html
+
 # Misc
 *.zip

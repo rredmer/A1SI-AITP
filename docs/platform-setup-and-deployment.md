@@ -509,14 +509,25 @@ File naming: `a1si_aitp_{TIMESTAMP}.db.gz.gpg` (encrypted) or `a1si_aitp_{TIMEST
 ### Restoring from Backup
 
 ```bash
-# Decrypted backup
-gunzip backend/data/backups/a1si_aitp_20260218_120000.db.gz
-cp backend/data/backups/a1si_aitp_20260218_120000.db backend/data/a1si_aitp.db
+make restore
+```
 
-# Encrypted backup
-gpg --decrypt --output backup.db.gz backend/data/backups/a1si_aitp_20260218_120000.db.gz.gpg
-gunzip backup.db.gz
-cp backup.db backend/data/a1si_aitp.db
+This runs `scripts/restore_db.sh`, which:
+
+1. Auto-selects the most recent backup file (or specify one: `bash scripts/restore_db.sh path/to/backup.db.gz.gpg`)
+2. Verifies the SHA-256 checksum (if `.sha256` file exists)
+3. Decrypts with GPG if `.gpg` (requires `BACKUP_ENCRYPTION_KEY`)
+4. Decompresses with gunzip
+5. Runs `PRAGMA integrity_check` on the restored database
+6. Saves the current database as `.pre-restore` safety net
+7. Copies the verified backup into place
+
+After restoring, run `make migrate` to apply any pending migrations.
+
+To restore a specific backup file:
+
+```bash
+bash scripts/restore_db.sh backend/data/backups/a1si_aitp_20260218_120000.db.gz.gpg
 ```
 
 ### Automated Backups
@@ -642,6 +653,7 @@ A1SI-AITP/
 │   ├── dev.sh                   # Start dev servers
 │   ├── generate_certs.sh        # Generate TLS certificates
 │   ├── backup_db.sh             # Database backup with encryption
+│   ├── restore_db.sh            # Database restore with integrity check
 │   └── setup.sh
 ├── docs/                        # Documentation
 ├── data/                        # Market data Parquet files (gitignored)
@@ -678,6 +690,7 @@ A1SI-AITP/
 | `make audit` | Check dependencies for vulnerabilities |
 | `make certs` | Generate self-signed TLS certificates |
 | `make backup` | SQLite backup with optional GPG encryption |
+| `make restore` | Restore SQLite database from most recent backup |
 | `make clean` | Remove venv, node_modules, build artifacts, caches |
 
 ---
@@ -730,6 +743,7 @@ SQLite with WAL mode supports concurrent reads but only one writer. If multiple 
 **Corrupted database:**
 Restore from the most recent backup:
 ```bash
-ls backend/data/backups/
-# Pick the most recent file and restore (see Database Backups section)
+make restore
+# Or specify a backup file:
+bash scripts/restore_db.sh backend/data/backups/a1si_aitp_20260218_120000.db.gz.gpg
 ```

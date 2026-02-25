@@ -4,6 +4,7 @@ import { portfoliosApi } from "../api/portfolios";
 import { marketApi } from "../api/market";
 import { HoldingsTable } from "../components/HoldingsTable";
 import { AssetClassBadge } from "../components/AssetClassBadge";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { QueryResult } from "../components/QueryResult";
 import { useToast } from "../hooks/useToast";
 import { useAssetClass } from "../hooks/useAssetClass";
@@ -24,6 +25,7 @@ export function PortfolioPage() {
   const [editName, setEditName] = useState("");
   const [editExchange, setEditExchange] = useState("binance");
   const [editDescription, setEditDescription] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => { document.title = "Portfolio | A1SI-AITP"; }, []);
 
@@ -60,6 +62,7 @@ export function PortfolioPage() {
     mutationFn: (id: number) => portfoliosApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portfolios"] });
+      setDeleteTarget(null);
       toast("Portfolio deleted", "info");
     },
     onError: (err) => toast(getErrorMessage(err) || "Failed to delete portfolio", "error"),
@@ -81,9 +84,7 @@ export function PortfolioPage() {
   };
 
   const handleDeletePortfolio = (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete portfolio "${name}"? This action cannot be undone.`)) {
-      deleteMutation.mutate(id);
-    }
+    setDeleteTarget({ id, name });
   };
 
   // Collect all unique symbols across all portfolios
@@ -337,6 +338,16 @@ export function PortfolioPage() {
           )
         }
       </QueryResult>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete Portfolio"
+        message={`Are you sure you want to delete portfolio "${deleteTarget?.name ?? ""}"? All holdings will be removed. This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
       </section>
     </div>
   );

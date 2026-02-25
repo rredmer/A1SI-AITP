@@ -92,12 +92,14 @@ export function Dashboard() {
     enabled: assetClass === "crypto",
   });
 
-  const { data: tickerData, isLoading: tickersLoading } = useQuery<TickerData[]>({
+  const tickers = useQuery<TickerData[]>({
     queryKey: ["watchlist-tickers", assetClass],
     queryFn: () => marketApi.tickers(DEFAULT_SYMBOLS[assetClass], assetClass),
     refetchInterval: 30000,
     retry: 1,
   });
+  const tickerData = tickers.data;
+  const tickersLoading = tickers.isLoading;
 
   const { data: ohlcvData, isLoading: ohlcvLoading } = useQuery<OHLCVData[]>({
     queryKey: ["dashboard-ohlcv", chartSymbol, assetClass],
@@ -159,12 +161,22 @@ export function Dashboard() {
         />
         <SummaryCard label="Status" text="Online" textColor="text-[var(--color-success)]" />
       </div>
+      {kpis.dataUpdatedAt > 0 && (
+        <p className="mt-1 text-right text-xs text-[var(--color-text-muted)]" data-testid="kpi-timestamp">
+          Updated {new Date(kpis.dataUpdatedAt).toLocaleTimeString()}
+        </p>
+      )}
 
       {/* Watchlist */}
       <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
         <div className="mb-4 flex items-center gap-3">
           <h3 className="text-lg font-semibold">{ASSET_CLASS_LABELS[assetClass]} Watchlist</h3>
           <AssetClassBadge assetClass={assetClass} />
+          {tickers.dataUpdatedAt > 0 && (
+            <span className="text-xs text-[var(--color-text-muted)]" data-testid="watchlist-timestamp">
+              as of {new Date(tickers.dataUpdatedAt).toLocaleTimeString()}
+            </span>
+          )}
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ["watchlist-tickers", assetClass] })}
             className="ml-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"

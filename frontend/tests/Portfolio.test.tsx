@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { PortfolioPage } from "../src/pages/Portfolio";
 import { renderWithProviders, mockFetch } from "./helpers";
 
@@ -127,5 +128,37 @@ describe("Portfolio - Portfolio Cards", () => {
     expect(editButtons.length).toBeGreaterThanOrEqual(1);
     const deleteButtons = screen.getAllByText("Delete");
     expect(deleteButtons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows confirm dialog on portfolio delete", async () => {
+    renderWithProviders(<PortfolioPage />);
+    const user = userEvent.setup();
+    await screen.findByText("Main Portfolio");
+
+    // Click the first portfolio-level Delete button
+    const deleteButtons = screen.getAllByText("Delete");
+    await user.click(deleteButtons[0]);
+
+    expect(screen.getByText("Delete Portfolio")).toBeInTheDocument();
+    // Dialog message contains the portfolio name
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.textContent).toContain("Main Portfolio");
+  });
+
+  it("dismisses portfolio delete dialog on cancel", async () => {
+    renderWithProviders(<PortfolioPage />);
+    const user = userEvent.setup();
+    await screen.findByText("Main Portfolio");
+
+    const deleteButtons = screen.getAllByText("Delete");
+    await user.click(deleteButtons[0]);
+    expect(screen.getByText("Delete Portfolio")).toBeInTheDocument();
+
+    // Click Cancel in the dialog
+    const cancelButtons = screen.getAllByText("Cancel");
+    const dialogCancel = cancelButtons[cancelButtons.length - 1];
+    await user.click(dialogCancel);
+
+    expect(screen.queryByText("Delete Portfolio")).not.toBeInTheDocument();
   });
 });

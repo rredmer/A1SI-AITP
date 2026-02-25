@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -16,6 +16,8 @@ import {
   GitBranch,
   Settings,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { EmergencyStopButton } from "./EmergencyStopButton";
@@ -55,6 +57,7 @@ interface LayoutProps {
 export function Layout({ onLogout, username }: LayoutProps) {
   const [assetClass, setAssetClass] = useLocalStorage<AssetClass>("ci:asset-class", "crypto");
   const [theme, setTheme] = useLocalStorage<Theme>("ci:theme", "dark");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isConnected, isReconnecting, reconnectAttempt, reconnect, isHalted, haltReason, lastOrderUpdate, lastRiskAlert } = useSystemEvents();
   const { toast } = useToast();
   const prevOrderRef = useRef(lastOrderUpdate);
@@ -85,7 +88,23 @@ export function Layout({ onLogout, username }: LayoutProps) {
     <ThemeContext.Provider value={{ theme, setTheme }}>
     <AssetClassContext.Provider value={{ assetClass, setAssetClass }}>
     <div className="flex h-screen">
-      <nav aria-label="Main navigation" className="flex w-56 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      {/* Mobile hamburger button */}
+      <button
+        className="fixed left-4 top-4 z-40 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 md:hidden"
+        aria-label="Toggle navigation"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+      >
+        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          data-testid="sidebar-backdrop"
+        />
+      )}
+      <nav aria-label="Main navigation" className={`fixed inset-y-0 left-0 z-30 flex w-56 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-transform md:relative md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <h1 className="mb-4 text-xl font-bold text-[var(--color-primary)]">
           A1SI-AITP
         </h1>
@@ -98,6 +117,7 @@ export function Layout({ onLogout, username }: LayoutProps) {
               <NavLink
                 to={to}
                 end={to === "/"}
+                onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                     isActive

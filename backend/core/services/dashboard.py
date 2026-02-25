@@ -13,18 +13,21 @@ class DashboardService:
 
     @staticmethod
     def get_kpis(asset_class: str | None = None) -> dict:
-        portfolio_data = DashboardService._get_portfolio_kpis(asset_class)
-        trading_data = DashboardService._get_trading_kpis(asset_class)
-        risk_data = DashboardService._get_risk_kpis()
-        platform_data = DashboardService._get_platform_kpis()
+        from core.services.metrics import timed
 
-        return {
-            "portfolio": portfolio_data,
-            "trading": trading_data,
-            "risk": risk_data,
-            "platform": platform_data,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-        }
+        with timed("dashboard_kpi_latency_seconds"):
+            portfolio_data = DashboardService._get_portfolio_kpis(asset_class)
+            trading_data = DashboardService._get_trading_kpis(asset_class)
+            risk_data = DashboardService._get_risk_kpis()
+            platform_data = DashboardService._get_platform_kpis()
+
+            return {
+                "portfolio": portfolio_data,
+                "trading": trading_data,
+                "risk": risk_data,
+                "platform": platform_data,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            }
 
     @staticmethod
     def _get_portfolio_kpis(asset_class: str | None = None) -> dict:

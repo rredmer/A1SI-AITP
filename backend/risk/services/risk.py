@@ -251,77 +251,84 @@ class RiskManagementService:
     @staticmethod
     def periodic_risk_check(portfolio_id: int) -> dict:
         """Periodic risk check — record metrics, auto-halt on limit breach, warn at 80%."""
-        state = RiskManagementService._get_or_create_state(portfolio_id)
-        limits_config = RiskManagementService._get_or_create_limits(portfolio_id)
+        from core.services.metrics import timed
 
-        # Record metrics snapshot
-        try:
-            RiskManagementService.record_metrics(portfolio_id)
-        except Exception as e:
-            logger.warning("Failed to record metrics for portfolio %s: %s", portfolio_id, e)
+        with timed("risk_check_duration_seconds"):
+            state = RiskManagementService._get_or_create_state(portfolio_id)
+            limits_config = RiskManagementService._get_or_create_limits(portfolio_id)
 
-        # Skip checks if already halted
-        if state.is_halted:
-            return {"status": "halted", "portfolio_id": portfolio_id}
-
-        peak = state.peak_equity if state.peak_equity > 0 else 1
-        drawdown = 1.0 - (state.total_equity / peak)
-        daily_loss_pct = (
-            abs(state.daily_pnl / state.total_equity) if state.total_equity > 0 else 0.0
-        )
-
-        result = {"status": "ok", "portfolio_id": portfolio_id, "drawdown": round(drawdown, 4)}
-
-        # Check drawdown limit
-        if drawdown >= limits_config.max_portfolio_drawdown:
-            reason = (
-                f"Drawdown {drawdown:.1%} exceeded limit "
-                f"{limits_config.max_portfolio_drawdown:.1%}"
-            )
-            RiskManagementService.halt_trading(portfolio_id, reason)
+            # Record metrics snapshot
             try:
-                RiskManagementService.send_notification(
-                    portfolio_id, "risk_auto_halt", "critical", reason,
-                )
+                RiskManagementService.record_metrics(portfolio_id)
             except Exception as e:
-                logger.error("Failed to send auto-halt notification: %s", e)
-            result["status"] = "auto_halted"
-            result["reason"] = reason
+                logger.warning("Failed to record metrics for portfolio %s: %s", portfolio_id, e)
+
+            # Skip checks if already halted
+            if state.is_halted:
+                return {"status": "halted", "portfolio_id": portfolio_id}
+
+            peak = state.peak_equity if state.peak_equity > 0 else 1
+            drawdown = 1.0 - (state.total_equity / peak)
+            daily_loss_pct = (
+                abs(state.daily_pnl / state.total_equity) if state.total_equity > 0 else 0.0
+            )
+
+            result = {
+                "status": "ok",
+                "portfolio_id": portfolio_id,
+                "drawdown": round(drawdown, 4),
+            }
+
+            # Check drawdown limit
+            if drawdown >= limits_config.max_portfolio_drawdown:
+                reason = (
+                    f"Drawdown {drawdown:.1%} exceeded limit "
+                    f"{limits_config.max_portfolio_drawdown:.1%}"
+                )
+                RiskManagementService.halt_trading(portfolio_id, reason)
+                try:
+                    RiskManagementService.send_notification(
+                        portfolio_id, "risk_auto_halt", "critical", reason,
+                    )
+                except Exception as e:
+                    logger.error("Failed to send auto-halt notification: %s", e)
+                result["status"] = "auto_halted"
+                result["reason"] = reason
+                return result
+
+            # Check daily loss limit
+            if daily_loss_pct >= limits_config.max_daily_loss:
+                reason = (
+                    f"Daily loss {daily_loss_pct:.1%} exceeded limit "
+                    f"{limits_config.max_daily_loss:.1%}"
+                )
+                RiskManagementService.halt_trading(portfolio_id, reason)
+                try:
+                    RiskManagementService.send_notification(
+                        portfolio_id, "risk_auto_halt", "critical", reason,
+                    )
+                except Exception as e:
+                    logger.error("Failed to send auto-halt notification: %s", e)
+                result["status"] = "auto_halted"
+                result["reason"] = reason
+                return result
+
+            # Warning at 80% of limits
+            if drawdown >= limits_config.max_portfolio_drawdown * 0.8:
+                msg = (
+                    f"Drawdown warning: {drawdown:.1%} is at "
+                    f"{drawdown / limits_config.max_portfolio_drawdown:.0%} of limit"
+                )
+                try:
+                    RiskManagementService.send_notification(
+                        portfolio_id, "risk_warning", "warning", msg,
+                    )
+                except Exception as e:
+                    logger.error("Failed to send risk warning: %s", e)
+                result["status"] = "warning"
+                result["warning"] = msg
+
             return result
-
-        # Check daily loss limit
-        if daily_loss_pct >= limits_config.max_daily_loss:
-            reason = (
-                f"Daily loss {daily_loss_pct:.1%} exceeded limit "
-                f"{limits_config.max_daily_loss:.1%}"
-            )
-            RiskManagementService.halt_trading(portfolio_id, reason)
-            try:
-                RiskManagementService.send_notification(
-                    portfolio_id, "risk_auto_halt", "critical", reason,
-                )
-            except Exception as e:
-                logger.error("Failed to send auto-halt notification: %s", e)
-            result["status"] = "auto_halted"
-            result["reason"] = reason
-            return result
-
-        # Warning at 80% of limits
-        if drawdown >= limits_config.max_portfolio_drawdown * 0.8:
-            msg = (
-                f"Drawdown warning: {drawdown:.1%} is at "
-                f"{drawdown / limits_config.max_portfolio_drawdown:.0%} of limit"
-            )
-            try:
-                RiskManagementService.send_notification(
-                    portfolio_id, "risk_warning", "warning", msg,
-                )
-            except Exception as e:
-                logger.error("Failed to send risk warning: %s", e)
-            result["status"] = "warning"
-            result["warning"] = msg
-
-        return result
 
     @staticmethod
     def get_metric_history(portfolio_id: int, hours: int = 168) -> list:
