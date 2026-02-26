@@ -3,6 +3,8 @@
 import contextlib
 import json
 import logging
+import os
+import signal
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -45,16 +47,42 @@ class PaperTradingService:
                 logger.warning(f"Failed to read Freqtrade config: {e}")
         return {}
 
+    def _api_alive(self) -> bool:
+        """Check if Freqtrade API is responding."""
+        try:
+            resp = httpx.get(
+                f"{self._ft_api_url}/api/v1/ping", timeout=2.0,
+            )
+            return resp.status_code == 200
+        except Exception:
+            return False
+
     @property
     def is_running(self) -> bool:
-        return self._process is not None and self._process.poll() is None
+        """Check if Freqtrade is running (managed process or external)."""
+        if self._process is not None and self._process.poll() is None:
+            return True
+        return self._api_alive()
+
+    def _find_freqtrade_pid(self) -> int | None:
+        """Find PID of a running freqtrade process via /proc."""
+        for pid_dir in Path("/proc").iterdir():
+            if not pid_dir.name.isdigit():
+                continue
+            try:
+                cmdline = (pid_dir / "cmdline").read_text()
+                if "freqtrade" in cmdline and "trade" in cmdline:
+                    return int(pid_dir.name)
+            except (OSError, ValueError):
+                continue
+        return None
 
     def start(self, strategy: str = "CryptoInvestorV1") -> dict:
         if self.is_running:
             return {
                 "status": "already_running",
-                "strategy": self._strategy,
-                "pid": self._process.pid,
+                "strategy": self._strategy or strategy,
+                "pid": self._process.pid if self._process else self._find_freqtrade_pid(),
             }
 
         ft_config = get_freqtrade_dir() / "config.json"
@@ -99,30 +127,46 @@ class PaperTradingService:
         }
 
     def stop(self) -> dict:
-        if not self.is_running:
+        if self._process is not None and self._process.poll() is None:
+            pid = self._process.pid
+            strategy = self._strategy
+            self._process.terminate()
+            try:
+                self._process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Freqtrade PID {pid} did not stop gracefully, killing")
+                self._process.kill()
+                self._process.wait(timeout=5)
+            self._process = None
+        elif self._api_alive():
+            pid = self._find_freqtrade_pid()
+            strategy = self._strategy
+            if pid:
+                os.kill(pid, signal.SIGTERM)
+                logger.info(f"Sent SIGTERM to external Freqtrade PID {pid}")
+            else:
+                return {"status": "error", "error": "API alive but PID not found"}
+        else:
             return {"status": "not_running"}
-
-        pid = self._process.pid
-        strategy = self._strategy
-        self._process.terminate()
-        try:
-            self._process.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            logger.warning(f"Freqtrade PID {pid} did not stop gracefully, killing")
-            self._process.kill()
-            self._process.wait(timeout=5)
 
         self._log_event("stopped", {"pid": pid, "strategy": strategy})
         logger.info(f"Paper trading stopped: {strategy} (PID {pid})")
-        self._process = None
         return {"status": "stopped", "pid": pid}
 
     def get_status(self) -> dict:
-        if not self.is_running:
-            exit_code = None
-            if self._process is not None:
-                exit_code = self._process.poll()
-                self._process = None
+        # Check managed process first
+        if self._process is not None:
+            if self._process.poll() is None:
+                uptime = (datetime.now(timezone.utc) - self._started_at).total_seconds()
+                return {
+                    "running": True,
+                    "strategy": self._strategy,
+                    "pid": self._process.pid,
+                    "started_at": self._started_at.isoformat(),
+                    "uptime_seconds": round(uptime),
+                }
+            exit_code = self._process.poll()
+            self._process = None
             return {
                 "running": False,
                 "strategy": self._strategy or None,
@@ -130,19 +174,38 @@ class PaperTradingService:
                 "exit_code": exit_code,
             }
 
-        uptime = (datetime.now(timezone.utc) - self._started_at).total_seconds()
+        # No managed process — probe Freqtrade API for external process
+        if self._api_alive():
+            try:
+                auth = httpx.BasicAuth(self._ft_username, self._ft_password)
+                resp = httpx.get(
+                    f"{self._ft_api_url}/api/v1/show_config",
+                    auth=auth,
+                    timeout=3.0,
+                )
+                if resp.status_code == 200:
+                    cfg = resp.json()
+                    return {
+                        "running": True,
+                        "strategy": cfg.get("strategy", "unknown"),
+                        "pid": self._find_freqtrade_pid(),
+                        "exchange": cfg.get("exchange"),
+                        "dry_run": cfg.get("dry_run"),
+                        "state": cfg.get("state"),
+                        "uptime_seconds": 0,
+                    }
+            except Exception:
+                pass
+
         return {
-            "running": True,
-            "strategy": self._strategy,
-            "pid": self._process.pid,
-            "started_at": self._started_at.isoformat(),
-            "uptime_seconds": round(uptime),
+            "running": False,
+            "strategy": self._strategy or None,
+            "uptime_seconds": 0,
+            "exit_code": None,
         }
 
     async def _ft_get(self, endpoint: str) -> Any:
         """Call Freqtrade REST API using HTTP Basic auth."""
-        if not self.is_running:
-            return None
         try:
             auth = httpx.BasicAuth(self._ft_username, self._ft_password)
             async with httpx.AsyncClient() as client:

@@ -44,6 +44,7 @@ def ft_env(tmp_path):
             },
         ),
         patch("trading.services.paper_trading.get_freqtrade_dir", return_value=ft_dir),
+        patch.object(PaperTradingService, "_api_alive", return_value=False),
     ):
         yield PaperTradingService(log_dir=tmp_path)
 
