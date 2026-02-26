@@ -2071,7 +2071,7 @@ export interface components {
             options?: unknown;
         };
         ExchangeHealth: {
-            exchange_id: string;
+            exchange: string;
             connected: boolean;
             /** Format: double */
             latency_ms: number;

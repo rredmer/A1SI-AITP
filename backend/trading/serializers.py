@@ -81,7 +81,7 @@ class CancelAllResponseSerializer(serializers.Serializer):
 
 
 class ExchangeHealthSerializer(serializers.Serializer):
-    exchange_id = serializers.CharField()
+    exchange = serializers.CharField()
     connected = serializers.BooleanField()
     latency_ms = serializers.FloatField()
     last_checked = serializers.CharField()

@@ -112,7 +112,7 @@ class TestExchangeHealth:
         assert resp.status_code == 200
         data = resp.json()
         assert data["connected"] is True
-        assert data["exchange_id"] == "binance"
+        assert data["exchange"] == "kraken"
         assert "latency_ms" in data
         assert "last_checked" in data
 

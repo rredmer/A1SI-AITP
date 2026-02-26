@@ -658,6 +658,7 @@ export interface ExchangeHealthResponse {
   connected: boolean;
   exchange: string;
   latency_ms: number;
+  last_checked?: string;
   error?: string;
 }
 

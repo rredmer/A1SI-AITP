@@ -3168,7 +3168,7 @@ components:
     ExchangeHealth:
       type: object
       properties:
-        exchange_id:
+        exchange:
           type: string
         connected:
           type: boolean
@@ -3179,7 +3179,7 @@ components:
           type: string
       required:
       - connected
-      - exchange_id
+      - exchange
       - last_checked
       - latency_ms
     ExchangeIdEnum:

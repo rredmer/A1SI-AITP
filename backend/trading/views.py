@@ -462,7 +462,7 @@ class ExchangeHealthView(APIView):
     def get(self, request: Request) -> Response:
         from market.services.exchange import ExchangeService
 
-        exchange_id = request.query_params.get("exchange_id", "binance")
+        exchange_id = request.query_params.get("exchange_id", "kraken")
         start = time.monotonic()
 
         async def _check():
@@ -481,7 +481,7 @@ class ExchangeHealthView(APIView):
 
         return Response(
             {
-                "exchange_id": exchange_id,
+                "exchange": exchange_id,
                 "connected": connected,
                 "latency_ms": round(latency_ms, 1),
                 "last_checked": datetime.now(timezone.utc).isoformat(),
