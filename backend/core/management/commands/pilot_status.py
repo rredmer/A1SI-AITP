@@ -96,7 +96,11 @@ def _regime_section() -> dict[str, Any]:
         from common.data_pipeline.pipeline import load_ohlcv
         from common.regime.regime_detector import RegimeDetector
 
-        df = load_ohlcv("BTC/USDT", "1h")
+        df = None
+        for eid in ("binance", "kraken", "coinbase", "kucoin", "bybit"):
+            df = load_ohlcv("BTC/USDT", "1h", exchange_id=eid)
+            if df is not None and not df.empty:
+                break
         if df is None or df.empty:
             return {"regime": "unknown", "detail": "No BTC/USDT data available"}
 
