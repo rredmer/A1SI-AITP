@@ -1,4 +1,4 @@
-.PHONY: setup dev test lint build clean harden audit certs backup restore analyze test-security test-e2e ci typecheck docker-build check-schema-freshness generate-types install-hooks docker-up docker-down docker-restart docker-deploy docker-logs docker-status docker-clean maintain-db health-check clean-data
+.PHONY: setup dev test lint build clean harden audit certs backup restore analyze test-security test-e2e ci typecheck docker-build check-schema-freshness generate-types install-hooks docker-up docker-down docker-restart docker-deploy docker-logs docker-status docker-clean maintain-db health-check clean-data pilot-preflight pilot-preflight-json pilot-status pilot-status-json pilot-status-full
 
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
@@ -225,6 +225,23 @@ health-check:
 
 clean-data:
 	bash scripts/clean_data.sh
+
+# ── Pilot ──────────────────────────────────────────────────
+
+pilot-preflight:
+	$(MANAGE) pilot_preflight
+
+pilot-preflight-json:
+	$(MANAGE) pilot_preflight --json
+
+pilot-status:
+	$(MANAGE) pilot_status
+
+pilot-status-json:
+	$(MANAGE) pilot_status --json
+
+pilot-status-full:
+	$(MANAGE) pilot_status --days 14
 
 # ── Clean ──────────────────────────────────────────────────
 
