@@ -25,8 +25,7 @@ def is_rate_limited(key: str, cooldown: float = 300.0) -> bool:
     """Return True if *key* was sent within the last *cooldown* seconds."""
     now = time.monotonic()
     with _rate_limit_lock:
-        last = _last_sent.get(key, 0.0)
-        if now - last < cooldown:
+        if key in _last_sent and now - _last_sent[key] < cooldown:
             return True
         _last_sent[key] = now
         return False
