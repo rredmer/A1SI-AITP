@@ -284,8 +284,8 @@ export function Dashboard() {
               <div>
                 <p className="text-sm font-medium">{dailyReport.system_status.readiness}</p>
                 <p className="text-xs text-[var(--color-text-muted)]">
-                  Coverage: {(dailyReport.data_coverage as Record<string, unknown>).coverage_pct ?? 0}% |{" "}
-                  Regime: {(dailyReport.regime as Record<string, unknown>).dominant_regime as string ?? "unknown"}
+                  Coverage: {String((dailyReport.data_coverage as Record<string, unknown>).coverage_pct ?? 0)}% |{" "}
+                  Regime: {String((dailyReport.regime as Record<string, unknown>).dominant_regime ?? "unknown")}
                 </p>
               </div>
             </div>
