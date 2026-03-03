@@ -414,6 +414,17 @@ export interface RegimeChangeEvent {
   };
 }
 
+export interface OpportunityAlertEvent {
+  type: "opportunity_alert";
+  data: {
+    symbol: string;
+    opportunity_type: OpportunityType;
+    score: number;
+    details: Record<string, unknown>;
+    timestamp: string;
+  };
+}
+
 export type SystemEvent =
   | HaltStatusEvent
   | OrderUpdateEvent
@@ -421,7 +432,8 @@ export type SystemEvent =
   | NewsUpdateEvent
   | SentimentUpdateEvent
   | SchedulerEventData
-  | RegimeChangeEvent;
+  | RegimeChangeEvent
+  | OpportunityAlertEvent;
 
 // News types
 export interface NewsArticle {
@@ -677,6 +689,49 @@ export interface PlatformStatus {
   frameworks: FrameworkStatus[];
   data_files: number;
   active_jobs: number;
+}
+
+// Market Opportunity types
+export type OpportunityType =
+  | "volume_surge"
+  | "rsi_bounce"
+  | "breakout"
+  | "trend_pullback"
+  | "momentum_shift";
+
+export interface MarketOpportunity {
+  id: number;
+  symbol: string;
+  timeframe: string;
+  opportunity_type: OpportunityType;
+  asset_class: AssetClass;
+  score: number;
+  details: Record<string, unknown>;
+  detected_at: string;
+  expires_at: string;
+  acted_on: boolean;
+}
+
+export interface OpportunitySummary {
+  total_active: number;
+  by_type: Record<string, number>;
+  top_opportunities: MarketOpportunity[];
+  avg_score: number;
+}
+
+export interface DailyReport {
+  generated_at: string;
+  date: string;
+  regime: Record<string, unknown>;
+  top_opportunities: Record<string, unknown>[];
+  data_coverage: Record<string, unknown>;
+  strategy_performance: Record<string, unknown>;
+  system_status: {
+    days_paper_trading: number;
+    min_days_required: number;
+    readiness: string;
+    is_ready: boolean;
+  };
 }
 
 // Dashboard KPI types

@@ -19,6 +19,7 @@ const Settings = lazy(() => import("./pages/Settings").then(m => ({ default: m.S
 const MLModels = lazy(() => import("./pages/MLModels").then(m => ({ default: m.MLModels })));
 const Scheduler = lazy(() => import("./pages/Scheduler").then(m => ({ default: m.Scheduler })));
 const Workflows = lazy(() => import("./pages/Workflows").then(m => ({ default: m.Workflows })));
+const MarketOpportunities = lazy(() => import("./pages/MarketOpportunities").then(m => ({ default: m.MarketOpportunities })));
 
 function PageLoader() {
   return (
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/ml" element={<Suspense fallback={<PageLoader />}><MLModels /></Suspense>} />
         <Route path="/scheduler" element={<Suspense fallback={<PageLoader />}><Scheduler /></Suspense>} />
         <Route path="/workflows" element={<Suspense fallback={<PageLoader />}><Workflows /></Suspense>} />
+        <Route path="/opportunities" element={<Suspense fallback={<PageLoader />}><MarketOpportunities /></Suspense>} />
         <Route path="/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
       </Route>
     </Routes>

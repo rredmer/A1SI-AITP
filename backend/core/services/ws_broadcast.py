@@ -77,6 +77,22 @@ def broadcast_scheduler_event(
     })
 
 
+def broadcast_opportunity(
+    symbol: str,
+    opportunity_type: str,
+    score: int,
+    details: dict,
+) -> None:
+    """Broadcast high-score market opportunity."""
+    _send("opportunity_alert", {
+        "symbol": symbol,
+        "opportunity_type": opportunity_type,
+        "score": score,
+        "details": details,
+        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+    })
+
+
 def broadcast_regime_change(
     symbol: str,
     previous_regime: str,

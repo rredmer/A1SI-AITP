@@ -1,8 +1,10 @@
 import { useState, useEffect, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { dashboardApi } from "../api/dashboard";
 import { formatPrice, formatVolume } from "../utils/formatters";
 import { marketApi } from "../api/market";
+import { opportunitiesApi } from "../api/opportunities";
 import { platformApi } from "../api/platform";
 import { jobsApi } from "../api/jobs";
 import { regimeApi } from "../api/regime";
@@ -24,8 +26,10 @@ import {
 import type {
   AssetClass,
   BackgroundJob,
+  DailyReport,
   DashboardKPIs,
   OHLCVData,
+  OpportunitySummary,
   PlatformStatus,
   RegimeState,
   RegimeType,
@@ -105,6 +109,18 @@ export function Dashboard() {
     queryKey: ["dashboard-ohlcv", chartSymbol, assetClass],
     queryFn: () => marketApi.ohlcv(chartSymbol, "1d", 30, assetClass),
     retry: 1,
+  });
+
+  const { data: oppSummary } = useQuery<OpportunitySummary>({
+    queryKey: ["opportunity-summary"],
+    queryFn: () => opportunitiesApi.summary(),
+    refetchInterval: 60000,
+  });
+
+  const { data: dailyReport } = useQuery<DailyReport>({
+    queryKey: ["daily-report"],
+    queryFn: opportunitiesApi.dailyReport,
+    refetchInterval: 300000,
   });
 
   const frameworkLabels = BACKTEST_FRAMEWORKS[assetClass].map((f) => f.label);
@@ -248,6 +264,71 @@ export function Dashboard() {
       <ErrorBoundary fallback={<WidgetErrorFallback name="News Feed" />}>
         <NewsFeed />
       </ErrorBoundary>
+
+      {/* Market Opportunities */}
+        <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Market Opportunities</h3>
+            <Link
+              to="/opportunities"
+              className="text-xs text-[var(--color-primary)] hover:underline"
+            >
+              View All
+            </Link>
+          </div>
+
+          {/* System Status */}
+          {dailyReport?.system_status && (
+            <div className="mb-4 flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
+              <div className={`h-2.5 w-2.5 rounded-full ${dailyReport.system_status.is_ready ? "bg-green-400" : "bg-yellow-400 animate-pulse"}`} />
+              <div>
+                <p className="text-sm font-medium">{dailyReport.system_status.readiness}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Coverage: {(dailyReport.data_coverage as Record<string, unknown>).coverage_pct ?? 0}% |{" "}
+                  Regime: {(dailyReport.regime as Record<string, unknown>).dominant_regime as string ?? "unknown"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Top Opportunities */}
+          {oppSummary && oppSummary.top_opportunities.length > 0 ? (
+            <div className="space-y-2">
+              {oppSummary.top_opportunities.map((opp) => (
+                <div
+                  key={opp.id}
+                  className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">{opp.symbol}</span>
+                    <OpportunityTypeBadge type={opp.opportunity_type} />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-24">
+                      <div className="h-1.5 rounded-full bg-[var(--color-border)]">
+                        <div
+                          className={`h-1.5 rounded-full ${opp.score >= 75 ? "bg-green-400" : opp.score >= 50 ? "bg-yellow-400" : "bg-gray-400"}`}
+                          style={{ width: `${opp.score}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="w-8 text-right text-xs font-medium">{opp.score}</span>
+                    <span className="text-xs text-[var(--color-text-muted)]">
+                      {new Date(opp.detected_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <p className="text-right text-xs text-[var(--color-text-muted)]">
+                {oppSummary.total_active} active opportunities | Avg score: {oppSummary.avg_score}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              No active opportunities. Scanner runs every 15 minutes.
+            </p>
+          )}
+        </div>
 
       {/* Regime Overview */}
       {assetClass === "crypto" ? (
@@ -446,6 +527,24 @@ function RegimeBadge({ regime }: { regime: RegimeType }) {
       className={`rounded-full px-2 py-0.5 text-xs font-medium ${REGIME_COLORS[regime] ?? "bg-gray-400/15 text-gray-400"}`}
     >
       {formatRegime(regime)}
+    </span>
+  );
+}
+
+const OPPORTUNITY_TYPE_COLORS: Record<string, string> = {
+  volume_surge: "bg-blue-400/15 text-blue-400",
+  rsi_bounce: "bg-cyan-400/15 text-cyan-400",
+  breakout: "bg-green-400/15 text-green-400",
+  trend_pullback: "bg-amber-400/15 text-amber-400",
+  momentum_shift: "bg-purple-400/15 text-purple-400",
+};
+
+function OpportunityTypeBadge({ type }: { type: string }) {
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-xs font-medium ${OPPORTUNITY_TYPE_COLORS[type] ?? "bg-gray-400/15 text-gray-400"}`}
+    >
+      {type.replace(/_/g, " ")}
     </span>
   );
 }

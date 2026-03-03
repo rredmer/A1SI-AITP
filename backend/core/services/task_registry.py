@@ -37,7 +37,7 @@ def _run_data_refresh(params: dict, progress_cb: ProgressCallback) -> dict[str, 
     progress_cb(0.1, f"Refreshing {len(symbols)} {asset_class} symbols")
     results = download_watchlist(
         symbols=symbols[:50],
-        timeframes=["1h"],
+        timeframes=None,
         asset_class=asset_class,
     )
     progress_cb(0.9, "Data refresh complete")
@@ -276,7 +276,7 @@ def _run_vbt_screen(params: dict, progress_cb: ProgressCallback) -> dict[str, An
 
     progress_cb(0.1, f"Screening {len(symbols)} {asset_class} symbols")
     results = []
-    for i, symbol in enumerate(symbols[:10]):
+    for i, symbol in enumerate(symbols):
         try:
             from analysis.services.screening import ScreenerService
 
@@ -331,6 +331,38 @@ def _run_ml_training(params: dict, progress_cb: ProgressCallback) -> dict[str, A
     return {"status": "completed", "models_trained": len(results), "results": results}
 
 
+def _run_market_scan(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
+    """Scan pairs for trading opportunities."""
+    asset_class = params.get("asset_class", "crypto")
+    progress_cb(0.1, f"Scanning {asset_class} market for opportunities")
+    try:
+        from market.services.market_scanner import MarketScannerService
+
+        scanner = MarketScannerService()
+        timeframe = params.get("timeframe", "1h")
+        result = scanner.scan_all(timeframe=timeframe, asset_class=asset_class)
+        progress_cb(0.9, "Market scan complete")
+        return result
+    except Exception as e:
+        logger.warning("Market scan failed: %s", e)
+        return {"status": "error", "error": str(e)}
+
+
+def _run_daily_report(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
+    """Generate daily intelligence report."""
+    progress_cb(0.1, "Generating daily report")
+    try:
+        from market.services.daily_report import DailyReportService
+
+        service = DailyReportService()
+        report = service.generate()
+        progress_cb(0.9, "Daily report complete")
+        return {"status": "completed", "report": report}
+    except Exception as e:
+        logger.warning("Daily report failed: %s", e)
+        return {"status": "error", "error": str(e)}
+
+
 TASK_REGISTRY: dict[str, TaskExecutor] = {
     "data_refresh": _run_data_refresh,
     "regime_detection": _run_regime_detection,
@@ -342,4 +374,6 @@ TASK_REGISTRY: dict[str, TaskExecutor] = {
     "db_maintenance": _run_db_maintenance,
     "vbt_screen": _run_vbt_screen,
     "ml_training": _run_ml_training,
+    "market_scan": _run_market_scan,
+    "daily_report": _run_daily_report,
 }

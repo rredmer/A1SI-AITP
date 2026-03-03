@@ -135,6 +135,46 @@ class NewsArticle(models.Model):
         return f"[{self.sentiment_label}] {self.title[:80]}"
 
 
+class OpportunityType(models.TextChoices):
+    VOLUME_SURGE = "volume_surge", "Volume Surge"
+    RSI_BOUNCE = "rsi_bounce", "RSI Bounce"
+    BREAKOUT = "breakout", "Breakout Candidate"
+    TREND_PULLBACK = "trend_pullback", "Trend Pullback"
+    MOMENTUM_SHIFT = "momentum_shift", "Momentum Shift"
+
+
+class MarketOpportunity(models.Model):
+    symbol = models.CharField(max_length=20, db_index=True)
+    timeframe = models.CharField(max_length=10, default="1h")
+    opportunity_type = models.CharField(
+        max_length=20,
+        choices=OpportunityType.choices,
+        db_index=True,
+    )
+    asset_class = models.CharField(
+        max_length=10,
+        choices=AssetClass.choices,
+        default=AssetClass.CRYPTO,
+        db_index=True,
+    )
+    score = models.IntegerField(default=0)
+    details = models.JSONField(default=dict, blank=True)
+    detected_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    expires_at = models.DateTimeField(db_index=True)
+    acted_on = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-score", "-detected_at"]
+        indexes = [
+            models.Index(fields=["opportunity_type", "-score"]),
+            models.Index(fields=["-detected_at", "expires_at"]),
+            models.Index(fields=["asset_class", "-score"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.symbol} {self.opportunity_type} (score={self.score})"
+
+
 class DataSourceConfig(models.Model):
     exchange_config = models.ForeignKey(
         ExchangeConfig, on_delete=models.CASCADE, related_name="data_sources",

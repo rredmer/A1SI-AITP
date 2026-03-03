@@ -732,6 +732,36 @@ paths:
               schema:
                 $ref: '#/components/schemas/CircuitBreakerReset'
           description: ''
+  /api/market/daily-report/:
+    get:
+      operationId: market_daily_report_retrieve
+      tags:
+      - Market
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReport'
+          description: ''
+  /api/market/daily-report/history/:
+    get:
+      operationId: market_daily_report_history_list
+      tags:
+      - Market
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyReport'
+          description: ''
   /api/market/news/:
     get:
       operationId: market_news_list
@@ -837,6 +867,71 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/OHLCVData'
+          description: ''
+  /api/market/opportunities/:
+    get:
+      operationId: market_opportunities_list
+      parameters:
+      - in: query
+        name: asset_class
+        schema:
+          type: string
+          enum:
+          - crypto
+          - equity
+          - forex
+        description: Filter by asset class
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Max results (default 50)
+      - in: query
+        name: min_score
+        schema:
+          type: integer
+        description: Minimum score filter
+      - in: query
+        name: type
+        schema:
+          type: string
+        description: Filter by opportunity type
+      tags:
+      - Market
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MarketOpportunity'
+          description: ''
+  /api/market/opportunities/summary/:
+    get:
+      operationId: market_opportunities_summary_retrieve
+      parameters:
+      - in: query
+        name: asset_class
+        schema:
+          type: string
+          enum:
+          - crypto
+          - equity
+          - forex
+        description: Filter by asset class
+      tags:
+      - Market
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpportunitySummary'
           description: ''
   /api/market/status/:
     get:
@@ -2723,6 +2818,36 @@ components:
       - exchange_id
       - failure_count
       - state
+    DailyReport:
+      type: object
+      properties:
+        generated_at:
+          type: string
+        date:
+          type: string
+        regime:
+          type: object
+          additionalProperties: {}
+        top_opportunities:
+          type: array
+          items: {}
+        data_coverage:
+          type: object
+          additionalProperties: {}
+        strategy_performance:
+          type: object
+          additionalProperties: {}
+        system_status:
+          type: object
+          additionalProperties: {}
+      required:
+      - data_coverage
+      - date
+      - generated_at
+      - regime
+      - strategy_performance
+      - system_status
+      - top_opportunities
     DashboardKPI:
       type: object
       properties:
@@ -3549,6 +3674,43 @@ components:
           maximum: 0.5
           minimum: 0.05
           default: 0.2
+    MarketOpportunity:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        symbol:
+          type: string
+          maxLength: 20
+        timeframe:
+          type: string
+          maxLength: 10
+        opportunity_type:
+          $ref: '#/components/schemas/OpportunityTypeEnum'
+        asset_class:
+          $ref: '#/components/schemas/AssetClassEnum'
+        score:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        details: {}
+        detected_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+        acted_on:
+          type: boolean
+      required:
+      - detected_at
+      - expires_at
+      - id
+      - opportunity_type
+      - symbol
     MarketStatus:
       type: object
       properties:
@@ -3701,6 +3863,41 @@ components:
       - open
       - timestamp
       - volume
+    OpportunitySummary:
+      type: object
+      properties:
+        total_active:
+          type: integer
+        by_type:
+          type: object
+          additionalProperties:
+            type: integer
+        top_opportunities:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketOpportunity'
+        avg_score:
+          type: number
+          format: double
+      required:
+      - avg_score
+      - by_type
+      - top_opportunities
+      - total_active
+    OpportunityTypeEnum:
+      enum:
+      - volume_surge
+      - rsi_bounce
+      - breakout
+      - trend_pullback
+      - momentum_shift
+      type: string
+      description: |-
+        * `volume_surge` - Volume Surge
+        * `rsi_bounce` - RSI Bounce
+        * `breakout` - Breakout Candidate
+        * `trend_pullback` - Trend Pullback
+        * `momentum_shift` - Momentum Shift
     Order:
       type: object
       properties:

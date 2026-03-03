@@ -37,6 +37,8 @@ const defaultHandlers = {
   "/api/market/ohlcv": [],
   "/api/market/news/sentiment": { asset_class: "crypto", hours: 24, total_articles: 0, avg_score: 0, overall_label: "neutral", positive_count: 0, negative_count: 0, neutral_count: 0 },
   "/api/market/news": [],
+  "/api/market/opportunities/summary": { total_active: 0, by_type: {}, top_opportunities: [], avg_score: 0 },
+  "/api/market/daily-report": { generated_at: "", date: "", regime: {}, top_opportunities: [], data_coverage: {}, strategy_performance: {}, system_status: { days_paper_trading: 0, min_days_required: 14, readiness: "unknown", is_ready: false } },
 };
 
 beforeEach(() => {

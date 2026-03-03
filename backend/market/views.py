@@ -18,6 +18,7 @@ from market.models import DataSourceConfig, ExchangeConfig
 from market.serializers import (
     CircuitBreakerListResponseSerializer,
     CircuitBreakerResetSerializer,
+    DailyReportSerializer,
     DataSourceConfigCreateSerializer,
     DataSourceConfigSerializer,
     ExchangeConfigCreateSerializer,
@@ -27,11 +28,13 @@ from market.serializers import (
     ExchangeTestResultSerializer,
     IndicatorInfoSerializer,
     KeyRotationResponseSerializer,
+    MarketOpportunitySerializer,
     MarketStatusSerializer,
     NewsArticleSerializer,
     NewsFetchResponseSerializer,
     NewsSentimentSummarySerializer,
     OHLCVDataSerializer,
+    OpportunitySummarySerializer,
     RegimeHistoryEntrySerializer,
     RegimePositionSizeRequestSerializer,
     RegimePositionSizeResponseSerializer,
@@ -720,6 +723,119 @@ class CircuitBreakerStatusView(APIView):
             {"error": f"No breaker found for {exchange_id}"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+
+# ── Market Opportunities ─────────────────────────────────────
+
+
+class OpportunityListView(APIView):
+    @extend_schema(
+        responses=MarketOpportunitySerializer(many=True),
+        tags=["Market"],
+        parameters=[
+            OpenApiParameter("type", str, description="Filter by opportunity type"),
+            OpenApiParameter("min_score", int, description="Minimum score filter"),
+            OpenApiParameter("limit", int, description="Max results (default 50)"),
+            OpenApiParameter(
+                "asset_class",
+                str,
+                description="Filter by asset class",
+                enum=["crypto", "equity", "forex"],
+            ),
+        ],
+    )
+    def get(self, request: Request) -> Response:
+        from django.utils import timezone as tz
+
+        from market.models import MarketOpportunity
+
+        now = tz.now()
+        qs = MarketOpportunity.objects.filter(expires_at__gt=now)
+
+        opp_type = request.query_params.get("type")
+        if opp_type:
+            qs = qs.filter(opportunity_type=opp_type)
+
+        asset_class = request.query_params.get("asset_class")
+        if asset_class:
+            qs = qs.filter(asset_class=asset_class)
+
+        min_score = _safe_int(request.query_params.get("min_score"), 0, max_val=100)
+        if min_score > 0:
+            qs = qs.filter(score__gte=min_score)
+
+        limit = _safe_int(request.query_params.get("limit"), 50, max_val=200)
+        qs = qs[:limit]
+
+        serializer = MarketOpportunitySerializer(qs, many=True)
+        return Response(serializer.data)
+
+
+class OpportunitySummaryView(APIView):
+    @extend_schema(
+        responses=OpportunitySummarySerializer,
+        tags=["Market"],
+        parameters=[
+            OpenApiParameter(
+                "asset_class",
+                str,
+                description="Filter by asset class",
+                enum=["crypto", "equity", "forex"],
+            ),
+        ],
+    )
+    def get(self, request: Request) -> Response:
+        from django.db.models import Avg, Count
+        from django.utils import timezone as tz
+
+        from market.models import MarketOpportunity
+
+        now = tz.now()
+        active = MarketOpportunity.objects.filter(expires_at__gt=now)
+
+        asset_class = request.query_params.get("asset_class")
+        if asset_class:
+            active = active.filter(asset_class=asset_class)
+
+        total = active.count()
+        by_type = dict(
+            active.values_list("opportunity_type")
+            .annotate(count=Count("id"))
+            .values_list("opportunity_type", "count")
+        )
+        avg_score = active.aggregate(avg=Avg("score"))["avg"] or 0.0
+        top_5 = active.order_by("-score")[:5]
+
+        return Response({
+            "total_active": total,
+            "by_type": by_type,
+            "top_opportunities": MarketOpportunitySerializer(top_5, many=True).data,
+            "avg_score": round(avg_score, 1),
+        })
+
+
+# ── Daily Report ─────────────────────────────────────────────
+
+
+class DailyReportView(APIView):
+    @extend_schema(responses=DailyReportSerializer, tags=["Market"])
+    def get(self, request: Request) -> Response:
+        from market.services.daily_report import DailyReportService
+
+        service = DailyReportService()
+        report = service.get_latest()
+        return Response(report)
+
+
+class DailyReportHistoryView(APIView):
+    @extend_schema(responses=DailyReportSerializer(many=True), tags=["Market"])
+    def get(self, request: Request) -> Response:
+        from market.services.daily_report import DailyReportService
+
+        limit = _safe_int(request.query_params.get("limit"), 30, max_val=90)
+        service = DailyReportService()
+        reports = service.get_history(limit)
+        return Response(reports)
 
 
 # Singleton regime service

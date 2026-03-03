@@ -153,6 +153,23 @@ const mockNewsArticles = [
   },
 ];
 
+const mockOpportunitySummary = {
+  total_active: 3,
+  by_type: { volume_surge: 1, rsi_bounce: 1, breakout: 1 },
+  top_opportunities: [],
+  avg_score: 65.0,
+};
+
+const mockDailyReport = {
+  generated_at: new Date().toISOString(),
+  date: "2026-03-03",
+  regime: { status: "ok", dominant_regime: "ranging" },
+  top_opportunities: [],
+  data_coverage: { total_pairs: 36, pairs_with_data: 10, coverage_pct: 27.8 },
+  strategy_performance: { total_orders: 0, win_rate: 0, total_pnl: 0 },
+  system_status: { days_paper_trading: 5, min_days_required: 14, readiness: "Gathering baseline data (day 5/14)", is_ready: false },
+};
+
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
@@ -167,6 +184,8 @@ beforeEach(() => {
       "/api/market/news/sentiment": mockNewsSentiment,
       "/api/market/news": mockNewsArticles,
       "/api/dashboard/kpis/": mockKpis,
+      "/api/market/opportunities/summary/": mockOpportunitySummary,
+      "/api/market/daily-report/": mockDailyReport,
     }),
   );
 });
@@ -231,6 +250,8 @@ describe("Dashboard", () => {
         "/api/market/news/sentiment": mockNewsSentiment,
         "/api/market/news": mockNewsArticles,
         "/api/dashboard/kpis/": mockKpis,
+        "/api/market/opportunities/summary/": mockOpportunitySummary,
+        "/api/market/daily-report/": mockDailyReport,
       }),
     );
     renderWithProviders(<Dashboard />, { assetClass: "equity" });
@@ -252,6 +273,8 @@ describe("Dashboard", () => {
         "/api/market/news/sentiment": mockNewsSentiment,
         "/api/market/news": mockNewsArticles,
         "/api/dashboard/kpis/": mockKpis,
+        "/api/market/opportunities/summary/": mockOpportunitySummary,
+        "/api/market/daily-report/": mockDailyReport,
       }),
     );
     renderWithProviders(<Dashboard />);
@@ -271,6 +294,8 @@ describe("Dashboard", () => {
         "/api/market/news/sentiment": mockNewsSentiment,
         "/api/market/news": mockNewsArticles,
         "/api/dashboard/kpis/": mockKpis,
+        "/api/market/opportunities/summary/": mockOpportunitySummary,
+        "/api/market/daily-report/": mockDailyReport,
       }),
     );
     renderWithProviders(<Dashboard />, { assetClass: "equity" });

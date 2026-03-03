@@ -501,6 +501,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/market/daily-report/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_daily_report_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/market/daily-report/history/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_daily_report_history_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/market/news/": {
         parameters: {
             query?: never;
@@ -573,6 +605,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["market_ohlcv_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/market/opportunities/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_opportunities_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/market/opportunities/summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_opportunities_summary_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1866,6 +1930,23 @@ export interface components {
             state: string;
             failure_count: number;
         };
+        DailyReport: {
+            generated_at: string;
+            date: string;
+            regime: {
+                [key: string]: unknown;
+            };
+            top_opportunities: unknown[];
+            data_coverage: {
+                [key: string]: unknown;
+            };
+            strategy_performance: {
+                [key: string]: unknown;
+            };
+            system_status: {
+                [key: string]: unknown;
+            };
+        };
         DashboardKPI: {
             portfolio: components["schemas"]["DashboardPortfolioKPI"];
             trading: components["schemas"]["DashboardTradingKPI"];
@@ -2249,6 +2330,21 @@ export interface components {
              */
             test_ratio: number;
         };
+        MarketOpportunity: {
+            readonly id: number;
+            symbol: string;
+            timeframe?: string;
+            opportunity_type: components["schemas"]["OpportunityTypeEnum"];
+            asset_class?: components["schemas"]["AssetClassEnum"];
+            /** Format: int64 */
+            score?: number;
+            details?: unknown;
+            /** Format: date-time */
+            readonly detected_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            acted_on?: boolean;
+        };
         MarketStatus: {
             asset_class: string;
             is_open: boolean;
@@ -2312,6 +2408,24 @@ export interface components {
             /** Format: double */
             volume: number;
         };
+        OpportunitySummary: {
+            total_active: number;
+            by_type: {
+                [key: string]: number;
+            };
+            top_opportunities: components["schemas"]["MarketOpportunity"][];
+            /** Format: double */
+            avg_score: number;
+        };
+        /**
+         * @description * `volume_surge` - Volume Surge
+         *     * `rsi_bounce` - RSI Bounce
+         *     * `breakout` - Breakout Candidate
+         *     * `trend_pullback` - Trend Pullback
+         *     * `momentum_shift` - Momentum Shift
+         * @enum {string}
+         */
+        OpportunityTypeEnum: "volume_surge" | "rsi_bounce" | "breakout" | "trend_pullback" | "momentum_shift";
         Order: {
             readonly id: number;
             exchange_id: string;
@@ -3846,6 +3960,44 @@ export interface operations {
             };
         };
     };
+    market_daily_report_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyReport"];
+                };
+            };
+        };
+    };
+    market_daily_report_history_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyReport"][];
+                };
+            };
+        };
+    };
     market_news_list: {
         parameters: {
             query?: never;
@@ -3946,6 +4098,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OHLCVData"][];
+                };
+            };
+        };
+    };
+    market_opportunities_list: {
+        parameters: {
+            query?: {
+                /** @description Filter by asset class */
+                asset_class?: "crypto" | "equity" | "forex";
+                /** @description Max results (default 50) */
+                limit?: number;
+                /** @description Minimum score filter */
+                min_score?: number;
+                /** @description Filter by opportunity type */
+                type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketOpportunity"][];
+                };
+            };
+        };
+    };
+    market_opportunities_summary_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Filter by asset class */
+                asset_class?: "crypto" | "equity" | "forex";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpportunitySummary"];
                 };
             };
         };

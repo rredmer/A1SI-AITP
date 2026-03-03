@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from market.models import DataSourceConfig, ExchangeConfig, NewsArticle
+from market.models import DataSourceConfig, ExchangeConfig, MarketOpportunity, NewsArticle
 
 # ── Exchange Config serializers ──────────────────────────────
 
@@ -274,6 +274,40 @@ class KeyRotationResponseSerializer(serializers.Serializer):
     markets_count = serializers.IntegerField()
     message = serializers.CharField()
     key_rotated_at = serializers.CharField()
+
+
+class MarketOpportunitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MarketOpportunity
+        fields = [
+            "id",
+            "symbol",
+            "timeframe",
+            "opportunity_type",
+            "asset_class",
+            "score",
+            "details",
+            "detected_at",
+            "expires_at",
+            "acted_on",
+        ]
+
+
+class OpportunitySummarySerializer(serializers.Serializer):
+    total_active = serializers.IntegerField()
+    by_type = serializers.DictField(child=serializers.IntegerField())
+    top_opportunities = MarketOpportunitySerializer(many=True)
+    avg_score = serializers.FloatField()
+
+
+class DailyReportSerializer(serializers.Serializer):
+    generated_at = serializers.CharField()
+    date = serializers.CharField()
+    regime = serializers.DictField()
+    top_opportunities = serializers.ListField()
+    data_coverage = serializers.DictField()
+    strategy_performance = serializers.DictField()
+    system_status = serializers.DictField()
 
 
 class SentimentSignalThresholdsSerializer(serializers.Serializer):

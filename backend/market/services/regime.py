@@ -170,7 +170,9 @@ class RegimeService:
         try:
             from common.data_pipeline.pipeline import load_ohlcv
 
-            df = load_ohlcv(symbol, "1h", "kraken")
+            asset_class = self._guess_asset_class(symbol)
+            exchange_id = "yfinance" if asset_class in ("equity", "forex") else "kraken"
+            df = load_ohlcv(symbol, "1h", exchange_id)
             if df is not None and not df.empty:
                 return df
         except Exception as e:

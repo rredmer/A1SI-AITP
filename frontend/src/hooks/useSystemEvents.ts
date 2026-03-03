@@ -81,6 +81,14 @@ export function useSystemEvents() {
           "warning",
         );
         break;
+      case "opportunity_alert":
+        queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+        queryClient.invalidateQueries({ queryKey: ["opportunity-summary"] });
+        toast(
+          `Opportunity: ${lastMessage.data.symbol} ${lastMessage.data.opportunity_type.replace(/_/g, " ")} (score ${lastMessage.data.score})`,
+          "info",
+        );
+        break;
     }
   }, [lastMessage, queryClient, toast]);
 

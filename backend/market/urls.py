@@ -2,6 +2,8 @@ from django.urls import path
 
 from market.views import (
     CircuitBreakerStatusView,
+    DailyReportHistoryView,
+    DailyReportView,
     DataSourceConfigDetailView,
     DataSourceConfigListView,
     ExchangeConfigDetailView,
@@ -16,6 +18,8 @@ from market.views import (
     NewsListView,
     NewsSentimentView,
     OHLCVView,
+    OpportunityListView,
+    OpportunitySummaryView,
     RegimeCurrentAllView,
     RegimeCurrentView,
     RegimeHistoryView,
@@ -85,5 +89,19 @@ urlpatterns = [
         "market/circuit-breaker/",
         CircuitBreakerStatusView.as_view(),
         name="circuit-breaker-status",
+    ),
+    # Market opportunities
+    path("market/opportunities/", OpportunityListView.as_view(), name="opportunity-list"),
+    path(
+        "market/opportunities/summary/",
+        OpportunitySummaryView.as_view(),
+        name="opportunity-summary",
+    ),
+    # Daily report
+    path("market/daily-report/", DailyReportView.as_view(), name="daily-report"),
+    path(
+        "market/daily-report/history/",
+        DailyReportHistoryView.as_view(),
+        name="daily-report-history",
     ),
 ]

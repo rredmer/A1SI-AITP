@@ -14,6 +14,7 @@ import {
   BrainCircuit,
   Clock,
   GitBranch,
+  Crosshair,
   Settings,
   LogOut,
   Menu,
@@ -46,6 +47,7 @@ const navItems = [
   { to: "/ml", icon: BrainCircuit, label: "ML Models" },
   { to: "/scheduler", icon: Clock, label: "Scheduler" },
   { to: "/workflows", icon: GitBranch, label: "Workflows" },
+  { to: "/opportunities", icon: Crosshair, label: "Opportunities" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

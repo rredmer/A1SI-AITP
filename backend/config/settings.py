@@ -308,7 +308,7 @@ SCHEDULED_TASKS = {
         "name": "Crypto Data Refresh",
         "description": "Refresh OHLCV for crypto watchlist",
         "task_type": "data_refresh",
-        "interval_seconds": 3600,
+        "interval_seconds": 1800,
         "params": {"asset_class": "crypto"},
     },
     "data_refresh_equity": {
@@ -322,14 +322,14 @@ SCHEDULED_TASKS = {
         "name": "Forex Data Refresh",
         "description": "Refresh OHLCV for forex watchlist",
         "task_type": "data_refresh",
-        "interval_seconds": 14400,
+        "interval_seconds": 3600,
         "params": {"asset_class": "forex"},
     },
     "regime_detection": {
         "name": "Regime Detection",
         "description": "Crypto regime detection",
         "task_type": "regime_detection",
-        "interval_seconds": 900,
+        "interval_seconds": 1800,
         "params": {},
     },
     "order_sync": {
@@ -369,9 +369,9 @@ SCHEDULED_TASKS = {
     },
     "vbt_screen_crypto": {
         "name": "VBT Crypto Screen",
-        "description": "Daily VectorBT strategy screen on crypto watchlist",
+        "description": "VectorBT strategy screen on crypto watchlist (every 4h)",
         "task_type": "vbt_screen",
-        "interval_seconds": 86400,
+        "interval_seconds": 14400,
         "params": {"asset_class": "crypto", "timeframe": "1h"},
     },
     "vbt_screen_forex": {
@@ -394,6 +394,27 @@ SCHEDULED_TASKS = {
         "task_type": "ml_training",
         "interval_seconds": 604800,
         "params": {"symbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"], "timeframe": "1h"},
+    },
+    "market_scan_crypto": {
+        "name": "Crypto Market Scanner",
+        "description": "Scan crypto pairs for trading opportunities (every 15min)",
+        "task_type": "market_scan",
+        "interval_seconds": 900,
+        "params": {"asset_class": "crypto", "timeframe": "1h"},
+    },
+    "market_scan_forex": {
+        "name": "Forex Market Scanner",
+        "description": "Scan forex pairs for trading opportunities (every 15min)",
+        "task_type": "market_scan",
+        "interval_seconds": 900,
+        "params": {"asset_class": "forex", "timeframe": "1h"},
+    },
+    "daily_report": {
+        "name": "Daily Intelligence Report",
+        "description": "Generate daily market intelligence summary",
+        "task_type": "daily_report",
+        "interval_seconds": 86400,
+        "params": {},
     },
 }
 
