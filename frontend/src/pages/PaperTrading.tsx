@@ -168,6 +168,18 @@ export function PaperTrading() {
         </div>
       )}
 
+      {/* Forex signal-based trading info */}
+      {statuses?.some((s) => s.instance === "forex_signals") && (
+        <div className="mb-4 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-sm text-indigo-300">
+          <p className="font-medium">Forex Signal Trading Active</p>
+          <p className="mt-1 text-xs text-indigo-400">
+            Forex positions are opened automatically from scanner signals (score {"\u2265"} 70)
+            and closed on time limit (24h), score decay, or opposing signals.
+            Max {statuses.find((s) => s.instance === "forex_signals")?.open_positions ?? 0}/3 positions open.
+          </p>
+        </div>
+      )}
+
       <ErrorBoundary fallback={<WidgetErrorFallback name="Paper Trading" />}>
       {/* Instance Status Cards */}
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">

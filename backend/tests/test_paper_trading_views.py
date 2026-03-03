@@ -37,7 +37,7 @@ class TestPaperTradingStatusView:
         assert resp.status_code == status.HTTP_200_OK
         data = resp.json()
         assert isinstance(data, list)
-        assert len(data) == 1
+        assert len(data) >= 1
         assert "running" in data[0]
 
     def test_status_requires_auth(self, api_client):

@@ -363,6 +363,17 @@ class PaperTradingStatusView(APIView):
             status = svc.get_status()
             status["instance"] = name
             statuses.append(status)
+
+        # Append forex signal-based paper trading status
+        try:
+            from trading.services.forex_paper_trading import ForexPaperTradingService
+
+            forex_status = ForexPaperTradingService().get_status()
+            forex_status["instance"] = "forex_signals"
+            statuses.append(forex_status)
+        except Exception:
+            pass
+
         return Response(statuses)
 
 
@@ -391,6 +402,27 @@ class PaperTradingTradesView(APIView):
             for t in trades:
                 t["instance"] = name
             all_trades.extend(trades)
+
+        # Append forex paper trades
+        try:
+            forex_orders = Order.objects.filter(
+                asset_class="forex",
+                mode=TradingMode.PAPER,
+                status=OrderStatus.FILLED,
+            ).order_by("-filled_at")[:50]
+            for o in forex_orders:
+                all_trades.append({
+                    "instance": "forex_signals",
+                    "pair": o.symbol,
+                    "amount": float(o.amount),
+                    "open_rate": float(o.avg_fill_price or o.price or 0),
+                    "open_date": o.filled_at.isoformat() if o.filled_at else "",
+                    "is_open": True,
+                    "trade_id": o.id,
+                })
+        except Exception:
+            pass
+
         return Response(all_trades)
 
 

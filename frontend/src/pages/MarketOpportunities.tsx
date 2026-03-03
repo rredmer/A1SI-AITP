@@ -110,6 +110,54 @@ export function MarketOpportunities() {
           </div>
         )}
 
+        {/* Scanner Status */}
+        {report.data?.scanner_status && Object.keys(report.data.scanner_status).length > 0 && (
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+            {Object.entries(report.data.scanner_status).map(([key, scanner]) => (
+              <div
+                key={key}
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      scanner.last_run_status === "completed" ? "bg-green-400" :
+                      scanner.last_run_status === "error" ? "bg-red-400" :
+                      "bg-gray-400"
+                    }`}
+                  />
+                  <span className="text-sm font-medium capitalize">
+                    {key.replace("market_scan_", "")} Scanner
+                  </span>
+                </div>
+                <div className="space-y-1 text-xs text-[var(--color-text-muted)]">
+                  <div>
+                    Last run:{" "}
+                    {scanner.last_run_at
+                      ? new Date(scanner.last_run_at).toLocaleString([], {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "Never"}
+                  </div>
+                  <div>Run count: {scanner.run_count}</div>
+                  {scanner.next_run_at && (
+                    <div>
+                      Next run:{" "}
+                      {new Date(scanner.next_run_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Type Distribution */}
         {summary.data && Object.keys(summary.data.by_type).length > 0 && (
           <div className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">

@@ -1,0 +1,293 @@
+"""ForexPaperTradingService — signal-to-order service for forex paper trading.
+
+Runs as a scheduled task every 15 minutes. Reads high-score MarketOpportunity
+records for forex, creates paper orders via GenericPaperTradingService, and
+manages exits based on time limits, score decay, and opposing signals.
+"""
+
+import logging
+from datetime import timedelta
+from typing import Any
+
+from asgiref.sync import async_to_sync
+from django.utils import timezone
+
+logger = logging.getLogger("forex_paper_trading")
+
+# Configuration
+MIN_ENTRY_SCORE = 70
+MAX_OPEN_POSITIONS = 3
+POSITION_SIZE_USD = 1000.0
+MAX_HOLD_HOURS = 24
+EXIT_SCORE_THRESHOLD = 40
+
+
+class ForexPaperTradingService:
+    """Convert forex scanner signals into simulated paper trades."""
+
+    def run_cycle(self) -> dict[str, Any]:
+        """Main entry point — called by scheduler every 15 min."""
+        entries = self._check_entries()
+        exits = self._check_exits()
+        return {
+            "status": "completed",
+            "entries_created": entries,
+            "exits_created": exits,
+        }
+
+    def _check_entries(self) -> int:
+        """Create paper buy orders from high-score forex opportunities."""
+        from market.models import MarketOpportunity
+        from trading.models import Order, OrderStatus, TradingMode
+
+        now = timezone.now()
+        # Count current open positions (net buys > sells per symbol)
+        open_symbols = self._get_open_symbols()
+        if len(open_symbols) >= MAX_OPEN_POSITIONS:
+            logger.debug("Max forex positions (%d) reached, skipping entries", MAX_OPEN_POSITIONS)
+            return 0
+
+        # Find actionable opportunities
+        opps = MarketOpportunity.objects.filter(
+            asset_class="forex",
+            score__gte=MIN_ENTRY_SCORE,
+            acted_on=False,
+            expires_at__gt=now,
+        ).order_by("-score")
+
+        entries = 0
+        for opp in opps:
+            if len(open_symbols) + entries >= MAX_OPEN_POSITIONS:
+                break
+            if opp.symbol in open_symbols:
+                continue
+
+            # Get current price for amount computation
+            price = self._get_price(opp.symbol)
+            if not price or price <= 0:
+                logger.warning("No price for %s, skipping entry", opp.symbol)
+                continue
+
+            amount = POSITION_SIZE_USD / price
+            direction = (
+                opp.details.get("direction", "bullish")
+                if isinstance(opp.details, dict)
+                else "bullish"
+            )
+            side = "buy" if direction == "bullish" else "sell"
+
+            order = Order.objects.create(
+                symbol=opp.symbol,
+                side=side,
+                order_type="market",
+                amount=amount,
+                price=price,
+                mode=TradingMode.PAPER,
+                asset_class="forex",
+                exchange_id="yfinance",
+                status=OrderStatus.PENDING,
+                timestamp=now,
+            )
+
+            # Submit via GenericPaperTradingService
+            try:
+                from trading.services.generic_paper_trading import GenericPaperTradingService
+
+                async_to_sync(GenericPaperTradingService.submit_order)(order)
+            except Exception:
+                logger.warning(
+                    "Failed to submit forex paper order for %s", opp.symbol, exc_info=True
+                )
+
+            opp.acted_on = True
+            opp.save(update_fields=["acted_on"])
+            entries += 1
+            open_symbols.add(opp.symbol)
+            logger.info("Forex paper entry: %s %s %s @ %.5f", side, amount, opp.symbol, price)
+
+        return entries
+
+    def _check_exits(self) -> int:
+        """Exit forex paper positions on time limit, score decay, or opposing signal."""
+        from market.models import MarketOpportunity
+        from trading.models import Order, OrderStatus, TradingMode
+
+        now = timezone.now()
+        open_symbols = self._get_open_symbols()
+        if not open_symbols:
+            return 0
+
+        exits = 0
+        for symbol in list(open_symbols):
+            # Get the latest buy order for entry time
+            entry_order = (
+                Order.objects.filter(
+                    symbol=symbol,
+                    asset_class="forex",
+                    mode=TradingMode.PAPER,
+                    side="buy",
+                    status=OrderStatus.FILLED,
+                )
+                .order_by("-filled_at")
+                .first()
+            )
+            if not entry_order:
+                # Try sell side
+                entry_order = (
+                    Order.objects.filter(
+                        symbol=symbol,
+                        asset_class="forex",
+                        mode=TradingMode.PAPER,
+                        side="sell",
+                        status=OrderStatus.FILLED,
+                    )
+                    .order_by("-filled_at")
+                    .first()
+                )
+            if not entry_order:
+                continue
+
+            should_exit = False
+            reason = ""
+
+            # Time limit
+            entry_time = entry_order.filled_at or entry_order.timestamp
+            if entry_time and (now - entry_time) > timedelta(hours=MAX_HOLD_HOURS):
+                should_exit = True
+                reason = "time_limit"
+
+            # Score decay — check latest opportunity for this symbol
+            if not should_exit:
+                latest_opp = (
+                    MarketOpportunity.objects.filter(
+                        symbol=symbol,
+                        asset_class="forex",
+                    )
+                    .order_by("-detected_at")
+                    .first()
+                )
+                if latest_opp and latest_opp.score < EXIT_SCORE_THRESHOLD:
+                    should_exit = True
+                    reason = "score_decay"
+
+            # Opposing signal direction
+            if not should_exit and entry_order:
+                latest_opp = (
+                    MarketOpportunity.objects.filter(
+                        symbol=symbol,
+                        asset_class="forex",
+                    )
+                    .order_by("-detected_at")
+                    .first()
+                )
+                if latest_opp and isinstance(latest_opp.details, dict):
+                    opp_direction = latest_opp.details.get("direction", "")
+                    if (
+                        entry_order.side == "buy"
+                        and opp_direction == "bearish"
+                        or entry_order.side == "sell"
+                        and opp_direction == "bullish"
+                    ):
+                        should_exit = True
+                        reason = "opposing_signal"
+
+            if should_exit:
+                exit_side = "sell" if entry_order.side == "buy" else "buy"
+                price = self._get_price(symbol)
+                if not price or price <= 0:
+                    continue
+
+                exit_order = Order.objects.create(
+                    symbol=symbol,
+                    side=exit_side,
+                    order_type="market",
+                    amount=entry_order.amount,
+                    price=price,
+                    mode=TradingMode.PAPER,
+                    asset_class="forex",
+                    exchange_id="yfinance",
+                    status=OrderStatus.PENDING,
+                    timestamp=now,
+                )
+
+                try:
+                    from trading.services.generic_paper_trading import GenericPaperTradingService
+
+                    async_to_sync(GenericPaperTradingService.submit_order)(exit_order)
+                except Exception:
+                    logger.warning("Failed to submit forex exit for %s", symbol, exc_info=True)
+
+                exits += 1
+                logger.info("Forex paper exit: %s %s (%s)", exit_side, symbol, reason)
+
+        return exits
+
+    def get_status(self) -> dict[str, Any]:
+        """Return status dict matching PaperTradingStatus interface."""
+        open_symbols = self._get_open_symbols()
+        from trading.models import Order, OrderStatus, TradingMode
+
+        total_trades = Order.objects.filter(
+            asset_class="forex",
+            mode=TradingMode.PAPER,
+            status=OrderStatus.FILLED,
+        ).count()
+
+        return {
+            "running": True,
+            "strategy": "ForexSignals",
+            "pid": None,
+            "started_at": None,
+            "uptime_seconds": 0,
+            "exit_code": None,
+            "asset_class": "forex",
+            "engine": "signal_based",
+            "open_positions": len(open_symbols),
+            "total_trades": total_trades,
+        }
+
+    @staticmethod
+    def _get_open_symbols() -> set[str]:
+        """Return set of symbols with net open positions (buys > sells or sells > buys)."""
+        from django.db.models import Count
+
+        from trading.models import Order, OrderStatus, TradingMode
+
+        filled_forex = Order.objects.filter(
+            asset_class="forex",
+            mode=TradingMode.PAPER,
+            status=OrderStatus.FILLED,
+        )
+
+        buy_counts = dict(
+            filled_forex.filter(side="buy")
+            .values_list("symbol")
+            .annotate(cnt=Count("id"))
+            .values_list("symbol", "cnt")
+        )
+        sell_counts = dict(
+            filled_forex.filter(side="sell")
+            .values_list("symbol")
+            .annotate(cnt=Count("id"))
+            .values_list("symbol", "cnt")
+        )
+
+        open_syms = set()
+        for symbol in set(buy_counts) | set(sell_counts):
+            net = buy_counts.get(symbol, 0) - sell_counts.get(symbol, 0)
+            if net != 0:
+                open_syms.add(symbol)
+        return open_syms
+
+    @staticmethod
+    def _get_price(symbol: str) -> float:
+        """Fetch current price for a forex symbol."""
+        try:
+            from market.services.data_router import DataServiceRouter
+
+            router = DataServiceRouter()
+            ticker = async_to_sync(router.fetch_ticker)(symbol, "forex")
+            return ticker.get("last") or ticker.get("close") or ticker.get("price", 0)
+        except Exception as e:
+            logger.warning("Price fetch failed for %s: %s", symbol, e)
+            return 0.0

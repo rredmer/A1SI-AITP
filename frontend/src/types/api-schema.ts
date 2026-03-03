@@ -4799,7 +4799,10 @@ export interface operations {
     };
     regime_current_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Asset class (default: crypto) */
+                asset_class?: "crypto" | "equity" | "forex";
+            };
             header?: never;
             path?: never;
             cookie?: never;

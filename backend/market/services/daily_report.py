@@ -29,6 +29,7 @@ class DailyReportService:
         report["data_coverage"] = self._get_data_coverage()
         report["strategy_performance"] = self._get_strategy_performance()
         report["system_status"] = self._get_system_status()
+        report["scanner_status"] = self._get_scanner_status()
 
         # Store in DB as a special MarketOpportunity-like record
         # or just return for API consumption
@@ -243,6 +244,36 @@ class DailyReportService:
         except Exception as e:
             logger.warning("System status check failed: %s", e)
             return {"days_paper_trading": 0, "readiness": "unknown", "error": str(e)}
+
+    @staticmethod
+    def _get_scanner_status() -> dict[str, Any]:
+        """Last-run info for market scanner scheduled tasks."""
+        try:
+            from core.models import ScheduledTask
+
+            result: dict[str, Any] = {}
+            for task_id in ("market_scan_crypto", "market_scan_forex"):
+                try:
+                    task = ScheduledTask.objects.get(id=task_id)
+                    result[task_id] = {
+                        "task_id": task_id,
+                        "last_run_at": task.last_run_at.isoformat() if task.last_run_at else None,
+                        "last_run_status": task.last_run_status,
+                        "run_count": task.run_count,
+                        "next_run_at": task.next_run_at.isoformat() if task.next_run_at else None,
+                    }
+                except ScheduledTask.DoesNotExist:
+                    result[task_id] = {
+                        "task_id": task_id,
+                        "last_run_at": None,
+                        "last_run_status": None,
+                        "run_count": 0,
+                        "next_run_at": None,
+                    }
+            return result
+        except Exception as e:
+            logger.warning("Scanner status failed: %s", e)
+            return {}
 
     def get_latest(self) -> dict[str, Any] | None:
         """Return the most recent stored report, or generate fresh."""

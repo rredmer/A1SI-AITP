@@ -127,7 +127,7 @@ class MarketScannerService:
                         **create_kwargs,
                     )
                     opportunities_created += 1
-                    self._maybe_alert(symbol, opp)
+                    self._maybe_alert(symbol, opp, asset_class)
 
                 # --- RSI Bounce ---
                 opp = self._check_rsi_bounce(symbol, rsi_val, latest_close, timeframe)
@@ -141,7 +141,7 @@ class MarketScannerService:
                         **create_kwargs,
                     )
                     opportunities_created += 1
-                    self._maybe_alert(symbol, opp)
+                    self._maybe_alert(symbol, opp, asset_class)
 
                 # --- Breakout Candidate ---
                 opp = self._check_breakout(
@@ -158,7 +158,7 @@ class MarketScannerService:
                         **create_kwargs,
                     )
                     opportunities_created += 1
-                    self._maybe_alert(symbol, opp)
+                    self._maybe_alert(symbol, opp, asset_class)
 
                 # --- Trend Pullback ---
                 opp = self._check_trend_pullback(
@@ -176,7 +176,7 @@ class MarketScannerService:
                         **create_kwargs,
                     )
                     opportunities_created += 1
-                    self._maybe_alert(symbol, opp)
+                    self._maybe_alert(symbol, opp, asset_class)
 
                 # --- Momentum Shift ---
                 opp = self._check_momentum_shift(
@@ -192,7 +192,7 @@ class MarketScannerService:
                         **create_kwargs,
                     )
                     opportunities_created += 1
-                    self._maybe_alert(symbol, opp)
+                    self._maybe_alert(symbol, opp, asset_class)
 
             except Exception:
                 logger.warning("Scanner error for %s", symbol, exc_info=True)
@@ -460,7 +460,7 @@ class MarketScannerService:
 
     # ── Alerts ───────────────────────────────────────────────────
 
-    def _maybe_alert(self, symbol: str, opp: dict[str, Any]) -> None:
+    def _maybe_alert(self, symbol: str, opp: dict[str, Any], asset_class: str = "") -> None:
         """Broadcast WS event and optionally send Telegram for high-score opportunities."""
         score = opp["score"]
 
@@ -479,14 +479,16 @@ class MarketScannerService:
 
         if score >= self.HIGH_SCORE_TELEGRAM_THRESHOLD:
             try:
-                from core.services.notification import NotificationService
+                from core.services.notification import send_telegram_rate_limited
 
+                ac_label = f" [{asset_class.upper()}]" if asset_class else ""
                 msg = (
-                    f"🔍 Market Opportunity: {symbol}\n"
+                    f"Market Opportunity{ac_label}: {symbol}\n"
                     f"Type: {opp['type'].replace('_', ' ').title()}\n"
                     f"Score: {score}/100\n"
                     f"{opp['details'].get('reason', '')}"
                 )
-                NotificationService.send_telegram_sync(msg)
+                rate_key = f"opp:{symbol}:{opp['type']}"
+                send_telegram_rate_limited(msg, rate_key)
             except Exception:
                 logger.debug("Opportunity Telegram failed", exc_info=True)

@@ -416,6 +416,13 @@ SCHEDULED_TASKS = {
         "interval_seconds": 86400,
         "params": {},
     },
+    "forex_paper_trading": {
+        "name": "Forex Paper Trading",
+        "description": "Convert forex scanner signals into simulated paper trades (every 15min)",
+        "task_type": "forex_paper_trading",
+        "interval_seconds": 900,
+        "params": {},
+    },
 }
 
 # ── Workflow templates ────────────────────────────────────────

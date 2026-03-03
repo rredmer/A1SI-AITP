@@ -349,7 +349,7 @@ def _run_market_scan(params: dict, progress_cb: ProgressCallback) -> dict[str, A
 
 
 def _run_daily_report(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
-    """Generate daily intelligence report."""
+    """Generate daily intelligence report and send Telegram summary."""
     progress_cb(0.1, "Generating daily report")
     try:
         from market.services.daily_report import DailyReportService
@@ -357,9 +357,46 @@ def _run_daily_report(params: dict, progress_cb: ProgressCallback) -> dict[str, 
         service = DailyReportService()
         report = service.generate()
         progress_cb(0.9, "Daily report complete")
+
+        # Send Telegram summary
+        try:
+            from core.services.notification import NotificationService
+
+            regime = report.get("regime", {})
+            perf = report.get("strategy_performance", {})
+            sys_status = report.get("system_status", {})
+            lines = [
+                "<b>Daily Intelligence Report</b>",
+                f"Regime: {regime.get('dominant_regime', 'unknown')} "
+                f"(conf {regime.get('avg_confidence', 0):.0%})",
+                f"Orders: {perf.get('total_orders', 0)} | "
+                f"Win rate: {perf.get('win_rate', 0):.1f}% | "
+                f"P&L: ${perf.get('total_pnl', 0):.2f}",
+                f"Paper trading day {sys_status.get('days_paper_trading', 0)}"
+                f"/{sys_status.get('min_days_required', 14)}",
+            ]
+            NotificationService.send_telegram_sync("\n".join(lines))
+        except Exception:
+            logger.debug("Daily report Telegram send failed", exc_info=True)
+
         return {"status": "completed", "report": report}
     except Exception as e:
         logger.warning("Daily report failed: %s", e)
+        return {"status": "error", "error": str(e)}
+
+
+def _run_forex_paper_trading(params: dict, progress_cb: ProgressCallback) -> dict[str, Any]:
+    """Run forex paper trading cycle — entries and exits from scanner signals."""
+    progress_cb(0.1, "Running forex paper trading cycle")
+    try:
+        from trading.services.forex_paper_trading import ForexPaperTradingService
+
+        service = ForexPaperTradingService()
+        result = service.run_cycle()
+        progress_cb(0.9, "Forex paper trading cycle complete")
+        return result
+    except Exception as e:
+        logger.warning("Forex paper trading cycle failed: %s", e)
         return {"status": "error", "error": str(e)}
 
 
@@ -376,4 +413,5 @@ TASK_REGISTRY: dict[str, TaskExecutor] = {
     "ml_training": _run_ml_training,
     "market_scan": _run_market_scan,
     "daily_report": _run_daily_report,
+    "forex_paper_trading": _run_forex_paper_trading,
 }

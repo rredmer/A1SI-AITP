@@ -322,6 +322,8 @@ class RiskManagementService:
                 try:
                     RiskManagementService.send_notification(
                         portfolio_id, "risk_warning", "warning", msg,
+                        telegram_rate_key=f"risk_warning:{portfolio_id}",
+                        telegram_cooldown=3600.0,
                     )
                 except Exception as e:
                     logger.error("Failed to send risk warning: %s", e)
@@ -466,6 +468,8 @@ class RiskManagementService:
         event_type: str,
         severity: str,
         message: str,
+        telegram_rate_key: str = "",
+        telegram_cooldown: float = 300.0,
     ) -> None:
         AlertLog.objects.create(
             portfolio_id=portfolio_id,
@@ -476,8 +480,19 @@ class RiskManagementService:
             delivered=True,
             error="",
         )
-        # Telegram (sync)
-        delivered, error = NotificationService.send_telegram_sync(f"[{severity.upper()}] {message}")
+        # Telegram (sync) — rate-limited when a key is provided
+        if telegram_rate_key:
+            from core.services.notification import send_telegram_rate_limited
+
+            delivered, error = send_telegram_rate_limited(
+                f"[{severity.upper()}] {message}",
+                telegram_rate_key,
+                telegram_cooldown,
+            )
+        else:
+            delivered, error = NotificationService.send_telegram_sync(
+                f"[{severity.upper()}] {message}"
+            )
         AlertLog.objects.create(
             portfolio_id=portfolio_id,
             event_type=event_type,

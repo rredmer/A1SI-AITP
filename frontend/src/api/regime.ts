@@ -1,5 +1,6 @@
 import { api } from "./client";
 import type {
+  AssetClass,
   RegimeState,
   RoutingDecision,
   RegimeHistoryEntry,
@@ -7,7 +8,10 @@ import type {
 } from "../types";
 
 export const regimeApi = {
-  getCurrentAll: () => api.get<RegimeState[]>("/regime/current/"),
+  getCurrentAll: (assetClass?: AssetClass) => {
+    const params = assetClass ? `?asset_class=${assetClass}` : "";
+    return api.get<RegimeState[]>(`/regime/current/${params}`);
+  },
 
   getCurrent: (symbol: string) =>
     api.get<RegimeState>(`/regime/current/${symbol}/`),

@@ -234,6 +234,9 @@ export interface PaperTradingStatus {
   exchange?: string;
   dry_run?: boolean;
   state?: string;
+  asset_class?: AssetClass;
+  engine?: string;
+  open_positions?: number;
 }
 
 export interface PaperTradingAction {
@@ -719,6 +722,14 @@ export interface OpportunitySummary {
   avg_score: number;
 }
 
+export interface ScannerStatusEntry {
+  task_id: string;
+  last_run_at: string | null;
+  last_run_status: string | null;
+  run_count: number;
+  next_run_at: string | null;
+}
+
 export interface DailyReport {
   generated_at: string;
   date: string;
@@ -732,6 +743,7 @@ export interface DailyReport {
     readiness: string;
     is_ready: boolean;
   };
+  scanner_status?: Record<string, ScannerStatusEntry>;
 }
 
 // Dashboard KPI types

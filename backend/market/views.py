@@ -592,8 +592,41 @@ class IndicatorComputeView(APIView):
 
 
 class RegimeCurrentAllView(APIView):
-    @extend_schema(responses=RegimeStateSerializer(many=True), tags=["Regime"])
+    @extend_schema(
+        responses=RegimeStateSerializer(many=True),
+        tags=["Regime"],
+        parameters=[
+            OpenApiParameter(
+                "asset_class",
+                str,
+                description="Asset class (default: crypto)",
+                enum=["crypto", "equity", "forex"],
+            ),
+        ],
+    )
     def get(self, request: Request) -> Response:
+        asset_class = request.query_params.get("asset_class", "crypto")
+        if asset_class in ("forex", "equity"):
+            # Build a regime service with the appropriate watchlist
+            try:
+                from core.platform_bridge import ensure_platform_imports, get_platform_config
+
+                ensure_platform_imports()
+
+                config = get_platform_config()
+                watchlist_key = {
+                    "equity": "equity_watchlist",
+                    "forex": "forex_watchlist",
+                }.get(asset_class, "watchlist")
+                symbols = config.get("data", {}).get(watchlist_key, [])
+                if symbols:
+                    from market.services.regime import RegimeService
+
+                    service = RegimeService(symbols=symbols)
+                    return Response(service.get_all_current_regimes())
+            except Exception:
+                logger.debug("Regime for %s failed, falling back", asset_class, exc_info=True)
+            return Response([])
         service = _get_regime_service()
         return Response(service.get_all_current_regimes())
 

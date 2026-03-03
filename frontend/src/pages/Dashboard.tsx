@@ -90,10 +90,9 @@ export function Dashboard() {
   );
 
   const { data: regimeStates } = useQuery<RegimeState[]>({
-    queryKey: ["regime-overview"],
-    queryFn: regimeApi.getCurrentAll,
+    queryKey: ["regime-overview", assetClass],
+    queryFn: () => regimeApi.getCurrentAll(assetClass),
     refetchInterval: 120000,
-    enabled: assetClass === "crypto",
   });
 
   const tickers = useQuery<TickerData[]>({
@@ -301,6 +300,7 @@ export function Dashboard() {
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-medium">{opp.symbol}</span>
+                    <AssetClassBadge assetClass={opp.asset_class} />
                     <OpportunityTypeBadge type={opp.opportunity_type} />
                   </div>
                   <div className="flex items-center gap-3">
@@ -331,33 +331,34 @@ export function Dashboard() {
         </div>
 
       {/* Regime Overview */}
-      {assetClass === "crypto" ? (
-        regimeStates && regimeStates.length > 0 ? (
-          <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-            <h3 className="mb-4 text-lg font-semibold">Regime Overview</h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {regimeStates.map((rs) => (
-                <div
-                  key={rs.symbol}
-                  className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3"
-                >
-                  <div>
-                    <p className="font-medium">{rs.symbol}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">
-                      Confidence: {(rs.confidence * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                  <RegimeBadge regime={rs.regime} />
-                </div>
-              ))}
-            </div>
+      {regimeStates && regimeStates.length > 0 ? (
+        <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <h3 className="text-lg font-semibold">Regime Overview</h3>
+            <AssetClassBadge assetClass={assetClass} />
           </div>
-        ) : null
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {regimeStates.map((rs) => (
+              <div
+                key={rs.symbol}
+                className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3"
+              >
+                <div>
+                  <p className="font-medium">{rs.symbol}</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    Confidence: {(rs.confidence * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <RegimeBadge regime={rs.regime} />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : (
         <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <h3 className="mb-4 text-lg font-semibold">Regime Overview</h3>
           <p className="text-sm text-[var(--color-text-muted)]">
-            Regime detection for {ASSET_CLASS_LABELS[assetClass].toLowerCase()} is not yet available.
+            No regime data available for {ASSET_CLASS_LABELS[assetClass].toLowerCase()}.
           </p>
         </div>
       )}

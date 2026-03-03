@@ -4,6 +4,8 @@ Includes formatted message templates and preference-aware delivery.
 """
 
 import logging
+import threading
+import time
 from typing import TYPE_CHECKING
 
 import httpx
@@ -13,6 +15,33 @@ if TYPE_CHECKING:
     from core.models import NotificationPreferences
 
 logger = logging.getLogger("notification_service")
+
+# ── Module-level rate limiter ────────────────────────────────
+_rate_limit_lock = threading.Lock()
+_last_sent: dict[str, float] = {}
+
+
+def is_rate_limited(key: str, cooldown: float = 300.0) -> bool:
+    """Return True if *key* was sent within the last *cooldown* seconds."""
+    now = time.monotonic()
+    with _rate_limit_lock:
+        last = _last_sent.get(key, 0.0)
+        if now - last < cooldown:
+            return True
+        _last_sent[key] = now
+        return False
+
+
+def send_telegram_rate_limited(
+    message: str,
+    rate_key: str,
+    cooldown: float = 300.0,
+) -> tuple[bool, str]:
+    """Send via Telegram unless *rate_key* is on cooldown."""
+    if is_rate_limited(rate_key, cooldown):
+        logger.debug("Telegram rate-limited for key=%s", rate_key)
+        return False, "rate_limited"
+    return NotificationService.send_telegram_sync(message)
 
 
 class TelegramFormatter:

@@ -395,7 +395,7 @@ news:
 # ──────────────────────────────────────────────
 monitoring:
   telegram:
-    enabled: false
+    enabled: true  # env var presence (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID) is the actual gate
     token_env: "TELEGRAM_BOT_TOKEN"
     chat_id_env: "TELEGRAM_CHAT_ID"
 

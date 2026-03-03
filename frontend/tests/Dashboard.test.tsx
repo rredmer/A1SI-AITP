@@ -219,8 +219,8 @@ describe("Dashboard", () => {
 
   it("renders regime overview after data loads", async () => {
     renderWithProviders(<Dashboard />);
-    expect(await screen.findByText("Regime Overview")).toBeInTheDocument();
-    expect(screen.getByText("Strong Trend Up")).toBeInTheDocument();
+    expect(await screen.findByText("Strong Trend Up")).toBeInTheDocument();
+    expect(screen.getByText("Regime Overview")).toBeInTheDocument();
     expect(screen.getByText("Ranging")).toBeInTheDocument();
   });
 
@@ -252,12 +252,13 @@ describe("Dashboard", () => {
         "/api/dashboard/kpis/": mockKpis,
         "/api/market/opportunities/summary/": mockOpportunitySummary,
         "/api/market/daily-report/": mockDailyReport,
+        "/api/regime/current": [],
       }),
     );
     renderWithProviders(<Dashboard />, { assetClass: "equity" });
     expect(await screen.findByText("Equities Watchlist")).toBeInTheDocument();
     expect(await screen.findByText("Yahoo Finance")).toBeInTheDocument();
-    expect(screen.getByText(/not yet available/)).toBeInTheDocument();
+    expect(screen.getByText(/No regime data available/)).toBeInTheDocument();
   });
 
   it("shows empty state when no ticker data", async () => {

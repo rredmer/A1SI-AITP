@@ -1482,6 +1482,16 @@ paths:
   /api/regime/current/:
     get:
       operationId: regime_current_list
+      parameters:
+      - in: query
+        name: asset_class
+        schema:
+          type: string
+          enum:
+          - crypto
+          - equity
+          - forex
+        description: 'Asset class (default: crypto)'
       tags:
       - Regime
       security:
