@@ -188,6 +188,7 @@ class TestTaskRegistry:
             "data_quality", "news_fetch", "workflow", "risk_monitoring",
             "db_maintenance", "vbt_screen", "ml_training",
             "market_scan", "daily_report", "forex_paper_trading",
+            "nautilus_backtest", "hft_backtest",
         }
         assert expected == set(TASK_REGISTRY.keys())
 

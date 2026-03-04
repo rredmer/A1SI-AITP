@@ -503,8 +503,19 @@ def _get_freqtrade_details() -> dict | None:
                 except Exception:
                     pass
 
+        if running > 0:
+            trades_text = (
+                f"{total_open} open trade{'s' if total_open != 1 else ''}"
+                if total_open > 0
+                else "no open trades"
+            )
+            status_label = f"{running} instance{'s' if running != 1 else ''} \u00b7 {trades_text}"
+        else:
+            status_label = "No instances running"
+
         return {
             "_status": "running" if running > 0 else "idle",
+            "_status_label": status_label,
             "instances_running": running,
             "strategies": strategies,
             "open_trades": total_open,
@@ -533,8 +544,23 @@ def _get_vectorbt_details() -> dict | None:
         last_screen_at = latest.isoformat() if latest else None
         is_recent = latest and (dj_tz.now() - latest).total_seconds() < 86400 if latest else False
 
+        n = distinct_strategies
+        suffix = "s" if n != 1 else ""
+        if n == 0:
+            status_label = "No screens run yet"
+        elif is_recent and latest:
+            age_secs = (dj_tz.now() - latest).total_seconds()
+            if age_secs < 3600:
+                age_text = f"{int(age_secs / 60)}m ago"
+            else:
+                age_text = f"{int(age_secs / 3600)}h ago"
+            status_label = f"{n} screen{suffix} \u00b7 last run {age_text}"
+        else:
+            status_label = f"{n} screen{suffix} available"
+
         return {
             "_status": "running" if is_recent else "idle",
+            "_status_label": status_label,
             "screens_available": distinct_strategies,
             "total_screens": total,
             "last_screen_at": last_screen_at,
@@ -544,20 +570,107 @@ def _get_vectorbt_details() -> dict | None:
 
 
 def _get_nautilus_details() -> dict | None:
-    """Get NautilusTrader configuration details."""
-    return {
-        "_status": "idle",
-        "strategies_configured": 7,
-        "asset_classes": ["crypto", "equity", "forex"],
-    }
+    """Get NautilusTrader operational details from recent backtest results."""
+    try:
+        from django.utils import timezone as dj_tz
+
+        from analysis.models import BacktestResult
+
+        total = BacktestResult.objects.filter(framework="nautilus").count()
+        latest = (
+            BacktestResult.objects.filter(framework="nautilus")
+            .order_by("-created_at")
+            .values_list("created_at", flat=True)
+            .first()
+        )
+        distinct_strategies = (
+            BacktestResult.objects.filter(framework="nautilus")
+            .values_list("strategy_name", flat=True)
+            .distinct()
+            .count()
+        )
+        last_run_at = latest.isoformat() if latest else None
+        is_recent = latest and (dj_tz.now() - latest).total_seconds() < 86400 if latest else False
+
+        if total == 0:
+            status_label = "7 strategies configured"
+        elif is_recent and latest:
+            age_secs = (dj_tz.now() - latest).total_seconds()
+            if age_secs < 3600:
+                age_text = f"{int(age_secs / 60)}m ago"
+            else:
+                age_text = f"{int(age_secs / 3600)}h ago"
+            status_label = f"{distinct_strategies} strategies · last run {age_text}"
+        else:
+            status_label = f"{distinct_strategies} strategies · {total} results"
+
+        return {
+            "_status": "running" if is_recent else "idle",
+            "_status_label": status_label,
+            "strategies_configured": 7,
+            "strategies_run": distinct_strategies,
+            "total_backtests": total,
+            "last_run_at": last_run_at,
+            "asset_classes": ["crypto", "equity", "forex"],
+        }
+    except Exception:
+        return {
+            "_status": "idle",
+            "_status_label": "7 strategies configured",
+            "strategies_configured": 7,
+            "asset_classes": ["crypto", "equity", "forex"],
+        }
 
 
 def _get_hft_details() -> dict | None:
-    """Get HFT Backtest configuration details."""
-    return {
-        "_status": "idle",
-        "strategies_configured": 4,
-    }
+    """Get HFT Backtest operational details from recent backtest results."""
+    try:
+        from django.utils import timezone as dj_tz
+
+        from analysis.models import BacktestResult
+
+        total = BacktestResult.objects.filter(framework="hftbacktest").count()
+        latest = (
+            BacktestResult.objects.filter(framework="hftbacktest")
+            .order_by("-created_at")
+            .values_list("created_at", flat=True)
+            .first()
+        )
+        distinct_strategies = (
+            BacktestResult.objects.filter(framework="hftbacktest")
+            .values_list("strategy_name", flat=True)
+            .distinct()
+            .count()
+        )
+        last_run_at = latest.isoformat() if latest else None
+        is_recent = latest and (dj_tz.now() - latest).total_seconds() < 86400 if latest else False
+
+        if total == 0:
+            status_label = "4 strategies configured"
+        elif is_recent and latest:
+            age_secs = (dj_tz.now() - latest).total_seconds()
+            if age_secs < 3600:
+                age_text = f"{int(age_secs / 60)}m ago"
+            else:
+                age_text = f"{int(age_secs / 3600)}h ago"
+            status_label = f"{distinct_strategies} strategies · last run {age_text}"
+        else:
+            status_label = f"{distinct_strategies} strategies · {total} results"
+
+        return {
+            "_status": "running" if is_recent else "idle",
+            "_status_label": status_label,
+            "strategies_configured": 4,
+            "strategies_run": distinct_strategies,
+            "total_backtests": total,
+            "last_run_at": last_run_at,
+        }
+    except Exception:
+        return {
+            "_status": "idle",
+            "_status_label": "4 strategies configured",
+            "strategies_configured": 4,
+        }
 
 
 def _get_ccxt_details() -> dict | None:
@@ -589,8 +702,14 @@ def _get_ccxt_details() -> dict | None:
         connected = _check()
         latency_ms = round((time.monotonic() - start) * 1000, 1)
 
+        if connected:
+            status_label = f"{exchange_id} \u00b7 {latency_ms}ms"
+        else:
+            status_label = f"{exchange_id} \u00b7 disconnected"
+
         return {
             "_status": "running" if connected else "idle",
+            "_status_label": status_label,
             "exchange": exchange_id,
             "connected": connected,
             "latency_ms": latency_ms,
@@ -600,7 +719,11 @@ def _get_ccxt_details() -> dict | None:
 
 
 def _get_framework_status() -> list[dict]:
+    import re
+
     from core.platform_bridge import PROJECT_ROOT
+
+    _semver_re = re.compile(r"^\d+\.\d+")
 
     def _try_import(module_name: str) -> str | None:
         """Try to import a module and return its version, or None on failure."""
@@ -620,42 +743,39 @@ def _get_framework_status() -> list[dict]:
         ver = _try_import(module)
         details = None
         status = "not_installed"
+        status_label = "Not installed"
+        available = False
 
-        if ver:
+        if ver or (fallback_path and (PROJECT_ROOT / fallback_path).exists()):
+            available = True
+
+        if available:
             status = "idle"
+            status_label = "Ready"
             if detail_fn:
                 try:
                     details = detail_fn()
-                    if details and details.get("_status"):
-                        status = details.pop("_status")
+                    if details:
+                        if details.get("_status"):
+                            status = details.pop("_status")
+                        if details.get("_status_label"):
+                            status_label = details.pop("_status_label")
                 except Exception:
                     pass
-            return {
-                "name": name, "installed": True,
-                "version": ver, "status": status,
-                "details": details,
-            }
 
-        # Fallback: check if framework files are deployed on disk
-        if fallback_path and (PROJECT_ROOT / fallback_path).exists():
-            status = "configured"
-            if detail_fn:
-                try:
-                    details = detail_fn()
-                    if details and details.get("_status"):
-                        status = details.pop("_status")
-                except Exception:
-                    pass
+            # Normalize version: keep real semver, drop "installed"/"configured"
+            norm_ver = ver if ver and _semver_re.match(ver) else None
+
             return {
                 "name": name, "installed": True,
-                "version": "configured", "status": status,
-                "details": details,
+                "version": norm_ver, "status": status,
+                "status_label": status_label, "details": details,
             }
 
         return {
             "name": name, "installed": False,
             "version": None, "status": status,
-            "details": None,
+            "status_label": status_label, "details": None,
         }
 
     return [
@@ -676,6 +796,4 @@ def _get_framework_status() -> list[dict]:
         ),
         _check("HFT Backtest", "hftbacktest", "hftbacktest", _get_hft_details),
         _check("CCXT", "ccxt", None, _get_ccxt_details),
-        _check("Pandas", "pandas"),
-        _check("TA-Lib", "talib"),
     ]

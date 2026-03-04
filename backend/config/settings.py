@@ -423,6 +423,34 @@ SCHEDULED_TASKS = {
         "interval_seconds": 900,
         "params": {},
     },
+    "nautilus_backtest_crypto": {
+        "name": "Nautilus Crypto Backtest",
+        "description": "Run NautilusTrader backtests on top crypto symbols (daily)",
+        "task_type": "nautilus_backtest",
+        "interval_seconds": 86400,
+        "params": {"asset_class": "crypto", "timeframe": "1h"},
+    },
+    "nautilus_backtest_equity": {
+        "name": "Nautilus Equity Backtest",
+        "description": "Run NautilusTrader backtests on equity symbols (weekly)",
+        "task_type": "nautilus_backtest",
+        "interval_seconds": 604800,
+        "params": {"asset_class": "equity", "timeframe": "1d"},
+    },
+    "nautilus_backtest_forex": {
+        "name": "Nautilus Forex Backtest",
+        "description": "Run NautilusTrader backtests on forex pairs (weekly)",
+        "task_type": "nautilus_backtest",
+        "interval_seconds": 604800,
+        "params": {"asset_class": "forex", "timeframe": "1h"},
+    },
+    "hft_backtest": {
+        "name": "HFT Backtest",
+        "description": "Run HFT strategy backtests on top crypto symbols (daily)",
+        "task_type": "hft_backtest",
+        "interval_seconds": 86400,
+        "params": {"timeframe": "1h"},
+    },
 }
 
 # ── Workflow templates ────────────────────────────────────────
