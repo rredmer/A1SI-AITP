@@ -1,6 +1,6 @@
 """Tests for DashboardService — KPI aggregation service."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,6 +15,7 @@ class TestDashboardServiceGetKpis:
         assert "trading" in kpis
         assert "risk" in kpis
         assert "platform" in kpis
+        assert "paper_trading" in kpis
         assert "generated_at" in kpis
 
     def test_empty_portfolio_defaults(self):
@@ -100,3 +101,103 @@ class TestDashboardServicePartialFailures:
             kpis = DashboardService.get_kpis()
             assert kpis["platform"]["data_files"] == 0
             assert kpis["platform"]["active_jobs"] == 0
+
+
+@pytest.mark.django_db
+class TestDashboardServicePaperTradingKpis:
+    def test_paper_trading_defaults_when_no_services(self):
+        """Paper trading KPIs return zeros when Freqtrade is not running."""
+        with patch(
+            "trading.views._get_paper_trading_services",
+            return_value={},
+        ):
+            kpis = DashboardService.get_kpis()
+            pt = kpis["paper_trading"]
+            assert pt["instances_running"] == 0
+            assert pt["total_pnl"] == 0.0
+            assert pt["total_pnl_pct"] == 0.0
+            assert pt["open_trades"] == 0
+            assert pt["closed_trades"] == 0
+            assert pt["win_rate"] == 0.0
+            assert isinstance(pt["instances"], list)
+
+    def test_paper_trading_structure(self):
+        """Paper trading KPIs have all expected keys."""
+        pt = DashboardService._get_paper_trading_kpis()
+        expected_keys = {
+            "instances_running", "total_pnl", "total_pnl_pct",
+            "open_trades", "closed_trades", "win_rate", "instances",
+        }
+        assert set(pt.keys()) == expected_keys
+
+    def test_paper_trading_with_mock_services(self):
+        """Paper trading KPIs aggregate data from multiple instances."""
+        mock_svc = MagicMock()
+        mock_svc.get_status.return_value = {
+            "running": True,
+            "strategy": "TestStrategy",
+        }
+
+        async def mock_profit():
+            return {
+                "profit_all_coin": 25.50,
+                "profit_all_percent": 5.1,
+                "trade_count": 3,
+                "closed_trade_count": 2,
+                "winning_trades": 1,
+                "losing_trades": 1,
+            }
+
+        mock_svc.get_profit = mock_profit
+
+        with patch(
+            "trading.views._get_paper_trading_services",
+            return_value={"civ1": mock_svc, "bmr": mock_svc},
+        ):
+            pt = DashboardService._get_paper_trading_kpis()
+            assert pt["instances_running"] == 2
+            assert pt["total_pnl"] == 51.0  # 25.5 * 2
+            assert pt["open_trades"] == 2  # (3-2) * 2
+            assert pt["closed_trades"] == 4  # 2 * 2
+            assert pt["win_rate"] == 50.0  # 2 wins / 4 total
+
+    def test_paper_trading_failure_returns_defaults(self):
+        """Paper trading KPIs gracefully handle import failures."""
+        with patch(
+            "trading.views._get_paper_trading_services",
+            side_effect=ImportError("no module"),
+        ):
+            pt = DashboardService._get_paper_trading_kpis()
+            assert pt["instances_running"] == 0
+            assert pt["total_pnl"] == 0.0
+
+    def test_paper_trading_instance_failure_isolated(self):
+        """One failing instance doesn't break the whole aggregation."""
+        good_svc = MagicMock()
+        good_svc.get_status.return_value = {"running": True, "strategy": "Good"}
+
+        async def good_profit():
+            return {
+                "profit_all_coin": 10.0,
+                "profit_all_percent": 2.0,
+                "trade_count": 1,
+                "closed_trade_count": 1,
+                "winning_trades": 1,
+                "losing_trades": 0,
+            }
+
+        good_svc.get_profit = good_profit
+
+        bad_svc = MagicMock()
+        bad_svc.get_status.side_effect = Exception("connection refused")
+
+        with patch(
+            "trading.views._get_paper_trading_services",
+            return_value={"good": good_svc, "bad": bad_svc},
+        ):
+            pt = DashboardService._get_paper_trading_kpis()
+            assert pt["instances_running"] == 1
+            assert pt["total_pnl"] == 10.0
+            assert len(pt["instances"]) == 2
+            assert pt["instances"][0]["running"] is True
+            assert pt["instances"][1]["running"] is False

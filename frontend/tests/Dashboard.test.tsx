@@ -12,13 +12,13 @@ vi.mock("../src/components/PriceChart", () => ({
 
 const mockPlatformStatus = {
   frameworks: [
-    { name: "VectorBT", installed: true, version: "0.28.4" },
-    { name: "Freqtrade", installed: true, version: "2026.1" },
-    { name: "NautilusTrader", installed: true, version: "configured" },
-    { name: "HFT Backtest", installed: true, version: "configured" },
-    { name: "CCXT", installed: true, version: "4.5.40" },
-    { name: "Pandas", installed: true, version: "2.3.3" },
-    { name: "TA-Lib", installed: true, version: "0.6.4" },
+    { name: "VectorBT", installed: true, version: "0.28.4", status: "running", details: { screens_available: 6, total_screens: 42, last_screen_at: new Date(Date.now() - 7200000).toISOString() } },
+    { name: "Freqtrade", installed: true, version: "2026.1", status: "running", details: { instances_running: 3, strategies: ["CryptoInvestorV1", "BollingerMeanReversion", "VolatilityBreakout"], open_trades: 1 } },
+    { name: "NautilusTrader", installed: true, version: "configured", status: "configured", details: { strategies_configured: 7, asset_classes: ["crypto", "equity", "forex"] } },
+    { name: "HFT Backtest", installed: true, version: "configured", status: "configured", details: { strategies_configured: 4 } },
+    { name: "CCXT", installed: true, version: "4.5.40", status: "running", details: { exchange: "kraken", connected: true, latency_ms: 45.2 } },
+    { name: "Pandas", installed: true, version: "2.3.3", status: "idle", details: null },
+    { name: "TA-Lib", installed: true, version: "0.6.4", status: "idle", details: null },
   ],
   data_files: 12,
   active_jobs: 2,
@@ -134,6 +134,19 @@ const mockKpis = {
   trading: { total_trades: 5, win_rate: 60.0, total_pnl: 500.0, profit_factor: 2.0 },
   risk: { daily_pnl: 125.5, drawdown: 0.048, is_halted: false },
   platform: { data_files: 12, active_jobs: 2 },
+  paper_trading: {
+    instances_running: 2,
+    total_pnl: 15.75,
+    total_pnl_pct: 3.15,
+    open_trades: 1,
+    closed_trades: 4,
+    win_rate: 75.0,
+    instances: [
+      { name: "civ1", running: true, strategy: "CryptoInvestorV1", pnl: 10.50, open_trades: 1, closed_trades: 2 },
+      { name: "bmr", running: true, strategy: "BollingerMeanReversion", pnl: 5.25, open_trades: 0, closed_trades: 2 },
+      { name: "vb", running: false, strategy: "VolatilityBreakout", pnl: 0, open_trades: 0, closed_trades: 0 },
+    ],
+  },
   generated_at: new Date().toISOString(),
 };
 
@@ -344,5 +357,57 @@ describe("Dashboard", () => {
     const timestamp = await screen.findByTestId("kpi-timestamp");
     expect(timestamp).toBeInTheDocument();
     expect(timestamp.textContent).toContain("Updated");
+  });
+
+  it("renders paper trading widget with strategy instances", async () => {
+    renderWithProviders(<Dashboard />);
+    expect(await screen.findByTestId("paper-trading-widget")).toBeInTheDocument();
+    expect(screen.getByText("Paper Trading")).toBeInTheDocument();
+    expect(screen.getByText("CryptoInvestorV1")).toBeInTheDocument();
+    expect(screen.getByText("BollingerMeanReversion")).toBeInTheDocument();
+  });
+
+  it("shows paper trading P&L and stats", async () => {
+    renderWithProviders(<Dashboard />);
+    await screen.findByTestId("paper-trading-widget");
+    expect(screen.getByText("$15.75")).toBeInTheDocument();
+    expect(screen.getByText("+3.15%")).toBeInTheDocument();
+    expect(screen.getByText("75.0%")).toBeInTheDocument();
+  });
+
+  it("shows View Details link to paper trading page", async () => {
+    renderWithProviders(<Dashboard />);
+    await screen.findByTestId("paper-trading-widget");
+    const link = screen.getByText(/View Details/);
+    expect(link).toBeInTheDocument();
+    expect(link.closest("a")).toHaveAttribute("href", "/paper-trading");
+  });
+
+  it("shows running/stopped indicators for instances", async () => {
+    renderWithProviders(<Dashboard />);
+    await screen.findByTestId("paper-trading-widget");
+    // VolatilityBreakout is stopped, should show its name
+    expect(screen.getByText("VolatilityBreakout")).toBeInTheDocument();
+  });
+
+  it("shows running status indicator for Freqtrade", async () => {
+    renderWithProviders(<Dashboard />);
+    await screen.findByText("Framework Status");
+    const freqtradeRow = screen.getByText("Freqtrade").closest("div.rounded-lg");
+    expect(freqtradeRow).toBeInTheDocument();
+    // Running status should have a green pulsing dot
+    const dot = freqtradeRow!.querySelector(".animate-pulse");
+    expect(dot).toBeInTheDocument();
+  });
+
+  it("shows framework detail text", async () => {
+    renderWithProviders(<Dashboard />);
+    await screen.findByText("Framework Status");
+    // Freqtrade: "3 instances · 1 open trade"
+    expect(screen.getByText(/3 instances/)).toBeInTheDocument();
+    // CCXT: "kraken · 45.2ms"
+    expect(screen.getByText(/kraken · 45\.2ms/)).toBeInTheDocument();
+    // VectorBT: "6 screens · last run 2h ago"
+    expect(screen.getByText(/6 screens/)).toBeInTheDocument();
   });
 });

@@ -30,6 +30,7 @@ class DailyReportService:
         report["strategy_performance"] = self._get_strategy_performance()
         report["system_status"] = self._get_system_status()
         report["scanner_status"] = self._get_scanner_status()
+        report["recommendations"] = self._get_recommendations(report["regime"])
 
         # Store in DB as a special MarketOpportunity-like record
         # or just return for API consumption
@@ -274,6 +275,71 @@ class DailyReportService:
         except Exception as e:
             logger.warning("Scanner status failed: %s", e)
             return {}
+
+    @staticmethod
+    def _get_recommendations(regime_data: dict[str, Any]) -> dict[str, Any]:
+        """Map current regime to strategy recommendations."""
+        regime_strategy_map = {
+            "strong_trend_up": {
+                "primary": "CryptoInvestorV1",
+                "reasoning": "Strong uptrend — trend-following strategies favored",
+            },
+            "weak_trend_up": {
+                "primary": "CryptoInvestorV1",
+                "reasoning": "Weak uptrend — trend-following with tighter stops",
+            },
+            "ranging": {
+                "primary": "BollingerMeanReversion",
+                "reasoning": "Range-bound market — mean reversion strategies favored",
+            },
+            "weak_trend_down": {
+                "primary": "BollingerMeanReversion",
+                "reasoning": "Weak downtrend — oversold bounces likely, BMR strategy favored",
+            },
+            "strong_trend_down": {
+                "primary": "BollingerMeanReversion",
+                "reasoning": "Strong downtrend — defensive positioning, catch oversold bounces",
+            },
+            "high_volatility": {
+                "primary": "VolatilityBreakout",
+                "reasoning": "High volatility — breakout strategies capture expansion moves",
+            },
+            "unknown": {
+                "primary": "BollingerMeanReversion",
+                "reasoning": "Regime unclear — defaulting to defensive mean reversion",
+            },
+        }
+
+        dominant = regime_data.get("dominant_regime", "unknown")
+        rec = regime_strategy_map.get(dominant, regime_strategy_map["unknown"])
+
+        # Add sentiment direction if available
+        sentiment_text = "No sentiment data"
+        try:
+            from django.utils import timezone as tz
+
+            from market.models import NewsArticle
+
+            recent = NewsArticle.objects.filter(
+                published_at__gte=tz.now() - timedelta(hours=24),
+            )
+            if recent.exists():
+                avg_score = sum(a.sentiment_score for a in recent) / recent.count()
+                if avg_score > 0.15:
+                    sentiment_text = "Sentiment bullish — supports aggressive entries"
+                elif avg_score < -0.15:
+                    sentiment_text = "Sentiment bearish — favor defensive strategies"
+                else:
+                    sentiment_text = "Sentiment neutral"
+        except Exception:
+            pass
+
+        return {
+            "regime": dominant,
+            "favored_strategy": rec["primary"],
+            "reasoning": rec["reasoning"],
+            "sentiment": sentiment_text,
+        }
 
     def get_latest(self) -> dict[str, Any] | None:
         """Return the most recent stored report, or generate fresh."""

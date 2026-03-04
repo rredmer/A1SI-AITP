@@ -198,3 +198,31 @@ class TestDailyReportTelegram:
         assert "ranging" in msg
         assert "60.0%" in msg
         assert "7/14" in msg
+
+
+class TestDailyReportRecommendations:
+    def test_regime_maps_to_strategy(self):
+        from market.services.daily_report import DailyReportService
+
+        rec = DailyReportService._get_recommendations({"dominant_regime": "ranging"})
+        assert rec["favored_strategy"] == "BollingerMeanReversion"
+        assert "range" in rec["reasoning"].lower() or "mean reversion" in rec["reasoning"].lower()
+
+    def test_uptrend_favors_trend_following(self):
+        from market.services.daily_report import DailyReportService
+
+        rec = DailyReportService._get_recommendations({"dominant_regime": "strong_trend_up"})
+        assert rec["favored_strategy"] == "CryptoInvestorV1"
+
+    def test_high_volatility_favors_breakout(self):
+        from market.services.daily_report import DailyReportService
+
+        rec = DailyReportService._get_recommendations({"dominant_regime": "high_volatility"})
+        assert rec["favored_strategy"] == "VolatilityBreakout"
+
+    def test_unknown_regime_defaults(self):
+        from market.services.daily_report import DailyReportService
+
+        rec = DailyReportService._get_recommendations({"dominant_regime": "unknown"})
+        assert rec["favored_strategy"] == "BollingerMeanReversion"
+        assert "sentiment" in rec

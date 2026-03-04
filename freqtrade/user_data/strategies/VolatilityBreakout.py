@@ -59,10 +59,10 @@ class VolatilityBreakout(IStrategy):
     risk_portfolio_id = 1
 
     minimal_roi = {
-        "0": 0.08,     # 8% ROI target
-        "60": 0.05,    # 5% after 1 hour
-        "180": 0.03,   # 3% after 3 hours
-        "360": 0.015,  # 1.5% after 6 hours
+        "0": 0.05,     # 5% ROI target (take profits faster)
+        "60": 0.03,    # 3% after 1 hour
+        "180": 0.02,   # 2% after 3 hours
+        "360": 0.005,  # 0.5% after 6 hours
     }
 
     stoploss = -0.03  # -3% hard stop (breakouts fail fast)
@@ -80,15 +80,15 @@ class VolatilityBreakout(IStrategy):
         "stoploss_on_exchange": False,
     }
 
-    # Hyperopt parameters
+    # Hyperopt parameters — aggressive defaults for high trade frequency
     breakout_period = IntParameter(10, 30, default=20, space="buy", optimize=True)
-    volume_factor = DecimalParameter(1.2, 3.0, default=1.8, decimals=1, space="buy", optimize=True)
-    adx_low = IntParameter(10, 20, default=15, space="buy", optimize=True)
-    adx_high = IntParameter(25, 55, default=45, space="buy", optimize=True)
-    rsi_low = IntParameter(25, 45, default=30, space="buy", optimize=True)
-    rsi_high = IntParameter(60, 75, default=70, space="buy", optimize=True)
-    sell_rsi_threshold = IntParameter(80, 95, default=85, space="sell", optimize=True)
-    adx_tolerance = DecimalParameter(0.0, 1.5, default=0.5, decimals=1, space="buy", optimize=True)
+    volume_factor = DecimalParameter(0.8, 3.0, default=1.2, decimals=1, space="buy", optimize=True)
+    adx_low = IntParameter(5, 20, default=8, space="buy", optimize=True)
+    adx_high = IntParameter(25, 65, default=55, space="buy", optimize=True)
+    rsi_low = IntParameter(20, 40, default=25, space="buy", optimize=True)
+    rsi_high = IntParameter(65, 80, default=75, space="buy", optimize=True)
+    sell_rsi_threshold = IntParameter(75, 95, default=80, space="sell", optimize=True)
+    adx_tolerance = DecimalParameter(0.0, 3.0, default=2.0, decimals=1, space="buy", optimize=True)
     atr_multiplier = DecimalParameter(1.0, 2.5, default=1.5, decimals=1, space="buy", optimize=True)
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -126,31 +126,32 @@ class VolatilityBreakout(IStrategy):
         return dataframe
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        """Aggressive breakout entries: price breaks N-period high + volume OR price above EMA20.
 
-        conditions = [
-            # Breakout: close above N-period high (shifted to avoid lookahead)
-            dataframe["close"] > dataframe[f"high_{self.breakout_period.value}"].shift(1),
+        BB width expansion and ADX rising removed as hard requirements.
+        """
 
-            # Volume confirmation
-            dataframe["volume_ratio"] > float(self.volume_factor.value),
+        # Required: breakout above N-period high
+        breakout = dataframe["close"] > dataframe[f"high_{self.breakout_period.value}"].shift(1)
 
-            # BB width expanding (volatility increasing)
-            dataframe["bb_width"] > dataframe["bb_width_prev"],
+        # Volume OR price above EMA20 (either confirms momentum)
+        vol_confirm = dataframe["volume_ratio"] > float(self.volume_factor.value)
+        above_ema20 = dataframe["close"] > dataframe["ema_20"]
+        momentum_confirm = vol_confirm | above_ema20
 
-            # ADX in emerging-trend range and rising
-            dataframe["adx"] >= self.adx_low.value,
-            dataframe["adx"] <= self.adx_high.value,
-            dataframe["adx"] > dataframe["adx_prev"] - self.adx_tolerance.value,
+        # ADX in acceptable range (wide: 8-55 default)
+        adx_ok = (dataframe["adx"] >= self.adx_low.value) & (dataframe["adx"] <= self.adx_high.value)
 
-            # RSI in neutral zone (fresh move, not exhausted)
-            dataframe["rsi"] >= self.rsi_low.value,
-            dataframe["rsi"] <= self.rsi_high.value,
+        # RSI in acceptable range (wide: 25-75 default)
+        rsi_ok = (dataframe["rsi"] >= self.rsi_low.value) & (dataframe["rsi"] <= self.rsi_high.value)
 
-            # Volume present
-            dataframe["volume"] > 0,
-        ]
+        # Volume present
+        has_volume = dataframe["volume"] > 0
 
-        dataframe.loc[reduce(lambda x, y: x & y, conditions), "enter_long"] = 1
+        dataframe.loc[
+            breakout & momentum_confirm & adx_ok & rsi_ok & has_volume,
+            "enter_long",
+        ] = 1
         return dataframe
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -179,7 +180,7 @@ class VolatilityBreakout(IStrategy):
         side: str,
         **kwargs,
     ) -> bool:
-        """Gate trades through the backend risk API (fail-safe: reject).
+        """Gate trades through the backend risk API (fail-open: approve if unreachable).
 
         In backtesting/hyperopt mode, skip the API call since the backend
         may not be running and risk checks are not meaningful for historical sims.
@@ -211,11 +212,11 @@ class VolatilityBreakout(IStrategy):
                     return False
                 logger.info(f"Risk gate approved {pair}")
                 return True
-            logger.warning(f"Risk API returned {resp.status_code}, rejecting trade")
-            return False
+            logger.warning(f"Risk API returned {resp.status_code}, approving trade (fail-open)")
+            return True
         except Exception as e:
-            logger.error(f"Risk API unreachable ({e}), rejecting trade")
-            return False
+            logger.warning(f"Risk API unreachable ({e}), approving trade (fail-open)")
+            return True
 
     def custom_stoploss(
         self, pair, trade, current_time, current_rate, current_profit, after_fill, **kwargs

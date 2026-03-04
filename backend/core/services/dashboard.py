@@ -21,11 +21,14 @@ class DashboardService:
             risk_data = DashboardService._get_risk_kpis()
             platform_data = DashboardService._get_platform_kpis()
 
+            paper_trading_data = DashboardService._get_paper_trading_kpis()
+
             return {
                 "portfolio": portfolio_data,
                 "trading": trading_data,
                 "risk": risk_data,
                 "platform": platform_data,
+                "paper_trading": paper_trading_data,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             }
 
@@ -135,6 +138,91 @@ class DashboardService:
                 "is_halted": False,
                 "open_positions": 0,
             }
+
+    @staticmethod
+    def _get_paper_trading_kpis() -> dict:
+        """Aggregate paper trading status and P&L from Freqtrade instances."""
+        default = {
+            "instances_running": 0,
+            "total_pnl": 0.0,
+            "total_pnl_pct": 0.0,
+            "open_trades": 0,
+            "closed_trades": 0,
+            "win_rate": 0.0,
+            "instances": [],
+        }
+        try:
+            from asgiref.sync import async_to_sync
+
+            from trading.views import _get_paper_trading_services
+
+            services = _get_paper_trading_services()
+            instances = []
+            total_pnl = 0.0
+            total_pnl_pct = 0.0
+            open_trades = 0
+            closed_trades = 0
+            winning = 0
+            losing = 0
+            running_count = 0
+
+            for name, svc in services.items():
+                try:
+                    status = svc.get_status()
+                    is_running = status.get("running", False)
+                    if is_running:
+                        running_count += 1
+
+                    profit = async_to_sync(svc.get_profit)()
+
+                    pnl = profit.get("profit_all_coin", 0) or 0
+                    pnl_pct = profit.get("profit_all_percent", 0) or 0
+                    trade_count = profit.get("trade_count", 0) or 0
+                    closed_count = profit.get("closed_trade_count", 0) or 0
+                    wins = profit.get("winning_trades", 0) or 0
+                    losses = profit.get("losing_trades", 0) or 0
+
+                    total_pnl += pnl
+                    total_pnl_pct += pnl_pct
+                    open_trades += max(trade_count - closed_count, 0)
+                    closed_trades += closed_count
+                    winning += wins
+                    losing += losses
+
+                    instances.append({
+                        "name": name,
+                        "running": is_running,
+                        "strategy": status.get("strategy"),
+                        "pnl": round(pnl, 2),
+                        "open_trades": max(trade_count - closed_count, 0),
+                        "closed_trades": closed_count,
+                    })
+                except Exception as e:
+                    logger.debug("Paper trading instance %s unavailable: %s", name, e)
+                    instances.append({
+                        "name": name,
+                        "running": False,
+                        "strategy": None,
+                        "pnl": 0.0,
+                        "open_trades": 0,
+                        "closed_trades": 0,
+                    })
+
+            total_decided = winning + losing
+            win_rate = round(winning / total_decided * 100, 1) if total_decided > 0 else 0.0
+
+            return {
+                "instances_running": running_count,
+                "total_pnl": round(total_pnl, 2),
+                "total_pnl_pct": round(total_pnl_pct, 2),
+                "open_trades": open_trades,
+                "closed_trades": closed_trades,
+                "win_rate": win_rate,
+                "instances": instances,
+            }
+        except Exception as e:
+            logger.warning("Failed to get paper trading KPIs: %s", e)
+            return default
 
     @staticmethod
     def _get_platform_kpis() -> dict:

@@ -686,6 +686,8 @@ export interface FrameworkStatus {
   name: string;
   installed: boolean;
   version: string | null;
+  status: "running" | "idle" | "configured" | "not_installed";
+  details: Record<string, unknown> | null;
 }
 
 export interface PlatformStatus {
@@ -746,6 +748,26 @@ export interface DailyReport {
   scanner_status?: Record<string, ScannerStatusEntry>;
 }
 
+// Paper Trading KPI types (from dashboard aggregation)
+export interface PaperTradingInstanceKPI {
+  name: string;
+  running: boolean;
+  strategy: string | null;
+  pnl: number;
+  open_trades: number;
+  closed_trades: number;
+}
+
+export interface PaperTradingKPIs {
+  instances_running: number;
+  total_pnl: number;
+  total_pnl_pct: number;
+  open_trades: number;
+  closed_trades: number;
+  win_rate: number;
+  instances: PaperTradingInstanceKPI[];
+}
+
 // Dashboard KPI types
 export interface DashboardKPIs {
   portfolio: {
@@ -774,5 +796,6 @@ export interface DashboardKPIs {
     active_jobs: number;
     framework_count: number;
   };
+  paper_trading: PaperTradingKPIs;
   generated_at: string;
 }

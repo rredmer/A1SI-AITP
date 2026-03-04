@@ -74,11 +74,31 @@ class DashboardPlatformKPISerializer(serializers.Serializer):
     framework_count = serializers.IntegerField()
 
 
+class DashboardPaperTradingInstanceSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    running = serializers.BooleanField()
+    strategy = serializers.CharField(allow_null=True)
+    pnl = serializers.FloatField()
+    open_trades = serializers.IntegerField()
+    closed_trades = serializers.IntegerField()
+
+
+class DashboardPaperTradingKPISerializer(serializers.Serializer):
+    instances_running = serializers.IntegerField()
+    total_pnl = serializers.FloatField()
+    total_pnl_pct = serializers.FloatField()
+    open_trades = serializers.IntegerField()
+    closed_trades = serializers.IntegerField()
+    win_rate = serializers.FloatField()
+    instances = DashboardPaperTradingInstanceSerializer(many=True)
+
+
 class DashboardKPISerializer(serializers.Serializer):
     portfolio = DashboardPortfolioKPISerializer()
     trading = DashboardTradingKPISerializer()
     risk = DashboardRiskKPISerializer()
     platform = DashboardPlatformKPISerializer()
+    paper_trading = DashboardPaperTradingKPISerializer()
     generated_at = serializers.CharField()
 
 
@@ -94,8 +114,16 @@ class DetailedHealthResponseSerializer(serializers.Serializer):
     checks = serializers.DictField()
 
 
+class FrameworkStatusSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    installed = serializers.BooleanField()
+    version = serializers.CharField(allow_null=True)
+    status = serializers.CharField()
+    details = serializers.DictField(allow_null=True)
+
+
 class PlatformStatusSerializer(serializers.Serializer):
-    frameworks = serializers.ListField()
+    frameworks = FrameworkStatusSerializer(many=True)
     data_files = serializers.IntegerField()
     active_jobs = serializers.IntegerField()
 

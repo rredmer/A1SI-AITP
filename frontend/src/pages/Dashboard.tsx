@@ -28,8 +28,10 @@ import type {
   BackgroundJob,
   DailyReport,
   DashboardKPIs,
+  FrameworkStatus,
   OHLCVData,
   OpportunitySummary,
+  PaperTradingKPIs,
   PlatformStatus,
   RegimeState,
   RegimeType,
@@ -37,6 +39,65 @@ import type {
 } from "../types";
 
 const ALWAYS_SHOW_FRAMEWORKS = ["VectorBT", "CCXT", "Pandas", "TA-Lib"];
+
+function getFrameworkStatusColor(status: FrameworkStatus["status"]): string {
+  switch (status) {
+    case "running":
+      return "bg-green-400 animate-pulse";
+    case "idle":
+      return "bg-blue-400";
+    case "configured":
+      return "bg-yellow-400";
+    case "not_installed":
+      return "bg-red-400";
+    default:
+      return "bg-gray-400";
+  }
+}
+
+function formatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function getFrameworkDetail(fw: FrameworkStatus): string | null {
+  if (!fw.details) return null;
+  const d = fw.details;
+  switch (fw.name) {
+    case "Freqtrade": {
+      const n = d.instances_running as number ?? 0;
+      const t = d.open_trades as number ?? 0;
+      return `${n} instance${n !== 1 ? "s" : ""} \u00b7 ${t > 0 ? `${t} open trade${t !== 1 ? "s" : ""}` : "no trades"}`;
+    }
+    case "VectorBT": {
+      const screens = d.screens_available as number ?? 0;
+      const last = d.last_screen_at as string | null;
+      if (screens === 0) return "no screens yet";
+      return `${screens} screen${screens !== 1 ? "s" : ""}${last ? ` \u00b7 last run ${formatTimeAgo(last)}` : ""}`;
+    }
+    case "NautilusTrader": {
+      const n = d.strategies_configured as number ?? 0;
+      return `${n} strategies configured`;
+    }
+    case "HFT Backtest": {
+      const n = d.strategies_configured as number ?? 0;
+      return `${n} strategies configured`;
+    }
+    case "CCXT": {
+      const exchange = d.exchange as string ?? "unknown";
+      const connected = d.connected as boolean;
+      const latency = d.latency_ms as number;
+      return connected ? `${exchange} \u00b7 ${latency}ms` : `${exchange} \u00b7 disconnected`;
+    }
+    default:
+      return null;
+  }
+}
 
 const TickerButton = memo(function TickerButton({ symbol, ticker, isActive, onClick, assetClass }: { symbol: string; ticker?: TickerData; isActive: boolean; onClick: () => void; assetClass: AssetClass }) {
   return (
@@ -180,6 +241,11 @@ export function Dashboard() {
         <p className="mt-1 text-right text-xs text-[var(--color-text-muted)]" data-testid="kpi-timestamp">
           Updated {new Date(kpis.dataUpdatedAt).toLocaleTimeString()}
         </p>
+      )}
+
+      {/* Paper Trading */}
+      {kpis.data?.paper_trading && (
+        <PaperTradingWidget data={kpis.data.paper_trading} />
       )}
 
       {/* Watchlist */}
@@ -396,22 +462,32 @@ export function Dashboard() {
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
             <h3 className="mb-4 text-lg font-semibold">Framework Status</h3>
             <div className="space-y-2">
-              {filteredFrameworks.map((fw) => (
-                <div
-                  key={fw.name}
-                  className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`h-2.5 w-2.5 rounded-full ${fw.installed ? "bg-green-400" : "bg-red-400"}`}
-                    />
-                    <span className="font-medium">{fw.name}</span>
+              {filteredFrameworks.map((fw) => {
+                const detail = getFrameworkDetail(fw);
+                return (
+                  <div
+                    key={fw.name}
+                    className="rounded-lg border border-[var(--color-border)] p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-2.5 w-2.5 rounded-full ${getFrameworkStatusColor(fw.status)}`}
+                        />
+                        <span className="font-medium">{fw.name}</span>
+                      </div>
+                      <span className="text-xs text-[var(--color-text-muted)]">
+                        {fw.version ?? "not installed"}
+                      </span>
+                    </div>
+                    {detail && (
+                      <p className="mt-1 pl-[1.625rem] text-xs text-[var(--color-text-muted)]">
+                        {detail}
+                      </p>
+                    )}
                   </div>
-                  <span className="text-xs text-[var(--color-text-muted)]">
-                    {fw.version ?? "not installed"}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -547,6 +623,77 @@ function OpportunityTypeBadge({ type }: { type: string }) {
     >
       {type.replace(/_/g, " ")}
     </span>
+  );
+}
+
+function PaperTradingWidget({ data }: { data: PaperTradingKPIs }) {
+  return (
+    <div className="mt-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6" data-testid="paper-trading-widget">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Paper Trading</h3>
+        <Link
+          to="/paper-trading"
+          className="text-xs text-[var(--color-primary)] hover:underline"
+        >
+          View Details &rarr;
+        </Link>
+      </div>
+
+      {/* Instance status */}
+      {data.instances.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {data.instances.map((inst) => (
+            <div
+              key={inst.name}
+              className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5"
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${inst.running ? "bg-green-400 animate-pulse" : "bg-gray-500"}`}
+              />
+              <span className="text-sm font-medium">{inst.strategy ?? inst.name}</span>
+              {inst.pnl !== 0 && (
+                <span className={`text-xs ${inst.pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  ${inst.pnl.toFixed(2)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div>
+          <p className="text-xs text-[var(--color-text-muted)]">Total P&L</p>
+          <p className={`text-xl font-bold ${data.total_pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+            ${data.total_pnl.toFixed(2)}
+          </p>
+          {data.total_pnl_pct !== 0 && (
+            <p className={`text-xs ${data.total_pnl_pct >= 0 ? "text-green-400" : "text-red-400"}`}>
+              {data.total_pnl_pct >= 0 ? "+" : ""}{data.total_pnl_pct.toFixed(2)}%
+            </p>
+          )}
+        </div>
+        <div>
+          <p className="text-xs text-[var(--color-text-muted)]">Open Trades</p>
+          <p className="text-xl font-bold">{data.open_trades}</p>
+        </div>
+        <div>
+          <p className="text-xs text-[var(--color-text-muted)]">Win Rate</p>
+          <p className="text-xl font-bold">{data.win_rate.toFixed(1)}%</p>
+        </div>
+        <div>
+          <p className="text-xs text-[var(--color-text-muted)]">Closed Trades</p>
+          <p className="text-xl font-bold">{data.closed_trades}</p>
+        </div>
+      </div>
+
+      {data.instances_running === 0 && (
+        <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+          No Freqtrade instances detected. Start paper trading to see live data.
+        </p>
+      )}
+    </div>
   );
 }
 

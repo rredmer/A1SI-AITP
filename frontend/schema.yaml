@@ -2869,14 +2869,71 @@ components:
           $ref: '#/components/schemas/DashboardRiskKPI'
         platform:
           $ref: '#/components/schemas/DashboardPlatformKPI'
+        paper_trading:
+          $ref: '#/components/schemas/DashboardPaperTradingKPI'
         generated_at:
           type: string
       required:
       - generated_at
+      - paper_trading
       - platform
       - portfolio
       - risk
       - trading
+    DashboardPaperTradingInstance:
+      type: object
+      properties:
+        name:
+          type: string
+        running:
+          type: boolean
+        strategy:
+          type: string
+          nullable: true
+        pnl:
+          type: number
+          format: double
+        open_trades:
+          type: integer
+        closed_trades:
+          type: integer
+      required:
+      - closed_trades
+      - name
+      - open_trades
+      - pnl
+      - running
+      - strategy
+    DashboardPaperTradingKPI:
+      type: object
+      properties:
+        instances_running:
+          type: integer
+        total_pnl:
+          type: number
+          format: double
+        total_pnl_pct:
+          type: number
+          format: double
+        open_trades:
+          type: integer
+        closed_trades:
+          type: integer
+        win_rate:
+          type: number
+          format: double
+        instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardPaperTradingInstance'
+      required:
+      - closed_trades
+      - instances
+      - instances_running
+      - open_trades
+      - total_pnl
+      - total_pnl_pct
+      - win_rate
     DashboardPlatformKPI:
       type: object
       properties:
@@ -3366,6 +3423,28 @@ components:
       required:
       - message
       - success
+    FrameworkStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        installed:
+          type: boolean
+        version:
+          type: string
+          nullable: true
+        status:
+          type: string
+        details:
+          type: object
+          additionalProperties: {}
+          nullable: true
+      required:
+      - details
+      - installed
+      - name
+      - status
+      - version
     HaltRequest:
       type: object
       properties:
@@ -4178,7 +4257,8 @@ components:
       properties:
         frameworks:
           type: array
-          items: {}
+          items:
+            $ref: '#/components/schemas/FrameworkStatus'
         data_files:
           type: integer
         active_jobs:

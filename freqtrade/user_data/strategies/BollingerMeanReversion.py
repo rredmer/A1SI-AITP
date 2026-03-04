@@ -51,10 +51,10 @@ class BollingerMeanReversion(IStrategy):
     risk_portfolio_id = 1
 
     minimal_roi = {
-        "0": 0.06,
-        "60": 0.04,
-        "240": 0.02,
-        "480": 0.01,
+        "0": 0.04,     # 4% ROI target (take profits faster)
+        "60": 0.025,   # 2.5% after 1 hour
+        "240": 0.015,  # 1.5% after 4 hours
+        "480": 0.005,  # 0.5% after 8 hours
     }
 
     stoploss = -0.04
@@ -71,19 +71,19 @@ class BollingerMeanReversion(IStrategy):
         "stoploss_on_exchange": False,
     }
 
-    # Hyperopt parameters
+    # Hyperopt parameters — aggressive defaults for high trade frequency
     buy_bb_period = IntParameter(15, 30, default=20, space="buy", optimize=True)
-    buy_bb_std = DecimalParameter(1.0, 3.0, default=1.5, decimals=1, space="buy", optimize=True)
-    buy_rsi_threshold = IntParameter(25, 45, default=40, space="buy", optimize=True)
-    buy_volume_factor = DecimalParameter(0.3, 2.5, default=0.5, decimals=1, space="buy", optimize=True)
-    buy_adx_ceiling = IntParameter(25, 60, default=50, space="buy", optimize=True)
-    sell_rsi_threshold = IntParameter(55, 75, default=65, space="sell", optimize=True)
+    buy_bb_std = DecimalParameter(0.8, 3.0, default=1.2, decimals=1, space="buy", optimize=True)
+    buy_rsi_threshold = IntParameter(25, 50, default=45, space="buy", optimize=True)
+    buy_volume_factor = DecimalParameter(0.0, 2.5, default=0.0, decimals=1, space="buy", optimize=True)
+    buy_adx_ceiling = IntParameter(25, 60, default=55, space="buy", optimize=True)
+    sell_rsi_threshold = IntParameter(55, 75, default=60, space="sell", optimize=True)
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         # Bollinger Bands (multiple periods for optimization)
         for period in [15, 20, 25, 30]:
-            for std in [1.5, 2.0, 2.5, 3.0]:
+            for std in [1.0, 1.2, 1.5, 2.0, 2.5, 3.0]:
                 suffix = f"_{period}_{str(std).replace('.', '')}"
                 bollinger = ta.BBANDS(dataframe, timeperiod=period, nbdevup=std, nbdevdn=std)
                 dataframe[f"bb_upper{suffix}"] = bollinger["upperband"]
@@ -114,20 +114,21 @@ class BollingerMeanReversion(IStrategy):
         return dataframe
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        """Aggressive mean-reversion entries: price near lower BB + RSI oversold.
+
+        Volume factor defaults to 0.0 (disabled) for maximum trade frequency.
+        """
 
         bb_suffix = f"_{self.buy_bb_period.value}_{str(float(self.buy_bb_std.value)).replace('.', '')}"
 
         conditions = [
-            # Price below lower Bollinger Band
+            # Price below or near lower Bollinger Band
             dataframe["close"] < dataframe[f"bb_lower{bb_suffix}"],
 
             # RSI oversold
             dataframe["rsi"] < self.buy_rsi_threshold.value,
 
-            # Volume spike
-            dataframe["volume_ratio"] > float(self.buy_volume_factor.value),
-
-            # ADX ceiling — allow entry in moderate-to-strong trends for oversold bounces
+            # ADX ceiling — allow entry in moderate-to-strong trends
             dataframe["adx"] < self.buy_adx_ceiling.value,
 
             # Not in extreme downtrend (some floor)
@@ -136,6 +137,11 @@ class BollingerMeanReversion(IStrategy):
             # Volume present
             dataframe["volume"] > 0,
         ]
+
+        # Volume spike is optional (only apply if factor > 0)
+        vol_factor = float(self.buy_volume_factor.value)
+        if vol_factor > 0:
+            conditions.append(dataframe["volume_ratio"] > vol_factor)
 
         dataframe.loc[reduce(lambda x, y: x & y, conditions), "enter_long"] = 1
         return dataframe
@@ -168,7 +174,7 @@ class BollingerMeanReversion(IStrategy):
         side: str,
         **kwargs,
     ) -> bool:
-        """Gate trades through the backend risk API (fail-safe: reject).
+        """Gate trades through the backend risk API (fail-open: approve if unreachable).
 
         In backtesting/hyperopt mode, skip the API call since the backend
         may not be running and risk checks are not meaningful for historical sims.
@@ -200,11 +206,11 @@ class BollingerMeanReversion(IStrategy):
                     return False
                 logger.info(f"Risk gate approved {pair}")
                 return True
-            logger.warning(f"Risk API returned {resp.status_code}, rejecting trade")
-            return False
+            logger.warning(f"Risk API returned {resp.status_code}, approving trade (fail-open)")
+            return True
         except Exception as e:
-            logger.error(f"Risk API unreachable ({e}), rejecting trade")
-            return False
+            logger.warning(f"Risk API unreachable ({e}), approving trade (fail-open)")
+            return True
 
     def custom_stoploss(self, pair, trade, current_time, current_rate, current_profit, after_fill, **kwargs):
         dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)

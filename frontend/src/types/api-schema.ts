@@ -1952,7 +1952,29 @@ export interface components {
             trading: components["schemas"]["DashboardTradingKPI"];
             risk: components["schemas"]["DashboardRiskKPI"];
             platform: components["schemas"]["DashboardPlatformKPI"];
+            paper_trading: components["schemas"]["DashboardPaperTradingKPI"];
             generated_at: string;
+        };
+        DashboardPaperTradingInstance: {
+            name: string;
+            running: boolean;
+            strategy: string | null;
+            /** Format: double */
+            pnl: number;
+            open_trades: number;
+            closed_trades: number;
+        };
+        DashboardPaperTradingKPI: {
+            instances_running: number;
+            /** Format: double */
+            total_pnl: number;
+            /** Format: double */
+            total_pnl_pct: number;
+            open_trades: number;
+            closed_trades: number;
+            /** Format: double */
+            win_rate: number;
+            instances: components["schemas"]["DashboardPaperTradingInstance"][];
         };
         DashboardPlatformKPI: {
             data_files: number;
@@ -2182,6 +2204,15 @@ export interface components {
             success: boolean;
             markets_count?: number;
             message: string;
+        };
+        FrameworkStatus: {
+            name: string;
+            installed: boolean;
+            version: string | null;
+            status: string;
+            details: {
+                [key: string]: unknown;
+            } | null;
         };
         HaltRequest: {
             reason: string;
@@ -2545,7 +2576,7 @@ export interface components {
             description?: string;
         };
         PlatformStatus: {
-            frameworks: unknown[];
+            frameworks: components["schemas"]["FrameworkStatus"][];
             data_files: number;
             active_jobs: number;
         };

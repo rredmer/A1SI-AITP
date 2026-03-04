@@ -1,5 +1,6 @@
-# Docker Compose for A1SI-AITP Platform
-# Run: docker-compose up -d
+# Docker Compose for A1SI-AITP Platform (research/optional services)
+# Not the production compose — see docker-compose.yml for main deployment.
+# Run: docker-compose -f configs/docker-compose.platform.yml --profile <profile> up -d
 # Profiles: research, trading, monitoring
 
 version: "3.9"
@@ -10,7 +11,7 @@ services:
   # ──────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: ci-redis
+    container_name: a1si-redis
     ports:
       - "6379:6379"
     volumes:
@@ -24,7 +25,7 @@ services:
   # ──────────────────────────────────────────────
   freqtrade:
     image: freqtradeorg/freqtrade:stable
-    container_name: ci-freqtrade
+    container_name: a1si-freqtrade
     volumes:
       - ./freqtrade/user_data:/freqtrade/user_data
       - ./freqtrade/config.json:/freqtrade/config.json
@@ -34,6 +35,8 @@ services:
       - "8080:8080"  # API/WebUI
     command: trade --config /freqtrade/config.json --strategy CryptoInvestorV1 --strategy-path /freqtrade/user_data/strategies
     environment:
+      - KRAKEN_API_KEY=${KRAKEN_API_KEY:-}
+      - KRAKEN_SECRET=${KRAKEN_SECRET:-}
       - BINANCE_API_KEY=${BINANCE_API_KEY:-}
       - BINANCE_SECRET=${BINANCE_SECRET:-}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
@@ -46,7 +49,7 @@ services:
   # ──────────────────────────────────────────────
   jupyter:
     image: jupyter/scipy-notebook:latest
-    container_name: ci-jupyter
+    container_name: a1si-jupyter
     volumes:
       - ./research:/home/jovyan/research
       - ./data:/home/jovyan/data
@@ -59,13 +62,13 @@ services:
     profiles: ["research", "full"]
 
   # ──────────────────────────────────────────────
-  # Dashboard — Monitoring (Streamlit)
+  # Dashboard — Monitoring (Streamlit, legacy)
   # ──────────────────────────────────────────────
   dashboard:
     build:
       context: .
       dockerfile: Dockerfile.dashboard
-    container_name: ci-dashboard
+    container_name: a1si-dashboard
     volumes:
       - ./dashboard:/app
       - ./data:/app/data

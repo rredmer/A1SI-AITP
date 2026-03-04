@@ -6,6 +6,16 @@ BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 VENV="$BACKEND_DIR/.venv"
 
+# Pre-flight: check ports
+for port in 8000 5173; do
+    if ss -tlnp 2>/dev/null | grep -q ":${port} "; then
+        echo "ERROR: Port $port is already in use."
+        echo "  Check with: ss -tlnp | grep $port"
+        echo "  Docker running? Try: make docker-down"
+        exit 1
+    fi
+done
+
 cleanup() {
     echo ""
     echo "Shutting down..."

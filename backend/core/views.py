@@ -474,6 +474,131 @@ class ScheduledTaskTriggerView(APIView):
         return Response({"error": "Task not found or no executor"}, status=404)
 
 
+def _get_freqtrade_details() -> dict | None:
+    """Get Freqtrade operational details from paper trading instances."""
+    try:
+        from trading.views import _get_paper_trading_services
+
+        services = _get_paper_trading_services()
+        running = 0
+        strategies: list[str] = []
+        total_open = 0
+        last_activity: str | None = None
+
+        for _name, svc in services.items():
+            status = svc.get_status()
+            if status.get("running"):
+                running += 1
+                strat = status.get("strategy")
+                if strat and strat not in strategies:
+                    strategies.append(strat)
+                started = status.get("started_at")
+                if started and (last_activity is None or started > last_activity):
+                    last_activity = started
+                try:
+                    from asgiref.sync import async_to_sync
+
+                    trades = async_to_sync(svc.get_open_trades)()
+                    total_open += len(trades)
+                except Exception:
+                    pass
+
+        return {
+            "_status": "running" if running > 0 else "idle",
+            "instances_running": running,
+            "strategies": strategies,
+            "open_trades": total_open,
+            "last_activity": last_activity,
+        }
+    except Exception:
+        return None
+
+
+def _get_vectorbt_details() -> dict | None:
+    """Get VectorBT operational details from screen results."""
+    try:
+        from django.utils import timezone as dj_tz
+
+        from analysis.models import ScreenResult
+
+        total = ScreenResult.objects.count()
+        distinct_strategies = (
+            ScreenResult.objects.values_list("strategy_name", flat=True).distinct().count()
+        )
+        latest = (
+            ScreenResult.objects.order_by("-created_at")
+            .values_list("created_at", flat=True)
+            .first()
+        )
+        last_screen_at = latest.isoformat() if latest else None
+        is_recent = latest and (dj_tz.now() - latest).total_seconds() < 86400 if latest else False
+
+        return {
+            "_status": "running" if is_recent else "idle",
+            "screens_available": distinct_strategies,
+            "total_screens": total,
+            "last_screen_at": last_screen_at,
+        }
+    except Exception:
+        return None
+
+
+def _get_nautilus_details() -> dict | None:
+    """Get NautilusTrader configuration details."""
+    return {
+        "_status": "idle",
+        "strategies_configured": 7,
+        "asset_classes": ["crypto", "equity", "forex"],
+    }
+
+
+def _get_hft_details() -> dict | None:
+    """Get HFT Backtest configuration details."""
+    return {
+        "_status": "idle",
+        "strategies_configured": 4,
+    }
+
+
+def _get_ccxt_details() -> dict | None:
+    """Get CCXT exchange connection details."""
+    try:
+        import time
+
+        from asgiref.sync import async_to_sync
+
+        from market.services.exchange import ExchangeService
+
+        exchange_id = "kraken"
+        start = time.monotonic()
+
+        def _check():
+            async def _inner():
+                service = ExchangeService(exchange_id=exchange_id)
+                try:
+                    exchange = await service._get_exchange()
+                    await exchange.load_markets()
+                    return True
+                except Exception:
+                    return False
+                finally:
+                    await service.close()
+
+            return async_to_sync(_inner)()
+
+        connected = _check()
+        latency_ms = round((time.monotonic() - start) * 1000, 1)
+
+        return {
+            "_status": "running" if connected else "idle",
+            "exchange": exchange_id,
+            "connected": connected,
+            "latency_ms": latency_ms,
+        }
+    except Exception:
+        return None
+
+
 def _get_framework_status() -> list[dict]:
     from core.platform_bridge import PROJECT_ROOT
 
@@ -485,22 +610,72 @@ def _get_framework_status() -> list[dict]:
         except Exception:
             return None
 
-    def _check(name: str, module: str, fallback_path: str | None = None) -> dict:
+    def _check(
+        name: str,
+        module: str,
+        fallback_path: str | None = None,
+        detail_fn: object | None = None,
+    ) -> dict:
         """Check framework availability via import, falling back to file presence."""
         ver = _try_import(module)
+        details = None
+        status = "not_installed"
+
         if ver:
-            return {"name": name, "installed": True, "version": ver}
+            status = "idle"
+            if detail_fn:
+                try:
+                    details = detail_fn()
+                    if details and details.get("_status"):
+                        status = details.pop("_status")
+                except Exception:
+                    pass
+            return {
+                "name": name, "installed": True,
+                "version": ver, "status": status,
+                "details": details,
+            }
+
         # Fallback: check if framework files are deployed on disk
         if fallback_path and (PROJECT_ROOT / fallback_path).exists():
-            return {"name": name, "installed": True, "version": "configured"}
-        return {"name": name, "installed": False, "version": None}
+            status = "configured"
+            if detail_fn:
+                try:
+                    details = detail_fn()
+                    if details and details.get("_status"):
+                        status = details.pop("_status")
+                except Exception:
+                    pass
+            return {
+                "name": name, "installed": True,
+                "version": "configured", "status": status,
+                "details": details,
+            }
+
+        return {
+            "name": name, "installed": False,
+            "version": None, "status": status,
+            "details": None,
+        }
 
     return [
-        _check("VectorBT", "vectorbt", "research/scripts/vbt_screener.py"),
-        _check("Freqtrade", "freqtrade", "freqtrade/user_data/strategies"),
-        _check("NautilusTrader", "nautilus_trader", "nautilus/nautilus_runner.py"),
-        _check("HFT Backtest", "hftbacktest", "hftbacktest"),
-        _check("CCXT", "ccxt"),
+        _check(
+            "VectorBT", "vectorbt",
+            "research/scripts/vbt_screener.py",
+            _get_vectorbt_details,
+        ),
+        _check(
+            "Freqtrade", "freqtrade",
+            "freqtrade/user_data/strategies",
+            _get_freqtrade_details,
+        ),
+        _check(
+            "NautilusTrader", "nautilus_trader",
+            "nautilus/nautilus_runner.py",
+            _get_nautilus_details,
+        ),
+        _check("HFT Backtest", "hftbacktest", "hftbacktest", _get_hft_details),
+        _check("CCXT", "ccxt", None, _get_ccxt_details),
         _check("Pandas", "pandas"),
         _check("TA-Lib", "talib"),
     ]

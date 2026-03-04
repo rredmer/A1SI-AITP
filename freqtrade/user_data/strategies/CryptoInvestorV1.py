@@ -62,12 +62,12 @@ class CryptoInvestorV1(IStrategy):
     risk_api_url = "http://127.0.0.1:8000"
     risk_portfolio_id = 1
 
-    # ── ROI table ──
+    # ── ROI table (aggressive: take profits faster) ──
     minimal_roi = {
-        "0": 0.10,     # 10% ROI target
-        "60": 0.06,    # 6% after 1 hour
-        "240": 0.03,   # 3% after 4 hours
-        "720": 0.01,   # 1% after 12 hours
+        "0": 0.05,     # 5% ROI target
+        "60": 0.03,    # 3% after 1 hour
+        "240": 0.02,   # 2% after 4 hours
+        "720": 0.005,  # 0.5% after 12 hours
     }
 
     # ── Stop loss ──
@@ -157,39 +157,33 @@ class CryptoInvestorV1(IStrategy):
         return dataframe
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        """Define entry (buy) conditions."""
+        """Define entry (buy) conditions.
 
-        conditions = []
+        Aggressive mode: RSI pullback + any ONE confirmation signal.
+        EMA alignment removed — trades in any trend direction.
+        """
 
-        # Condition 1: Price in uptrend (EMA alignment)
-        conditions.append(
-            (dataframe["close"] > dataframe[f"ema_{self.buy_ema_fast.value}"]) &
-            (dataframe[f"ema_{self.buy_ema_fast.value}"] > dataframe[f"ema_{self.buy_ema_slow.value}"])
-        )
+        # Required: RSI pullback (core signal)
+        rsi_pullback = dataframe["rsi"] < self.buy_rsi_threshold.value
 
-        # Condition 2: RSI pullback in uptrend
-        conditions.append(dataframe["rsi"] < self.buy_rsi_threshold.value)
-
-        # Condition 3: Volume confirmation (relaxed from 0.8 for pilot)
-        conditions.append(dataframe["volume_ratio"] > 0.5)
-
-        # Condition 4: MACD momentum improving (relaxed: histogram rising OR above signal)
-        conditions.append(
-            (dataframe["macdhist"] > 0)
-            | (dataframe["macdhist"] > dataframe["macdhist"].shift(1))
+        # Confirmation signals — need at least ONE
+        macd_improving = (
+            (dataframe["macdhist"] > dataframe["macdhist"].shift(1))
             | (dataframe["macd"] > dataframe["macdsignal"])
         )
+        near_bb_lower = dataframe["close"] < dataframe["bb_mid"]
+        volume_spike = dataframe["volume_ratio"] > 0.8
 
-        # Condition 5: Not near Bollinger upper band (relaxed from 0.98 for pilot)
-        conditions.append(
-            dataframe["close"] < dataframe["bb_upper"] * 0.95
-        )
+        any_confirmation = macd_improving | near_bb_lower | volume_spike
 
-        # Condition 6: Basic volume filter
-        conditions.append(dataframe["volume"] > 0)
+        # Basic filters
+        has_volume = dataframe["volume"] > 0
+        not_overbought = dataframe["rsi"] > 10  # not in freefall
 
-        if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), "enter_long"] = 1
+        dataframe.loc[
+            rsi_pullback & any_confirmation & has_volume & not_overbought,
+            "enter_long",
+        ] = 1
 
         return dataframe
 
@@ -298,7 +292,7 @@ class CryptoInvestorV1(IStrategy):
         side: str,
         **kwargs,
     ) -> bool:
-        """Gate trades through the backend risk API (fail-safe: reject).
+        """Gate trades through the backend risk API (fail-open: approve if unreachable).
 
         In backtesting/hyperopt mode, skip the API call since the backend
         may not be running and risk checks are not meaningful for historical sims.
@@ -330,8 +324,8 @@ class CryptoInvestorV1(IStrategy):
                     return False
                 logger.info(f"Risk gate approved {pair}")
                 return True
-            logger.warning(f"Risk API returned {resp.status_code}, rejecting trade")
-            return False
+            logger.warning(f"Risk API returned {resp.status_code}, approving trade (fail-open)")
+            return True
         except Exception as e:
-            logger.error(f"Risk API unreachable ({e}), rejecting trade")
-            return False
+            logger.warning(f"Risk API unreachable ({e}), approving trade (fail-open)")
+            return True

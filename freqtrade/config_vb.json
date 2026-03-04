@@ -1,13 +1,13 @@
 {
     "trading_mode": "spot",
     "margin_mode": "",
-    "max_open_trades": 3,
+    "max_open_trades": 1,
     "stake_currency": "USDT",
     "stake_amount": "unlimited",
-    "tradable_balance_ratio": 0.99,
+    "tradable_balance_ratio": 0.90,
     "fiat_display_currency": "USD",
     "dry_run": true,
-    "dry_run_wallet": 10000,
+    "dry_run_wallet": 100,
     "cancel_open_orders_on_exit": false,
     "unfilledtimeout": {
         "entry": 10,
@@ -37,16 +37,29 @@
         "ccxt_config": {},
         "ccxt_sync_config": {},
         "ccxt_async_config": {},
-        "pair_whitelist": [
-            "BTC/USDT",
-            "ETH/USDT",
-            "SOL/USDT"
-        ],
-        "pair_blacklist": []
+        "pair_whitelist": [],
+        "pair_blacklist": [
+            ".*DOWN/.*",
+            ".*UP/.*",
+            ".*BEAR/.*",
+            ".*BULL/.*"
+        ]
     },
     "pairlists": [
         {
-            "method": "StaticPairList"
+            "method": "VolumePairList",
+            "number_assets": 12,
+            "sort_key": "quoteVolume",
+            "min_value": 0,
+            "refresh_period": 1800
+        },
+        {
+            "method": "AgeFilter",
+            "min_days_listed": 30
+        },
+        {
+            "method": "SpreadFilter",
+            "max_spread_ratio": 0.005
         }
     ],
     "telegram": {
