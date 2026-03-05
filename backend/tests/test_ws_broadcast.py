@@ -117,3 +117,23 @@ class TestBroadcastHelpers:
 
         event = mock_layer.group_send.call_args[0][1]
         assert event["data"]["sentiment_summary"] == {}
+
+    @patch("channels.layers.get_channel_layer")
+    def test_broadcast_opportunity_alert(self, mock_get_layer):
+        mock_layer = MagicMock()
+        mock_get_layer.return_value = mock_layer
+
+        from core.services.ws_broadcast import broadcast_opportunity
+
+        broadcast_opportunity(
+            symbol="BTC/USDT",
+            opportunity_type="breakout",
+            score=82,
+            details={"asset_class": "crypto"},
+        )
+
+        event = mock_layer.group_send.call_args[0][1]
+        assert event["type"] == "opportunity_alert"
+        assert event["data"]["symbol"] == "BTC/USDT"
+        assert event["data"]["opportunity_type"] == "breakout"
+        assert event["data"]["score"] == 82

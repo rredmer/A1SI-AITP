@@ -164,6 +164,15 @@ class SystemEventsConsumer(ConnectionLimiterMixin, AsyncJsonWebsocketConsumer):
             }
         )
 
+    async def opportunity_alert(self, event):
+        """Handle opportunity_alert messages."""
+        await self.send_json(
+            {
+                "type": "opportunity_alert",
+                "data": event["data"],
+            }
+        )
+
     @database_sync_to_async
     def _is_authenticated(self) -> bool:
         user = self.scope.get("user")
