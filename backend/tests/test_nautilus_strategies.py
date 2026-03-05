@@ -271,14 +271,14 @@ class TestTrendFollowing:
         from nautilus.strategies.trend_following import NautilusTrendFollowing
 
         s = NautilusTrendFollowing()
-        # Craft indicators: uptrend (ema_50 > ema_200, close > ema_50),
+        # Craft indicators: uptrend (ema_21 > ema_100, close > ema_21),
         # RSI pulled back, volume ok, MACD hist negative but rising, not near BB
         ind = pd.Series(
             {
                 "close": 105.0,
-                "ema_50": 102.0,
-                "ema_200": 100.0,
-                "rsi_14": 35.0,  # below buy_rsi_threshold (40)
+                "ema_21": 102.0,
+                "ema_100": 100.0,
+                "rsi_14": 35.0,  # below buy_rsi_threshold (45)
                 "volume_ratio": 1.0,
                 "macd_hist": -0.1,  # negative
                 "macd_hist_prev": -0.5,  # but rising (prev was more negative)
@@ -295,8 +295,8 @@ class TestTrendFollowing:
         ind = pd.Series(
             {
                 "close": 105.0,
-                "ema_50": 102.0,
-                "ema_200": 100.0,
+                "ema_21": 102.0,
+                "ema_100": 100.0,
                 "rsi_14": 35.0,
                 "volume_ratio": 1.0,
                 "macd_hist": -0.5,  # negative

@@ -3,7 +3,7 @@ NautilusTrendFollowing — ports CryptoInvestorV1 logic
 ======================================================
 EMA alignment + RSI pullback + MACD confirmation.
 
-Entry: price > EMA50 > EMA200, RSI < 40, volume above average, MACD histogram positive.
+Entry: price > EMA21 > EMA100, RSI < 45, volume above average, MACD histogram positive or turning.
 Exit: RSI > 80 OR price closes below EMA50.
 """
 
@@ -18,10 +18,10 @@ class NautilusTrendFollowing(NautilusStrategyBase):
     stoploss = -0.05
     atr_multiplier = 2.0
 
-    # Mirrors CryptoInvestorV1 defaults
-    ema_fast: int = 50
-    ema_slow: int = 200
-    buy_rsi_threshold: int = 40
+    # Relaxed to match CryptoInvestorV1 sprint P15 params
+    ema_fast: int = 21
+    ema_slow: int = 100
+    buy_rsi_threshold: int = 45
     sell_rsi_threshold: int = 80
 
     def should_enter(self, ind: pd.Series) -> bool:

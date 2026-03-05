@@ -40,18 +40,41 @@ class TestBacktestResultPersistence:
         job.completed_at = datetime.now(timezone.utc)
         job.save()
 
-        if job.job_type == "backtest" and isinstance(result, dict) and "error" not in result:
-            BacktestResult.objects.create(
-                job=job,
-                framework=result.get("framework", ""),
-                strategy_name=result.get("strategy", ""),
-                symbol=result.get("symbol", ""),
-                timeframe=result.get("timeframe", ""),
-                timerange=job.params.get("timerange", "") if job.params else "",
-                metrics=result.get("metrics"),
-                trades=result.get("trades"),
-                config=job.params,
-            )
+        _BACKTEST_JOB_TYPES = {
+            "backtest",
+            "scheduled_nautilus_backtest",
+            "scheduled_hft_backtest",
+        }
+        if job.job_type in _BACKTEST_JOB_TYPES and isinstance(result, dict):
+            if result.get("results") and result.get("status") == "completed":
+                # Multi-strategy result (nautilus/hft executors)
+                for sub in result["results"]:
+                    if sub.get("status") == "completed" and sub.get("result"):
+                        sub_result = sub["result"]
+                        BacktestResult.objects.create(
+                            job=job,
+                            framework=result.get("framework", ""),
+                            asset_class=result.get("asset_class", "crypto"),
+                            strategy_name=sub.get("strategy", ""),
+                            symbol=sub.get("symbol", ""),
+                            timeframe=sub_result.get("timeframe", (job.params or {}).get("timeframe", "")),
+                            metrics=sub_result.get("metrics"),
+                            trades=sub_result.get("trades"),
+                            config=job.params,
+                        )
+            elif "error" not in result:
+                # Flat result (direct backtest job)
+                BacktestResult.objects.create(
+                    job=job,
+                    framework=result.get("framework", ""),
+                    strategy_name=result.get("strategy", ""),
+                    symbol=result.get("symbol", ""),
+                    timeframe=result.get("timeframe", ""),
+                    timerange=(job.params or {}).get("timerange", ""),
+                    metrics=result.get("metrics"),
+                    trades=result.get("trades"),
+                    config=job.params,
+                )
 
     def test_nautilus_result_persisted(self):
         """Successful Nautilus backtest creates a BacktestResult record."""

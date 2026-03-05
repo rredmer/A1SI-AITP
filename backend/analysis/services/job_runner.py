@@ -167,20 +167,43 @@ class JobRunner:
                 pass
 
             # Persist structured result for backtest jobs
-            if job.job_type == "backtest" and isinstance(result, dict) and "error" not in result:
+            _BACKTEST_JOB_TYPES = {
+                "backtest",
+                "scheduled_nautilus_backtest",
+                "scheduled_hft_backtest",
+            }
+            if job.job_type in _BACKTEST_JOB_TYPES and isinstance(result, dict):
                 from analysis.models import BacktestResult
 
-                BacktestResult.objects.create(
-                    job=job,
-                    framework=result.get("framework", params.get("framework", "")),
-                    strategy_name=result.get("strategy", params.get("strategy", "")),
-                    symbol=result.get("symbol", params.get("symbol", "")),
-                    timeframe=result.get("timeframe", params.get("timeframe", "")),
-                    timerange=params.get("timerange", ""),
-                    metrics=result.get("metrics"),
-                    trades=result.get("trades"),
-                    config=params,
-                )
+                if result.get("results") and result.get("status") == "completed":
+                    # Multi-strategy result (nautilus/hft executors)
+                    for sub in result["results"]:
+                        if sub.get("status") == "completed" and sub.get("result"):
+                            sub_result = sub["result"]
+                            BacktestResult.objects.create(
+                                job=job,
+                                framework=result.get("framework", ""),
+                                asset_class=result.get("asset_class", "crypto"),
+                                strategy_name=sub.get("strategy", ""),
+                                symbol=sub.get("symbol", ""),
+                                timeframe=sub_result.get("timeframe", params.get("timeframe", "")),
+                                metrics=sub_result.get("metrics"),
+                                trades=sub_result.get("trades"),
+                                config=params,
+                            )
+                elif "error" not in result:
+                    # Flat result (direct backtest job)
+                    BacktestResult.objects.create(
+                        job=job,
+                        framework=result.get("framework", params.get("framework", "")),
+                        strategy_name=result.get("strategy", params.get("strategy", "")),
+                        symbol=result.get("symbol", params.get("symbol", "")),
+                        timeframe=result.get("timeframe", params.get("timeframe", "")),
+                        timerange=params.get("timerange", ""),
+                        metrics=result.get("metrics"),
+                        trades=result.get("trades"),
+                        config=params,
+                    )
         except Exception as e:
             logger.exception(f"Job {job_id} failed: {e}")
             _job_progress[job_id] = {"progress": 0.0, "progress_message": f"Failed: {e}"}

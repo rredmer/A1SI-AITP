@@ -386,6 +386,12 @@ if __name__ == "__main__":
     bt.add_argument("--timeframe", default="1h")
     bt.add_argument("--exchange", default="kraken")
     bt.add_argument("--balance", type=float, default=10000.0)
+    bt.add_argument(
+        "--asset-class",
+        choices=["crypto", "equity", "forex"],
+        default="crypto",
+        help="Asset class (determines data source and strategy subset)",
+    )
 
     # List strategies
     sub.add_parser("list-strategies", help="List registered strategies")
@@ -403,6 +409,7 @@ if __name__ == "__main__":
     elif args.command == "backtest":
         result = run_nautilus_backtest(
             args.strategy, args.symbol, args.timeframe, args.exchange, args.balance,
+            asset_class=args.asset_class,
         )
         print(json.dumps(result, indent=2, default=str))
     elif args.command == "list-strategies":
