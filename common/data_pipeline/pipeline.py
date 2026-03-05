@@ -99,7 +99,7 @@ def get_last_timestamp(
             last_ts = last_ts.tz_localize("UTC")
         return last_ts.to_pydatetime()
     except Exception:
-        logger.warning(f"Could not read last timestamp from {path}")
+        logger.error(f"Corrupt or unreadable parquet file: {path}", exc_info=True)
         return None
 
 
@@ -270,10 +270,14 @@ def load_ohlcv(
     path = _parquet_path(symbol, timeframe, exchange_id, directory)
 
     if not path.exists():
-        logger.warning(f"No data file found at {path}")
+        logger.warning(f"No data file at {path}")
         return pd.DataFrame()
 
-    df = pd.read_parquet(path)
+    try:
+        df = pd.read_parquet(path)
+    except Exception:
+        logger.error(f"Failed to read parquet file {path}", exc_info=True)
+        return pd.DataFrame()
 
     if start:
         df = df[df.index >= pd.Timestamp(start, tz="UTC")]

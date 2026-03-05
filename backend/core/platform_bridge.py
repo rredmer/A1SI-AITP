@@ -2,8 +2,11 @@
 Platform bridge — resolves sys.path so backend can import common.*, research.*, nautilus.*.
 """
 
+import logging
 import sys
 from pathlib import Path
+
+logger = logging.getLogger("platform_bridge")
 
 # Project root: platform_bridge.py -> core -> backend -> A1SI-AITP
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -41,11 +44,24 @@ def get_platform_config_path() -> Path:
 
 
 def get_platform_config() -> dict:
-    """Load and return the platform config as a dict."""
+    """Load and return the platform config as a dict.
+
+    Logs an error if the config file is missing or unreadable — this is
+    always a problem since all scheduled tasks depend on it.
+    """
     import yaml
 
     path = get_platform_config_path()
     if not path.exists():
+        logger.error("Platform config not found at %s — all tasks will use empty defaults", path)
         return {}
-    with open(path) as f:
-        return yaml.safe_load(f) or {}
+    try:
+        with open(path) as f:
+            cfg = yaml.safe_load(f)
+        if not cfg:
+            logger.error("Platform config at %s is empty — all tasks will use empty defaults", path)
+            return {}
+        return cfg
+    except Exception as e:
+        logger.error("Failed to parse platform config at %s: %s", path, e)
+        return {}

@@ -42,8 +42,25 @@ def _run_data_refresh(params: dict, progress_cb: ProgressCallback) -> dict[str, 
     )
     progress_cb(0.9, "Data refresh complete")
 
-    saved = sum(1 for v in results.values() if v is not None)
-    return {"status": "completed", "symbols": len(symbols), "saved": saved}
+    succeeded = sum(
+        1 for v in results.values()
+        if isinstance(v, dict) and v.get("status") == "ok"
+    )
+    failed = sum(
+        1 for v in results.values()
+        if isinstance(v, dict) and v.get("status") == "error"
+    )
+    if failed:
+        logger.error(
+            "Data refresh: %d/%d symbols failed to download",
+            failed, len(results),
+        )
+    return {
+        "status": "completed" if succeeded > 0 else "error",
+        "symbols": len(symbols),
+        "saved": succeeded,
+        "failed": failed,
+    }
 
 
 # Track last known regimes for transition detection
@@ -80,7 +97,7 @@ def _run_regime_detection(params: dict, progress_cb: ProgressCallback) -> dict[s
 
         return {"status": "completed", "regimes_detected": len(regimes)}
     except Exception as e:
-        logger.warning("Regime detection failed: %s", e)
+        logger.error("Regime detection failed: %s", e)
         return {"status": "error", "error": str(e)}
 
 
@@ -125,7 +142,7 @@ def _run_order_sync(params: dict, progress_cb: ProgressCallback) -> dict[str, An
             async_to_sync(LiveTradingService.sync_order)(order)
             synced += 1
         except Exception as exc:
-            logger.warning("Order sync failed for %s: %s", order.id, exc)
+            logger.error("Order sync failed for %s: %s", order.id, exc)
             errors += 1
 
         progress_cb((i + 1) / max(total, 1), f"Synced {i + 1}/{total}")
@@ -167,7 +184,7 @@ def _run_data_quality(params: dict, progress_cb: ProgressCallback) -> dict[str, 
         progress_cb(0.9, f"Validated {len(reports)} files")
         return {"status": "completed", "quality_summary": summary}
     except Exception as e:
-        logger.warning("Data quality check failed: %s", e)
+        logger.error("Data quality check failed: %s", e)
         return {"status": "error", "error": str(e)}
 
 
@@ -231,13 +248,13 @@ def _run_risk_monitoring(params: dict, progress_cb: ProgressCallback) -> dict[st
                 result = RiskManagementService.periodic_risk_check(pid)
                 results.append(result)
             except Exception as e:
-                logger.warning("Risk check failed for portfolio %s: %s", pid, e)
+                logger.error("Risk check failed for portfolio %s: %s", pid, e)
                 results.append({"portfolio_id": pid, "status": "error", "error": str(e)})
             progress_cb(0.1 + 0.8 * (i + 1) / len(portfolios), f"Checked portfolio {pid}")
 
         return {"status": "completed", "portfolios_checked": len(portfolios), "results": results}
     except Exception as e:
-        logger.warning("Risk monitoring failed: %s", e)
+        logger.error("Risk monitoring failed: %s", e)
         return {"status": "error", "error": str(e)}
 
 
@@ -344,7 +361,7 @@ def _run_market_scan(params: dict, progress_cb: ProgressCallback) -> dict[str, A
         progress_cb(0.9, "Market scan complete")
         return result
     except Exception as e:
-        logger.warning("Market scan failed: %s", e)
+        logger.error("Market scan failed: %s", e)
         return {"status": "error", "error": str(e)}
 
 
@@ -381,7 +398,7 @@ def _run_daily_report(params: dict, progress_cb: ProgressCallback) -> dict[str, 
 
         return {"status": "completed", "report": report}
     except Exception as e:
-        logger.warning("Daily report failed: %s", e)
+        logger.error("Daily report generation failed: %s", e)
         return {"status": "error", "error": str(e)}
 
 
@@ -396,7 +413,7 @@ def _run_forex_paper_trading(params: dict, progress_cb: ProgressCallback) -> dic
         progress_cb(0.9, "Forex paper trading cycle complete")
         return result
     except Exception as e:
-        logger.warning("Forex paper trading cycle failed: %s", e)
+        logger.error("Forex paper trading cycle failed: %s", e)
         return {"status": "error", "error": str(e)}
 
 

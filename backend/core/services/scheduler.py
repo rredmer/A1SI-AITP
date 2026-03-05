@@ -71,6 +71,11 @@ class TaskScheduler:
         atexit.register(self.shutdown)
         logger.info("TaskScheduler started with %d tasks", self._active_task_count())
 
+        # Validate watchlist symbols against exchange in background
+        threading.Thread(
+            target=self._validate_watchlist, daemon=True, name="watchlist-validator"
+        ).start()
+
     def shutdown(self) -> None:
         """Gracefully stop the scheduler."""
         if self._scheduler and self._running:
@@ -163,6 +168,57 @@ class TaskScheduler:
         from core.models import ScheduledTask
 
         return ScheduledTask.objects.filter(status=ScheduledTask.ACTIVE).count()
+
+    def _validate_watchlist(self) -> None:
+        """Validate watchlist symbols against the exchange on startup.
+
+        Logs ERROR for each symbol that doesn't exist on the configured exchange.
+        Runs in a background thread to avoid blocking scheduler startup.
+        """
+        try:
+            from core.platform_bridge import ensure_platform_imports, get_platform_config
+
+            ensure_platform_imports()
+            config = get_platform_config()
+            if not config:
+                return  # Already logged by get_platform_config
+
+            data_cfg = config.get("data", {})
+            watchlists = {
+                "crypto": data_cfg.get("watchlist", []),
+                "equity": data_cfg.get("equity_watchlist", []),
+                "forex": data_cfg.get("forex_watchlist", []),
+            }
+
+            # Only validate crypto watchlist against exchange — equity/forex use yfinance
+            crypto_symbols = watchlists.get("crypto", [])
+            if not crypto_symbols:
+                return
+
+            import ccxt
+
+            exchange_cfg = config.get("exchanges", {}).get("kraken", {})
+            exchange_id = exchange_cfg.get("exchange_id", "kraken")
+            exchange = getattr(ccxt, exchange_id)()
+            exchange.load_markets()
+
+            invalid = [s for s in crypto_symbols if s not in exchange.markets]
+            if invalid:
+                logger.error(
+                    "WATCHLIST VALIDATION: %d/%d crypto symbols NOT found on %s: %s",
+                    len(invalid),
+                    len(crypto_symbols),
+                    exchange_id,
+                    ", ".join(invalid),
+                )
+            else:
+                logger.info(
+                    "Watchlist validation passed: all %d crypto symbols exist on %s",
+                    len(crypto_symbols),
+                    exchange_id,
+                )
+        except Exception:
+            logger.exception("Watchlist validation failed")
 
     def _execute_task(self, task_id: str) -> None:
         """Execute a scheduled task via JobRunner."""
@@ -388,7 +444,7 @@ class TaskScheduler:
             except Exception:
                 pass
         except Exception as e:
-            logger.warning("Scheduled workflow %s failed: %s", workflow_id, e)
+            logger.error("Scheduled workflow %s failed: %s", workflow_id, e, exc_info=True)
 
     def get_status(self) -> dict[str, Any]:
         """Return scheduler status summary."""
